@@ -1,0 +1,250 @@
+[gd_scene load_steps=3 format=3 uid="uid://c8mvivants01"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/NetworkClient.gd" id="2_net"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="NetworkClient" type="Node" parent="."]
+script = ExtResource("2_net")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.07, 0.08, 0.12, 1.0)
+
+[node name="WorldArea" type="Node2D" parent="."]
+
+[node name="ZonePharmacie" type="ColorRect" parent="WorldArea"]
+offset_left = 60.0
+offset_top = 80.0
+offset_right = 300.0
+offset_bottom = 220.0
+color = Color(0.12, 0.22, 0.18, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZonePharmacie"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "1. PHARMACIE"
+horizontal_alignment = 1
+
+[node name="ZoneTerrain" type="ColorRect" parent="WorldArea"]
+offset_left = 330.0
+offset_top = 80.0
+offset_right = 570.0
+offset_bottom = 220.0
+color = Color(0.22, 0.18, 0.12, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZoneTerrain"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "6. TERRAIN DE SPORT"
+horizontal_alignment = 1
+
+[node name="ZoneReseaux" type="ColorRect" parent="WorldArea"]
+offset_left = 600.0
+offset_top = 80.0
+offset_right = 840.0
+offset_bottom = 220.0
+color = Color(0.18, 0.14, 0.25, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZoneReseaux"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "4. RÉSEAUX SOCIAUX"
+horizontal_alignment = 1
+
+[node name="ZoneDomicile" type="ColorRect" parent="WorldArea"]
+offset_left = 330.0
+offset_top = 270.0
+offset_right = 570.0
+offset_bottom = 410.0
+color = Color(0.16, 0.16, 0.20, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZoneDomicile"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "7. DOMICILE"
+horizontal_alignment = 1
+
+[node name="ZonePlage" type="ColorRect" parent="WorldArea"]
+offset_left = 60.0
+offset_top = 460.0
+offset_right = 300.0
+offset_bottom = 600.0
+color = Color(0.25, 0.23, 0.12, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZonePlage"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "2. PLAGE"
+horizontal_alignment = 1
+
+[node name="ZonePiscine" type="ColorRect" parent="WorldArea"]
+offset_left = 330.0
+offset_top = 460.0
+offset_right = 570.0
+offset_bottom = 600.0
+color = Color(0.12, 0.20, 0.28, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZonePiscine"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "3. PISCINE / CLUB"
+horizontal_alignment = 1
+
+[node name="ZoneCentreCom" type="ColorRect" parent="WorldArea"]
+offset_left = 600.0
+offset_top = 460.0
+offset_right = 840.0
+offset_bottom = 600.0
+color = Color(0.20, 0.16, 0.18, 0.7)
+
+[node name="Label" type="Label" parent="WorldArea/ZoneCentreCom"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 230.0
+offset_bottom = 32.0
+text = "5. CENTRE COMMERCIAL"
+horizontal_alignment = 1
+
+[node name="AgentsContainer" type="Node2D" parent="WorldArea"]
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="HeaderBar" type="ColorRect" parent="HUD"]
+offset_right = 1280.0
+offset_bottom = 50.0
+color = Color(0.05, 0.05, 0.08, 0.95)
+
+[node name="Title" type="Label" parent="HUD/HeaderBar"]
+layout_mode = 0
+offset_left = 20.0
+offset_top = 12.0
+offset_right = 380.0
+offset_bottom = 38.0
+text = "MONDES VIVANTS — Tendance Novalis (Éphémère)"
+
+[node name="ClockSim" type="Label" parent="HUD"]
+offset_left = 440.0
+offset_top = 12.0
+offset_right = 580.0
+offset_bottom = 38.0
+text = "Simulé: J1 · 08:00"
+
+[node name="ClockReal" type="Label" parent="HUD"]
+offset_left = 600.0
+offset_top = 12.0
+offset_right = 720.0
+offset_bottom = 38.0
+text = "Réel: 00:00"
+
+[node name="StatusLabel" type="Label" parent="HUD"]
+offset_left = 730.0
+offset_top = 12.0
+offset_right = 910.0
+offset_bottom = 38.0
+text = "○ Recherche passerelle..."
+
+[node name="BottomBar" type="ColorRect" parent="HUD"]
+offset_top = 640.0
+offset_right = 890.0
+offset_bottom = 720.0
+color = Color(0.05, 0.05, 0.08, 0.95)
+
+[node name="BtnRupture" type="Button" parent="HUD"]
+offset_left = 20.0
+offset_top = 655.0
+offset_right = 230.0
+offset_bottom = 705.0
+text = "⚡ Rupture Pharmacie (D3)"
+
+[node name="BtnReseaux" type="Button" parent="HUD"]
+offset_left = 250.0
+offset_top = 655.0
+offset_right = 470.0
+offset_bottom = 705.0
+text = "⚡ Buzz Réseaux Sociaux (D3)"
+
+[node name="BtnCanicule" type="Button" parent="HUD"]
+offset_left = 490.0
+offset_top = 655.0
+offset_right = 700.0
+offset_bottom = 705.0
+text = "⚡ Pic d'UV / Canicule (D3)"
+
+[node name="InspectorPanel" type="Panel" parent="."]
+offset_left = 890.0
+offset_top = 50.0
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="VBox" type="VBoxContainer" parent="InspectorPanel"]
+layout_mode = 0
+offset_left = 15.0
+offset_top = 15.0
+offset_right = 375.0
+offset_bottom = 655.0
+theme_override_constants/separation = 10
+
+[node name="Header" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "INSPECTION AGENT (Exigence D2)"
+
+[node name="AgentId" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Agent : Aucun sélectionné"
+
+[node name="Engine" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Moteur : –"
+
+[node name="Location" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Zone : –"
+
+[node name="Opinion" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Avis : –"
+
+[node name="Product" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Flacon Novalis : –"
+
+[node name="ReasoningTitle" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Dernière justification / réflexion :"
+
+[node name="Reasoning" type="TextEdit" parent="InspectorPanel/VBox"]
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+editable = false
+wrap_mode = 1
+
+[node name="MemTitle" type="Label" parent="InspectorPanel/VBox"]
+layout_mode = 2
+text = "Journal de mémoire (A1) :"
+
+[node name="MemLog" type="ItemList" parent="InspectorPanel/VBox"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2

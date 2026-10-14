@@ -1,0 +1,16 @@
+# Client Kafka pour Python
+kafka-python-ng>=2.2.2
+
+# Validation des contrats de données et des schémas d'événements (Exigence F4)
+pydantic>=2.7.0
+
+# Client HTTP pour dialoguer avec l'API Ollama (LLM) et Godot si besoin
+httpx>=0.27.0
+requests>=2.32.0
+
+# Utilitaires de dates et de calcul
+python-dateutil>=2.9.0
+numpy>=1.26.0
+
+# Passerelle WebSocket pour Godot Engine
+websockets>=12.0
