@@ -1,4 +1,6 @@
+aiokafka==0.14.0
 annotated-types==0.8.0
+async-timeout==5.0.1
 colorama==0.4.6
 iniconfig==2.3.1
 packaging==26.3
@@ -7,7 +9,9 @@ pydantic==2.14.1
 pydantic_core==2.50.1
 Pygments==2.21.0
 pytest==9.1.1
+python-dotenv==1.2.4
 PyYAML==6.0.3
+redis==8.1.0
 ruff==0.17.1
 setuptools==84.0.0
 typing-inspection==0.4.4

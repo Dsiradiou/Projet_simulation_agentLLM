@@ -50,7 +50,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | --- | --- | --- |
 | 0 | Nettoyage du dépôt | ✅ terminée |
 | 1 | Squelette du dépôt (arborescence, configuration, outillage) | ✅ terminée |
-| 2 | Infrastructure Docker (Kafka, Redis) | à venir |
+| 2 | Infrastructure Docker (Kafka, Redis) | ✅ terminée |
 | 3 | Mesure de la machine (benchmark Ollama) | à venir |
 | 4 | Contrat d'événements | à venir |
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | à venir |
@@ -70,16 +70,27 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 
 ## Installation
 
-Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`). Les prérequis suivants
-(Docker, Ollama, Godot) seront ajoutés aux étapes qui les utilisent.
+Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`) et **Docker Desktop**
+(sous Windows, avec le moteur WSL2). Les prérequis suivants (Ollama, Godot) seront ajoutés aux
+étapes qui les utilisent.
 
 ```powershell
+# 1. Environnement Python
 py -V:3.12 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.lock   # versions figées
 .venv\Scripts\python -m pip install -e . --no-deps          # le projet lui-même
-copy .env.example .env                                      # puis compléter .env
-.venv\Scripts\python -m pytest                              # vérification
+copy .env.example .env                                      # adresses des services, clés facultatives
+
+# 2. Infrastructure : Kafka 4.3.1 (mode KRaft) et Redis 8.8.3
+docker compose up -d --wait
+.venv\Scripts\python -m bus.topics                          # crée les 7 topics sim.*
+
+# 3. Vérification
+.venv\Scripts\python -m pytest
 ```
+
+Les tests d'intégration (`tests/test_infra.py`) sont ignorés, avec un message, si Kafka ou Redis
+ne répondent pas. Pour arrêter l'infrastructure : `docker compose down`.
 
 Sous Linux ou macOS : `python3.12 -m venv .venv`, puis `.venv/bin/python` à la place de
 `.venv\Scripts\python`.

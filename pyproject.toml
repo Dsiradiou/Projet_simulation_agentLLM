@@ -11,8 +11,11 @@ requires-python = "==3.12.*"
 # Dépendances directes, versions exactes. Les dépendances indirectes sont figées dans
 # requirements.lock (voir README, section Installation).
 dependencies = [
+    "aiokafka==0.14.0",
     "pydantic==2.14.1",
+    "python-dotenv==1.2.4",
     "PyYAML==6.0.3",
+    "redis==8.1.0",
 ]
 
 [project.optional-dependencies]
@@ -33,3 +36,4 @@ select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["integration: nécessite Kafka et Redis lancés (docker compose up -d)"]

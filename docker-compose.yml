@@ -1,0 +1,56 @@
+# Infrastructure locale : Kafka (bus d'événements) et Redis (état courant du monde).
+# Ollama tourne sur l'hôte, pas dans Docker (accès direct au GPU sous Windows).
+# Lancement : docker compose up -d    Arrêt : docker compose down
+name: ephemere
+
+services:
+  kafka:
+    image: apache/kafka:4.3.1
+    ports:
+      - "9092:9092"
+    environment:
+      # Un seul nœud qui joue broker et contrôleur : mode KRaft, sans ZooKeeper.
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      # Un seul broker : facteur de réplication 1 partout.
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      # Les topics sont créés explicitement par `python -m bus.topics` : un nom de topic mal
+      # orthographié produit une erreur au lieu de créer un topic fantôme.
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      # Tas Java limité à 1 Go pour laisser la RAM aux autres composants.
+      KAFKA_HEAP_OPTS: "-Xms1g -Xmx1g"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.8.3-alpine
+    ports:
+      - "6379:6379"
+    # État courant uniquement, reconstruit à chaque run : aucune persistance sur disque.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  kafka-data:

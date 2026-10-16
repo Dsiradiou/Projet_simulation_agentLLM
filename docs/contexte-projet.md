@@ -303,6 +303,7 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Prototype antérieur abandonné, développement repris de zéro étape par étape. |
 | 16 oct. | Python 3.12. Scène Godot en 3D low-poly sur rendu léger : bâtiments distincts par zone, plage avec sable et mer, personnages animés. Modèles 3D gratuits, choisis par le binôme sur maquettes. |
 | 16 oct. | Dépendances : pip + `requirements.lock`. Configuration des runs en YAML validée par Pydantic. |
+| 16 oct. | Kafka 4.3.1 et Redis 8.8.3 sous Docker. Une partition par topic (ordre total, rejeu), rétention 7 jours, création automatique des topics désactivée. Redis sans persistance. Client Kafka : aiokafka. |
 
 ---
 

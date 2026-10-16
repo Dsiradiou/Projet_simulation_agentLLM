@@ -61,7 +61,7 @@ exigences de l'énoncé.</p>
   <tr><td>0</td><td>Nettoyage du dépôt</td><td>Retrait du prototype non conforme, mise à jour de CLAUDE.md, README et journal</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 1 — Fondations</strong></td></tr>
   <tr><td>1</td><td>Squelette du dépôt</td><td>Arborescence, <code>.gitignore</code>, <code>.env.example</code>, Python 3.12, ruff, fichier de configuration</td><td class="ok">terminée</td></tr>
-  <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="todo">à venir</td></tr>
+  <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="ok">terminée</td></tr>
   <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
   <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="todo">à venir</td></tr>
@@ -293,6 +293,120 @@ corpus/ godot/        à remplir aux étapes 10 et 12</pre>
 <h3>Prochaine étape</h3>
 <p>Étape 2 — Infrastructure Docker : Kafka en mode KRaft et Redis, versions figées, création des
 7 topics <code>sim.*</code>, et vérification que Python peut y écrire et y lire.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 2 — Infrastructure Docker : Kafka et Redis</h2>
+<p class="meta">16 octobre 2026 · Exigences concernées : C1 (événements transportés par Kafka),
+F3 (où vit chaque donnée), livrable reproductible.</p>
+
+<h3>Objectif</h3>
+<p>Mettre en place les deux services qui tournent à côté de la simulation : <strong>Kafka</strong>,
+le bus par lequel passent tous les événements, et <strong>Redis</strong>, qui garde l'état courant
+du monde. Vérifier que le code Python sait y écrire et y relire.</p>
+
+<h3>Rappel : à quoi servent ces deux services</h3>
+<table>
+  <tr><th>Service</th><th>Rôle dans le projet</th><th>Pourquoi lui</th></tr>
+  <tr><td><strong>Kafka</strong></td><td>Journal ordonné de tous les événements : décisions des
+    agents, messages, météo, indicateurs, incidents. Les agents ne s'appellent jamais directement,
+    ils publient et lisent des événements.</td><td>Imposé par l'énoncé (C1). Garde l'ordre, permet
+    de relire un flux, découple la simulation de Godot et des indicateurs.</td></tr>
+  <tr><td><strong>Redis</strong></td><td>État courant : stocks, météo, qui est dans quelle zone.
+    Lu et écrit très souvent par les agents et par le pont vers Godot.</td><td>Base en mémoire,
+    réponse en moins d'une milliseconde. Les données sont éphémères (F3).</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong><code>docker-compose.yml</code></strong> : décrit les deux conteneurs, avec des versions
+    exactes (<code>apache/kafka:4.3.1</code>, <code>redis:8.8.3-alpine</code>) et un contrôle de
+    santé pour chacun. <code>docker compose up -d --wait</code> les lance et attend qu'ils soient
+    prêts.</li>
+  <li><strong><code>bus/topics.py</code></strong> : la liste des 7 topics sous forme d'énumération
+    Python, et la commande <code>python -m bus.topics</code> qui crée ceux qui manquent. Elle peut
+    être relancée sans risque : un topic déjà présent n'est pas recréé.</li>
+  <li><strong><code>sim/settings.py</code></strong> : lit les adresses des services dans
+    <code>.env</code>. Sans fichier <code>.env</code>, les valeurs par défaut conviennent pour un
+    poste local.</li>
+  <li><strong>Trois bibliothèques ajoutées</strong> : <code>aiokafka</code> (client Kafka compatible
+    avec <code>asyncio</code>, que l'orchestrateur utilisera), <code>redis</code> (client Redis, avec
+    une version <code>asyncio</code>) et <code>python-dotenv</code> (lecture de <code>.env</code>).</li>
+  <li><strong>5 nouveaux tests</strong>, dont 3 tests d'intégration qui parlent aux vrais
+    services.</li>
+</ul>
+
+<h3>Les 7 topics</h3>
+<table>
+  <tr><th>Topic</th><th>Ce qui y passe</th><th>Exigences</th></tr>
+  <tr><td><code>sim.world.events</code></td><td>Événements du monde : météo, stocks, promotions, événements injectés</td><td>C1, D3</td></tr>
+  <tr><td><code>sim.agent.messages</code></td><td>Échanges en langage naturel entre agents</td><td>A2</td></tr>
+  <tr><td><code>sim.agent.decisions</code></td><td>Action et sens déclarés par chaque agent</td><td>B1, D2</td></tr>
+  <tr><td><code>sim.indicators</code></td><td>Indicateurs calculés pendant le run</td><td>B2, F6</td></tr>
+  <tr><td><code>sim.control</code></td><td>Commandes et injections depuis l'interface</td><td>D3</td></tr>
+  <tr><td><code>sim.incidents</code></td><td>Sorties LLM invalides, replis, violations temporelles</td><td>A4, C6</td></tr>
+  <tr><td><code>sim.dlq</code></td><td>Événements qui ne respectent pas leur schéma (« dead letter queue »)</td><td>F4</td></tr>
+</table>
+
+<h3>Choix de configuration et leurs raisons</h3>
+<table>
+  <tr><th>Choix</th><th>Raison</th></tr>
+  <tr><td>Kafka en mode <strong>KRaft</strong>, un seul nœud</td><td>Depuis Kafka 4, ZooKeeper n'existe
+    plus : Kafka gère lui-même ses métadonnées. Un seul nœud suffit sur un portable.</td></tr>
+  <tr><td><strong>Une partition</strong> par topic</td><td>Kafka ne garantit l'ordre qu'à l'intérieur
+    d'une partition. Avec une seule partition, tous les événements d'un topic sont relus exactement
+    dans l'ordre d'écriture, ce qui est indispensable pour rejouer un run à l'identique (E3). Le
+    débit d'une partition dépasse de loin nos quelques dizaines de milliers d'événements par run.</td></tr>
+  <tr><td>Rétention de <strong>7 jours</strong></td><td>Kafka sert de transport, pas d'archive.
+    L'historique durable sera écrit en Parquet à l'étape 8 (F3).</td></tr>
+  <tr><td>Création automatique des topics <strong>désactivée</strong></td><td>Par défaut, Kafka crée
+    un topic dès qu'on écrit dedans. Une faute de frappe dans un nom créerait alors un topic
+    fantôme où les événements se perdraient sans erreur. Désactivée, l'erreur est immédiate.</td></tr>
+  <tr><td>Mémoire de Kafka limitée à <strong>1 Go</strong></td><td>Laisse la RAM aux autres
+    composants. Mesuré au repos : 360 Mo pour Kafka, 5 Mo pour Redis.</td></tr>
+  <tr><td>Redis <strong>sans persistance</strong> sur disque</td><td>L'état courant est reconstruit à
+    chaque run ; le sauvegarder ne servirait à rien et ralentirait les écritures.</td></tr>
+  <tr><td>Ollama <strong>hors de Docker</strong></td><td>Sous Windows, donner le GPU à un conteneur
+    ajoute de la complexité sans bénéfice (décision du document d'architecture).</td></tr>
+</table>
+
+<h3>Les tests</h3>
+<table>
+  <tr><th>Test</th><th>Ce qu'il garantit</th></tr>
+  <tr><td><code>test_all_topics_exist_with_expected_settings</code></td><td>Les 7 topics existent, chacun avec une seule partition.</td></tr>
+  <tr><td><code>test_kafka_roundtrip_preserves_order</code></td><td>20 messages écrits dans un topic temporaire sont relus à l'identique et dans le même ordre ; le topic est supprimé ensuite.</td></tr>
+  <tr><td><code>test_redis_roundtrip</code></td><td>Une écriture dans Redis est relue correctement.</td></tr>
+  <tr><td><code>test_defaults_match_env_example</code></td><td>Sans <code>.env</code>, les adresses par défaut sont utilisées.</td></tr>
+  <tr><td><code>test_env_file_and_environment</code></td><td><code>.env</code> est bien lu, et une variable d'environnement le remplace si elle est définie.</td></tr>
+</table>
+<p>Résultat : <span class="ok">16 tests réussis</span>, aucune remarque de ruff. On a aussi vérifié
+que, si les services sont arrêtés, les tests d'intégration sont ignorés avec le message « lancer
+<code>docker compose up -d</code> » au lieu d'échouer.</p>
+
+<h3>État du dépôt après l'étape</h3>
+<pre style="font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 8px 12px; border-radius: 4px;">
+docker-compose.yml       Kafka 4.3.1 (KRaft) + Redis 8.8.3, versions figées
+bus/topics.py            les 7 topics et leur création
+sim/settings.py          adresses des services, lues dans .env
+tests/test_infra.py      3 tests d'intégration (Kafka, Redis)
+tests/test_settings.py   2 tests de lecture de .env</pre>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Kafka est le seul moyen de communication entre composants : c'est ce qui rend un run
+    enregistrable, rejouable et observable sans modifier la simulation.</li>
+  <li>Une partition par topic donne un ordre total des événements : c'est un choix délibéré au
+    service du rejeu, pas une limite.</li>
+  <li>Chaque stockage a un rôle et une durée de vie : Kafka transporte (7 jours), Redis garde le
+    présent (le temps d'un run), Parquet gardera l'historique (étape 8).</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 3 — Mesure de la machine : vérifier Ollama et les modèles Qwen3, régler ses variables
+(modèles gardés en mémoire, requêtes parallèles), puis mesurer la latence de chaque modèle en
+séquentiel et en parallèle. Ces mesures remplaceront les durées supposées du document
+d'architecture et serviront de base au coût (E4).</p>
 </section>
 
 </body>

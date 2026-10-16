@@ -116,7 +116,8 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Action | Commande |
 | --- | --- |
 | Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
-| Tests | `.venv\Scripts\python -m pytest` |
+| Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
+| Tests | `.venv\Scripts\python -m pytest` (`-m "not integration"` sans Docker) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
 | Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |
 
@@ -133,7 +134,9 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
 - `runs/`, `.venv/`, `.env` et les données Docker sont dans `.gitignore`.
 - Chaque run est identifié par un `run_id` et une graine explicite, pour la reproductibilité.
 - Tout paramètre de simulation vient de `configs/*.yaml` via `sim.config.load_config`. Les
-  services et les clés viennent de `.env`.
+  services et les clés viennent de `.env` via `sim.settings.load_settings`.
+- Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
+  La création automatique de topics est désactivée sur le broker.
 
 ## Décisions encore ouvertes
 
