@@ -104,8 +104,25 @@ replay/      écriture et relecture des journaux de run
 corpus/      corpus fictif du monde (documents écrits par le binôme)
 godot/       projet Godot
 runs/        sorties de runs (non versionné)
-docs/        contexte, décisions, rapport
+configs/     configurations de runs en YAML, validées par sim/config.py
+tests/       tests pytest
+docs/        contexte, décisions, rapport, journal de bord
 ```
+
+## Commandes
+
+Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
+
+| Action | Commande |
+| --- | --- |
+| Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
+| Tests | `.venv\Scripts\python -m pytest` |
+| Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
+| Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |
+
+Dépendances : les directes sont déclarées avec une version exacte dans `pyproject.toml`. Après tout
+ajout, régénérer le verrou avec `pip freeze --exclude-editable > requirements.lock` (encodage ASCII).
+Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
 
 ## Conventions
 
@@ -115,6 +132,8 @@ docs/        contexte, décisions, rapport
 - Les secrets vivent dans `.env`, jamais versionné. `.env.example` sans valeurs est committé.
 - `runs/`, `.venv/`, `.env` et les données Docker sont dans `.gitignore`.
 - Chaque run est identifié par un `run_id` et une graine explicite, pour la reproductibilité.
+- Tout paramètre de simulation vient de `configs/*.yaml` via `sim.config.load_config`. Les
+  services et les clés viennent de `.env`.
 
 ## Décisions encore ouvertes
 

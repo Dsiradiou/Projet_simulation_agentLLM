@@ -49,7 +49,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | # | Étape | État |
 | --- | --- | --- |
 | 0 | Nettoyage du dépôt | ✅ terminée |
-| 1 | Squelette du dépôt (arborescence, configuration, outillage) | à venir |
+| 1 | Squelette du dépôt (arborescence, configuration, outillage) | ✅ terminée |
 | 2 | Infrastructure Docker (Kafka, Redis) | à venir |
 | 3 | Mesure de la machine (benchmark Ollama) | à venir |
 | 4 | Contrat d'événements | à venir |
@@ -68,7 +68,47 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
 
-Les instructions d'installation et de lancement seront ajoutées au fil des étapes.
+## Installation
+
+Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`). Les prérequis suivants
+(Docker, Ollama, Godot) seront ajoutés aux étapes qui les utilisent.
+
+```powershell
+py -V:3.12 -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.lock   # versions figées
+.venv\Scripts\python -m pip install -e . --no-deps          # le projet lui-même
+copy .env.example .env                                      # puis compléter .env
+.venv\Scripts\python -m pytest                              # vérification
+```
+
+Sous Linux ou macOS : `python3.12 -m venv .venv`, puis `.venv/bin/python` à la place de
+`.venv\Scripts\python`.
+
+## Configuration
+
+Les paramètres d'un run sont dans un fichier YAML de `configs/`, vérifié au chargement :
+une clé inconnue ou une valeur invalide bloque le lancement avec un message explicite.
+`configs/default.yaml` décrit la configuration principale : 120 agents, 90 jours simulés,
+mode synchrone, graine 42. Le nombre d'agents se règle rôle par rôle dans la section
+`population`, sans toucher au code.
+
+## Structure du dépôt
+
+| Dossier | Contenu |
+| --- | --- |
+| `sim/` | Orchestrateur, horloge simulée, chargement de la configuration |
+| `agents/` | Rôles, profils LLM, agents à règles |
+| `llm/` | Client Ollama, routeur par palier, mesure des coûts |
+| `bus/` | Kafka : producteurs, consommateurs, schémas d'événements |
+| `rag/` | Base de connaissances ChromaDB, récupération filtrée |
+| `indicators/` | Indicateurs d'émergence et traçabilité |
+| `bridge/` | Pont FastAPI vers Godot |
+| `replay/` | Journaux de run et rejeu sans LLM |
+| `corpus/` | Documents fictifs du monde |
+| `godot/` | Projet Godot (scène 3D) |
+| `configs/` | Configurations de runs (YAML) |
+| `tests/` | Tests automatisés |
+| `docs/` | Conception, énoncé, journal de bord |
 
 ## Documentation
 

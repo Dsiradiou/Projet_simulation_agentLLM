@@ -60,7 +60,7 @@ exigences de l'énoncé.</p>
   <tr><td colspan="4"><strong>Phase 0 — Faire place nette</strong></td></tr>
   <tr><td>0</td><td>Nettoyage du dépôt</td><td>Retrait du prototype non conforme, mise à jour de CLAUDE.md, README et journal</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 1 — Fondations</strong></td></tr>
-  <tr><td>1</td><td>Squelette du dépôt</td><td>Arborescence, <code>.gitignore</code>, <code>.env.example</code>, Python 3.12, ruff, fichier de configuration</td><td class="todo">à venir</td></tr>
+  <tr><td>1</td><td>Squelette du dépôt</td><td>Arborescence, <code>.gitignore</code>, <code>.env.example</code>, Python 3.12, ruff, fichier de configuration</td><td class="ok">terminée</td></tr>
   <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="todo">à venir</td></tr>
   <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
@@ -181,6 +181,118 @@ docs/
 <p>Étape 1 — Squelette du dépôt : environnement virtuel <code>.venv</code> en Python 3.12, arborescence, <code>.gitignore</code>,
 <code>.env.example</code>, outillage ruff, et fichier de configuration qui portera
 <code>BRAND_NAME</code>, le nombre d'agents, le mode d'exécution et la graine.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 1 — Squelette du dépôt</h2>
+<p class="meta">16 octobre 2026 · Exigences concernées : C2 (nombre d'agents fixé au lancement),
+livrable « reproductible sur une autre machine, versions figées ».</p>
+
+<h3>Objectif</h3>
+<p>Poser le cadre dans lequel tout le code viendra se ranger : un environnement Python isolé et
+reproductible, une arborescence qui suit l'architecture, des outils de qualité, et un fichier de
+configuration qui centralise tous les paramètres d'un run.</p>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Environnement virtuel <code>.venv</code></strong> créé à partir de Python 3.12.10. Toutes
+    les bibliothèques du projet y sont installées, rien sur le reste de la machine.</li>
+  <li><strong>Arborescence</strong> : un dossier par composant de l'architecture
+    (<code>sim</code>, <code>agents</code>, <code>llm</code>, <code>bus</code>, <code>rag</code>,
+    <code>indicators</code>, <code>bridge</code>, <code>replay</code>), plus <code>corpus</code>,
+    <code>godot</code>, <code>configs</code> et <code>tests</code>. Chaque paquet Python porte une
+    phrase qui dit à quoi il sert.</li>
+  <li><strong><code>pyproject.toml</code></strong> : fiche d'identité du projet. Il déclare les
+    dépendances directes avec leur version exacte, configure ruff (style et erreurs courantes) et
+    pytest.</li>
+  <li><strong><code>requirements.lock</code></strong> : liste complète et figée de toutes les
+    bibliothèques installées, y compris les dépendances indirectes.</li>
+  <li><strong><code>.gitignore</code></strong> : exclut l'environnement virtuel, les caches, le fichier
+    de secrets <code>.env</code>, les sorties de runs et le cache de Godot.</li>
+  <li><strong><code>.env.example</code></strong> : modèle du fichier de secrets, sans valeur (adresses
+    d'Ollama, Kafka, Redis ; clés d'API facultatives).</li>
+  <li><strong>Configuration</strong> : <code>configs/default.yaml</code> et son chargeur
+    <code>sim/config.py</code>, plus la liste des 11 rôles dans <code>agents/roles.py</code>.</li>
+  <li><strong>11 tests automatisés</strong> dans <code>tests/test_config.py</code>.</li>
+</ul>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Décision</th><th>Raison</th></tr>
+  <tr><td>pip + fichier verrou</td><td>Outils standards de Python, rien à apprendre en plus. Le
+    verrou fige aussi les dépendances indirectes : la collaboratrice obtient exactement les mêmes
+    versions.</td></tr>
+  <tr><td>Configuration en YAML, validée par Pydantic</td><td>Lisible et commentable, prévu dans le
+    document d'architecture. La validation transforme une faute de frappe en erreur claire au
+    lancement plutôt qu'en comportement faux au milieu d'un run.</td></tr>
+  <tr><td>Une dépendance n'arrive qu'avec l'étape qui l'utilise</td><td>Chaque bibliothèque du
+    projet est justifiée et expliquable. Ainsi <code>python-dotenv</code> (lecture de
+    <code>.env</code>) attendra l'étape 2.</td></tr>
+  <tr><td>Nom de marque provisoire <code>MARQUE_PROVISOIRE</code></td><td>Le vrai nom sera choisi à
+    l'étape 11 après le test de contamination. Comme il n'existe que dans la configuration, le
+    changer ne touchera aucun code.</td></tr>
+</table>
+
+<h3>Comment fonctionne la configuration</h3>
+<p>Un run est entièrement décrit par un fichier YAML en quatre sections :</p>
+<table>
+  <tr><th>Section</th><th>Contenu</th><th>Valeur par défaut</th></tr>
+  <tr><td><code>run</code></td><td>Graine du générateur aléatoire</td><td>42</td></tr>
+  <tr><td><code>simulation</code></td><td>Durée simulée en jours, mode d'exécution</td><td>90 jours, synchrone</td></tr>
+  <tr><td><code>monde</code></td><td>Nom de marque, ingrédient phare, indice de protection (fictifs)</td><td>valeurs provisoires</td></tr>
+  <tr><td><code>population</code></td><td>Nombre d'agents pour chacun des 11 rôles</td><td>120 agents, dont 84 LLM</td></tr>
+</table>
+<p>Au chargement, <code>load_config</code> vérifie chaque valeur. Sont refusés : une durée nulle, une
+graine négative, un mode autre que <code>synchrone</code> ou <code>asynchrone</code>, un nom de marque
+vide, un rôle inconnu, un effectif négatif, une population vide, et toute clé mal orthographiée
+(par exemple <code>duree_jour</code> au lieu de <code>duree_jours</code>). L'erreur indique le fichier
+et le champ fautif.</p>
+<div class="box">
+  <strong>Lien avec l'exigence C2.</strong> Pour changer le nombre d'agents, on modifie la section
+  <code>population</code> du fichier YAML, ou on crée un autre fichier dans <code>configs/</code>.
+  Le code ne change pas. Un test le vérifie avec une population de 4 agents.
+</div>
+
+<h3>Les tests</h3>
+<table>
+  <tr><th>Test</th><th>Ce qu'il garantit</th></tr>
+  <tr><td><code>test_default_config_matches_design</code></td><td>La configuration par défaut correspond à la conception : 120 agents, 90 jours, mode synchrone, les 11 rôles présents.</td></tr>
+  <tr><td><code>test_agent_count_comes_from_config</code></td><td>Le nombre d'agents vient bien du fichier (C2).</td></tr>
+  <tr><td><code>test_invalid_values_are_rejected</code> (7 cas)</td><td>Chaque valeur invalide listée plus haut est refusée.</td></tr>
+  <tr><td><code>test_empty_population_is_rejected</code></td><td>Un run sans agent est refusé.</td></tr>
+  <tr><td><code>test_missing_file_gives_clear_error</code></td><td>Un fichier absent donne une erreur lisible.</td></tr>
+</table>
+<p>Résultat : <span class="ok">11 tests réussis</span>, aucune remarque de ruff. La procédure
+d'installation du README a été rejouée dans un environnement neuf pour vérifier qu'elle fonctionne
+telle qu'écrite.</p>
+
+<h3>État du dépôt après l'étape</h3>
+<pre style="font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 8px 12px; border-radius: 4px;">
+pyproject.toml        identité du projet, dépendances directes, ruff, pytest
+requirements.lock     toutes les versions figées
+.gitignore  .env.example
+configs/default.yaml  configuration principale (120 agents, 90 jours)
+sim/config.py         chargement et validation de la configuration
+agents/roles.py       les 11 rôles
+tests/test_config.py  11 tests
+sim/ agents/ llm/ bus/ rag/ indicators/ bridge/ replay/   paquets Python
+corpus/ godot/        à remplir aux étapes 10 et 12</pre>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Un run est entièrement décrit par un fichier de configuration et une graine : c'est la base de
+    la reproductibilité (E2, E3) et de l'exigence C2.</li>
+  <li>La configuration est validée avant le lancement : une erreur de saisie ne peut pas fausser un
+    run silencieusement.</li>
+  <li>Les versions sont figées à deux niveaux (<code>pyproject.toml</code> pour les dépendances
+    directes, <code>requirements.lock</code> pour toutes), ce qui répond à l'exigence de livrable
+    reproductible sur une autre machine.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 2 — Infrastructure Docker : Kafka en mode KRaft et Redis, versions figées, création des
+7 topics <code>sim.*</code>, et vérification que Python peut y écrire et y lire.</p>
 </section>
 
 </body>

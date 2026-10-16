@@ -1,0 +1,25 @@
+# Environnement Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets : seul .env.example est versionné
+.env
+
+# Sorties de runs (un run de démonstration sera ajouté explicitement à l'étape 18)
+runs/
+
+# Données des conteneurs Docker
+docker-data/
+
+# Godot : cache de l'éditeur et exports
+godot/.godot/
+godot/export/
+
+# Système et éditeurs
+.DS_Store
+Thumbs.db
+.idea/

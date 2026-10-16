@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mondes-vivants-ephemere"
+version = "0.1.0"
+description = "Simulation multi-agents pilotée par LLM de la viralité d'une tendance (sujet 04 ÉPHÉMÈRE)."
+readme = "README.md"
+requires-python = "==3.12.*"
+# Dépendances directes, versions exactes. Les dépendances indirectes sont figées dans
+# requirements.lock (voir README, section Installation).
+dependencies = [
+    "pydantic==2.14.1",
+    "PyYAML==6.0.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.17.1",
+]
+
+[tool.setuptools]
+packages = ["sim", "agents", "llm", "bus", "rag", "indicators", "bridge", "replay"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

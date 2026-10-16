@@ -302,6 +302,7 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Architecture arrêtée : Ollama, Kafka, Redis, ChromaDB, DuckDB+Parquet, pont FastAPI, Godot. |
 | 16 oct. | Prototype antérieur abandonné, développement repris de zéro étape par étape. |
 | 16 oct. | Python 3.12. Scène Godot en 3D low-poly sur rendu léger : bâtiments distincts par zone, plage avec sable et mer, personnages animés. Modèles 3D gratuits, choisis par le binôme sur maquettes. |
+| 16 oct. | Dépendances : pip + `requirements.lock`. Configuration des runs en YAML validée par Pydantic. |
 
 ---
 

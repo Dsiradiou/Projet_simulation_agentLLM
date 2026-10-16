@@ -1,0 +1,32 @@
+# Configuration par défaut : configuration mixte (C1) à l'échelle prévue, 120 agents.
+# Validée au chargement par sim/config.py : une clé inconnue ou une valeur invalide bloque le lancement.
+
+run:
+  seed: 42
+
+simulation:
+  duree_jours: 90          # un pas = un jour simulé
+  mode: synchrone          # synchrone | asynchrone
+
+monde:
+  # Valeurs provisoires : le nom de marque sera choisi à l'étape 11, après un test de contamination.
+  # Toujours fictives, sans parenté avec une marque ou un ingrédient réels.
+  brand_name: MARQUE_PROVISOIRE
+  ingredient: INGREDIENT_PROVISOIRE
+  indice_protection: INDICE_PROVISOIRE
+
+# Nombre d'agents par rôle (exigence C2 : fixé au lancement, sans modifier le code).
+population:
+  # Agents LLM (84)
+  pharmacien: 6               # palier grand
+  createur_contenu: 6         # palier moyen
+  journaliste: 3              # palier moyen
+  responsable_marque: 1       # palier moyen
+  habitue_soin: 16            # palier moyen
+  baigneur_occasionnel: 36    # palier petit
+  sceptique: 16               # palier petit
+  # Agents à règles (36)
+  fidele_autre_marque: 22
+  vendeur: 12
+  marque_concurrente: 1
+  meteo: 1
