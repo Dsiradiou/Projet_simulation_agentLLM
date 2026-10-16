@@ -51,7 +51,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 0 | Nettoyage du dépôt | ✅ terminée |
 | 1 | Squelette du dépôt (arborescence, configuration, outillage) | ✅ terminée |
 | 2 | Infrastructure Docker (Kafka, Redis) | ✅ terminée |
-| 3 | Mesure de la machine (benchmark Ollama) | à venir |
+| 3 | Mesure de la machine (benchmark Ollama) | ✅ terminée |
 | 4 | Contrat d'événements | à venir |
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | à venir |
 | 6 | Couche LLM (routeur par palier, replis, coûts) | à venir |
@@ -70,9 +70,35 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 
 ## Installation
 
-Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`) et **Docker Desktop**
-(sous Windows, avec le moteur WSL2). Les prérequis suivants (Ollama, Godot) seront ajoutés aux
-étapes qui les utilisent.
+Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`), **Docker Desktop**
+(sous Windows, avec le moteur WSL2) et **Ollama** (testé avec la version 0.40.4) avec un GPU
+NVIDIA d'au moins 8 Go de VRAM. Godot sera ajouté à l'étape qui l'utilise.
+
+### Ollama
+
+Télécharger les modèles (environ 9 Go) :
+
+```powershell
+ollama pull qwen3:1.7b
+ollama pull qwen3:4b
+ollama pull qwen3:8b
+```
+
+Définir ces variables d'environnement utilisateur, puis redémarrer Ollama :
+
+| Variable | Valeur | Rôle |
+| --- | --- | --- |
+| `OLLAMA_MAX_LOADED_MODELS` | `3` | petit + moyen + embeddings chargés ensemble |
+| `OLLAMA_NUM_PARALLEL` | `4` | jusqu'à 4 requêtes simultanées par modèle |
+| `OLLAMA_KEEP_ALIVE` | `30m` | modèles gardés en mémoire entre deux appels |
+| `OLLAMA_FLASH_ATTENTION` | `1` | calcul de l'attention plus rapide |
+| `OLLAMA_KV_CACHE_TYPE` | `q8_0` | cache de contexte deux fois plus petit en VRAM |
+| `OLLAMA_CONTEXT_LENGTH` | `2048` | contexte suffisant pour un prompt d'agent (~650 tokens) |
+
+Pour mesurer une autre machine : `.venv\Scripts\python -m llm.benchmark` (quelques minutes).
+Les mesures de référence sont dans [`docs/mesures/`](docs/mesures/).
+
+### Projet
 
 ```powershell
 # 1. Environnement Python

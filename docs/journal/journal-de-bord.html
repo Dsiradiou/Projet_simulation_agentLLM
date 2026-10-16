@@ -62,7 +62,7 @@ exigences de l'énoncé.</p>
   <tr><td colspan="4"><strong>Phase 1 — Fondations</strong></td></tr>
   <tr><td>1</td><td>Squelette du dépôt</td><td>Arborescence, <code>.gitignore</code>, <code>.env.example</code>, Python 3.12, ruff, fichier de configuration</td><td class="ok">terminée</td></tr>
   <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="ok">terminée</td></tr>
-  <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="todo">à venir</td></tr>
+  <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
   <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="todo">à venir</td></tr>
   <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="todo">à venir</td></tr>
@@ -407,6 +407,141 @@ tests/test_settings.py   2 tests de lecture de .env</pre>
 (modèles gardés en mémoire, requêtes parallèles), puis mesurer la latence de chaque modèle en
 séquentiel et en parallèle. Ces mesures remplaceront les durées supposées du document
 d'architecture et serviront de base au coût (E4).</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 3 — Mesure de la machine</h2>
+<p class="meta">16 octobre 2026 · Exigences concernées : E4 (coût d'un run), E5 (sobriété),
+A5 (modèles de tailles différentes), et l'objectif O4 (identifier le facteur limitant).</p>
+
+<h3>Objectif</h3>
+<p>Remplacer les durées <em>supposées</em> du document d'architecture par des durées
+<em>mesurées</em> sur la machine du projet, avant d'écrire le moindre agent. On sait ainsi combien
+de temps durera un run, combien de mémoire graphique prend chaque modèle, et ce que coûte le
+passage d'un palier à l'autre.</p>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Téléchargement des trois modèles</strong> Qwen3 : <code>qwen3:1.7b</code> (1,4 Go),
+    <code>qwen3:4b</code> (2,5 Go), <code>qwen3:8b</code> (5,2 Go). Le premier réseau plafonnait à
+    140 Ko/s ; le changement de réseau a permis de finir à environ 10 Mo/s.</li>
+  <li><strong>Réglage d'Ollama</strong> par six variables d'environnement utilisateur (tableau
+    ci-dessous), prises en compte au redémarrage d'Ollama.</li>
+  <li><strong>Script de benchmark</strong> <code>llm/benchmark.py</code>, relançable sur n'importe
+    quelle machine (<code>python -m llm.benchmark</code>), y compris celle de la collaboratrice.</li>
+  <li><strong>Résultats enregistrés</strong> dans <code>docs/mesures/</code> : un résumé lisible
+    (Markdown) et toutes les mesures brutes, appel par appel (JSON).</li>
+  <li><strong>Bibliothèques ajoutées</strong> : <code>ollama</code> (client officiel, qui servira
+    aussi à l'étape 6) et <code>httpx</code> (requêtes HTTP simples).</li>
+</ul>
+
+<h3>Les réglages d'Ollama</h3>
+<table>
+  <tr><th>Variable</th><th>Valeur</th><th>Raison</th></tr>
+  <tr><td><code>OLLAMA_MAX_LOADED_MODELS</code></td><td>3</td><td>Petit, moyen et modèle
+    d'embeddings doivent rester chargés ensemble. Le document d'architecture proposait 2, mais
+    le modèle d'embeddings compte aussi comme un modèle.</td></tr>
+  <tr><td><code>OLLAMA_NUM_PARALLEL</code></td><td>4</td><td>Jusqu'à 4 requêtes traitées en même
+    temps par un modèle.</td></tr>
+  <tr><td><code>OLLAMA_KEEP_ALIVE</code></td><td>30m</td><td>Un modèle reste en mémoire 30 minutes
+    après son dernier appel, pour éviter des rechargements.</td></tr>
+  <tr><td><code>OLLAMA_FLASH_ATTENTION</code></td><td>1</td><td>Calcul de l'attention plus rapide
+    et plus économe ; nécessaire pour compresser le cache.</td></tr>
+  <tr><td><code>OLLAMA_KV_CACHE_TYPE</code></td><td>q8_0</td><td>Le cache de contexte est stocké
+    sur 8 bits au lieu de 16 : deux fois moins de VRAM.</td></tr>
+  <tr><td><code>OLLAMA_CONTEXT_LENGTH</code></td><td>2048</td><td>Un prompt d'agent fait environ
+    650 tokens : 2 048 suffit et réserve moins de VRAM par requête.</td></tr>
+</table>
+
+<h3>Comment on a mesuré</h3>
+<p>Chaque appel imite une <strong>décision d'agent</strong> : un prompt d'environ 650 tokens
+(profil, jour, zone, météo, trois messages reçus, quatre passages « retrouvés »), une réponse
+JSON imposée (<code>action</code>, <code>sens</code>, <code>message</code>,
+<code>justification</code>), la réflexion de Qwen3 désactivée. Les prompts varient d'un appel à
+l'autre, mais de façon déterministe, pour que le benchmark soit reproductible. Le nom de marque
+vient de la configuration, jamais du code.</p>
+<p>Pour chaque modèle : un chargement à froid, 12 appels l'un après l'autre, puis 12 appels par
+paquets de 2 et de 4 en parallèle. Pendant chaque série, <code>nvidia-smi</code> relève quatre
+fois par seconde la puissance, la mémoire et la température du GPU. On mesure enfin la
+<strong>bascule de palier</strong> : charger le 8b alors que le 1.7b et le 4b sont en mémoire,
+puis revenir au 1.7b.</p>
+
+<h3>Résultats</h3>
+<table>
+  <tr><th>Mesure</th><th>qwen3:1.7b</th><th>qwen3:4b</th><th>qwen3:8b</th></tr>
+  <tr><td>VRAM occupée (modèle + cache pour 4 requêtes)</td><td>1,7 Go</td><td>3,1 Go</td><td>5,4 Go</td></tr>
+  <tr><td>Part du modèle sur le GPU</td><td>100 %</td><td>100 %</td><td>100 %</td></tr>
+  <tr><td>Latence médiane d'une décision, en séquentiel</td><td>0,76 s</td><td>1,49 s</td><td>2,14 s</td></tr>
+  <tr><td>Latence supposée dans le document d'architecture</td><td>0,8 s</td><td>1,5 s</td><td>3 s</td></tr>
+  <tr><td>Meilleur débit (décisions par minute)</td><td>108 (2 en parallèle)</td><td>78 (4 en parallèle)</td><td>58 (4 en parallèle)</td></tr>
+  <tr><td>Vitesse de génération en séquentiel</td><td>167 tokens/s</td><td>84 tokens/s</td><td>55 tokens/s</td></tr>
+  <tr><td>Énergie GPU par décision (séquentiel → meilleur parallèle)</td><td>56 → 40 J</td><td>109 → 56 J</td><td>167 → 79 J</td></tr>
+</table>
+<p>Pendant le calcul, le GPU consomme environ 76 W et monte jusqu'à 80 °C (8b, 4 requêtes en
+parallèle).</p>
+
+<h3>Ce que les mesures nous apprennent</h3>
+<table>
+  <tr><th>Constat</th><th>Conséquence</th></tr>
+  <tr><td><strong>Les latences confirment les hypothèses</strong>, et le 8b est même plus rapide
+    que prévu (2,1 s au lieu de 3 s).</td><td>Le dimensionnement tient. Pour les 2 155 appels
+    estimés d'un run : environ 41 min en séquentiel, environ 25 min avec le meilleur parallélisme de chaque
+    palier.</td></tr>
+  <tr><td><strong>Le parallélisme double le débit</strong> du 4b et du 8b et divise par deux
+    l'énergie par décision.</td><td>Argument direct pour la sobriété (E5) : regrouper les appels
+    coûte moins cher.</td></tr>
+  <tr><td><strong>La bascule de palier est coûteuse</strong> : charger le 8b décharge à la fois le
+    1.7b et le 4b (6,5 s), et revenir coûte environ 3 s par modèle. Un aller-retour ≈ 13 s.</td>
+    <td>Si le palier grand est appelé un jour sur deux, cela ajoute environ 10 minutes par run.
+    L'ordonnancement par palier (étape 5) doit limiter le nombre de bascules.</td></tr>
+  <tr><td><strong>Les réponses sont plus longues que prévu</strong> : environ 110 tokens au lieu
+    de 70.</td><td>À maîtriser à l'étape 6 (justification plus courte).</td></tr>
+  <tr><td><strong>Seules 2 réponses sur 117 sont invalides</strong> (1,7 %), et toutes pour la même
+    raison : elles atteignent le plafond de 160 tokens et le JSON est coupé. Aucune réponse n'est
+    hors schéma.</td><td>Le JSON imposé fonctionne même sur le 1.7b. À l'étape 6 : plafond relevé
+    ou réponses raccourcies, et le mécanisme « une relance puis repli » (A4) couvrira le reste.</td></tr>
+  <tr><td><strong>Le 1.7b à 4 requêtes simultanées est instable</strong> : la première vague
+    d'appels prend 4 à 12 s avant de revenir à la normale (constaté deux fois).</td><td>Pour le
+    palier petit, on visera 2 requêtes en parallèle ; 4 pour les paliers moyen et grand.</td></tr>
+  <tr><td><strong>Les modèles ont une préférence</strong> : sur des situations variées, le 8b a
+    répondu « tendance » 24 fois sur 38.</td><td>Point d'attention pour la question Q2 du jury : un
+    sens partagé peut venir du modèle lui-même et non de la diffusion. Le run témoin de l'étape 14
+    devra le mesurer.</td></tr>
+</table>
+
+<div class="box">
+  <strong>Premier chiffrage de la sobriété (E5), à confirmer à l'étape 16.</strong> Avec la
+  répartition prévue (270 appels au 8b, 715 au 4b, 1 170 au 1.7b), un run consomme environ
+  110 kJ côté GPU, soit 0,03 kWh, et environ 25 min de calcul. Les mêmes 2 155 appels tous sur le
+  8b demanderaient environ 170 kJ et 37 min. Ces chiffres ne comptent que le GPU pendant les
+  appels, sans les bascules ni le reste de la machine.
+</div>
+
+<h3>État du dépôt après l'étape</h3>
+<pre style="font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 8px 12px; border-radius: 4px;">
+llm/benchmark.py                           script de mesure, relançable
+docs/mesures/benchmark_2026-10-16_1143.md  résumé des mesures
+docs/mesures/benchmark_2026-10-16_1143.json  mesures brutes, appel par appel
+tests/test_benchmark.py                    2 tests (prompt déterministe, taille)</pre>
+<p>Tests : <span class="ok">18 tests réussis</span>, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le dimensionnement repose sur des <strong>mesures</strong>, pas sur des hypothèses : chaque
+    chiffre renvoie à un fichier de <code>docs/mesures/</code>, appel par appel.</li>
+  <li>Le facteur limitant est la <strong>mémoire graphique</strong> : les trois modèles ne
+    tiennent pas ensemble, et changer de palier coûte environ 13 s. C'est ce qui justifie
+    l'ordonnancement par palier.</li>
+  <li>La mesure de l'énergie est en place dès maintenant : le coût de chaque run (E4) pourra être
+    comparé à son apport (E1).</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 4 — Contrat d'événements : l'enveloppe commune à tous les événements (identifiant,
+version de schéma, <code>run_id</code>, deux horloges, <code>caused_by</code>), les schémas
+Pydantic de chaque type d'événement, et l'isolement des événements non conformes dans
+<code>sim.dlq</code>.</p>
 </section>
 
 </body>

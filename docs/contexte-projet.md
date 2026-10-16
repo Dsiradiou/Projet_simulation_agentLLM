@@ -248,6 +248,11 @@ Mêmes scénarios et mêmes graines entre configurations, sinon la comparaison n
 **Dimensionnement estimé** (hypothèses, à remplacer par un benchmark réel) : ~2 155 appels par run,
 soit environ 47 minutes en séquentiel, 25 à 55 minutes avec du parallélisme.
 
+**Dimensionnement mesuré** (benchmark du 16 octobre, `docs/mesures/benchmark_2026-10-16_1143.md`) :
+latence médiane en séquentiel 0,76 s (1.7b), 1,49 s (4b), 2,14 s (8b). Avec les mêmes 2 155
+appels : environ 41 minutes en séquentiel, environ 25 minutes avec le meilleur parallélisme de
+chaque palier, plus environ 13 s par aller-retour vers le palier grand.
+
 **Suivi des expériences** : ClearML a été étudié et jugé **pertinent mais facultatif**. Il servirait
 à suivre les runs (E1, E2, E4) et à référencer les traces de rejeu (E3), en restant **hors de la
 boucle de simulation** : il observe, il ne pilote pas. Un simple dossier de runs avec des fichiers
@@ -304,6 +309,7 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Python 3.12. Scène Godot en 3D low-poly sur rendu léger : bâtiments distincts par zone, plage avec sable et mer, personnages animés. Modèles 3D gratuits, choisis par le binôme sur maquettes. |
 | 16 oct. | Dépendances : pip + `requirements.lock`. Configuration des runs en YAML validée par Pydantic. |
 | 16 oct. | Kafka 4.3.1 et Redis 8.8.3 sous Docker. Une partition par topic (ordre total, rejeu), rétention 7 jours, création automatique des topics désactivée. Redis sans persistance. Client Kafka : aiokafka. |
+| 16 oct. | Ollama 0.40.4 réglé (3 modèles chargés, 4 requêtes parallèles, contexte 2048, cache q8_0). Benchmark : latences proches des hypothèses, sorties de ~110 tokens au lieu de ~70, JSON invalide uniquement par troncature à 160 tokens. |
 
 ---
 

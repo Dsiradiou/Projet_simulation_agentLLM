@@ -47,7 +47,9 @@ tous, par une **marque fictive** dont le nom reste à définir.
 
 Machine de développement : HP Omen 16, RTX 5060 (8 Go de VRAM), Ryzen 9 8945HX, 32 Go de RAM.
 **Les trois modèles ne tiennent pas ensemble en VRAM** : `1.7b` et `4b` restent chargés, `8b` est
-chargé par phase. Grouper les appels par palier avant de les émettre.
+chargé par phase. Grouper les appels par palier avant de les émettre. Mesuré (étape 3) : charger
+le `8b` décharge les deux autres, et un aller-retour de palier coûte environ 13 s. Réglages
+Ollama et mesures de référence : `README.md` et `docs/mesures/`.
 
 ## Règles qui s'appliquent à tout le code
 
@@ -117,6 +119,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | --- | --- |
 | Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
 | Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
+| Benchmark Ollama | `.venv\Scripts\python -m llm.benchmark` (résultats dans `docs/mesures/`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration"` sans Docker) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
 | Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |

@@ -12,6 +12,8 @@ requires-python = "==3.12.*"
 # requirements.lock (voir README, section Installation).
 dependencies = [
     "aiokafka==0.14.0",
+    "httpx==0.28.1",
+    "ollama==0.6.3",
     "pydantic==2.14.1",
     "python-dotenv==1.2.4",
     "PyYAML==6.0.3",
