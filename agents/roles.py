@@ -3,6 +3,14 @@
 from enum import StrEnum
 
 
+class Palier(StrEnum):
+    """Taille du modèle LLM attribuée à un rôle (A5). Les agents à règles n'ont pas de palier."""
+
+    GRAND = "grand"
+    MOYEN = "moyen"
+    PETIT = "petit"
+
+
 class Role(StrEnum):
     """Rôle d'un agent. Il détermine son palier de modèle, jamais une catégorie sociale (A5)."""
 

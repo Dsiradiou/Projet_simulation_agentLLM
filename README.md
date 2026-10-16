@@ -52,7 +52,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 1 | Squelette du dépôt (arborescence, configuration, outillage) | ✅ terminée |
 | 2 | Infrastructure Docker (Kafka, Redis) | ✅ terminée |
 | 3 | Mesure de la machine (benchmark Ollama) | ✅ terminée |
-| 4 | Contrat d'événements | à venir |
+| 4 | Contrat d'événements | ✅ terminée |
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | à venir |
 | 6 | Couche LLM (routeur par palier, replis, coûts) | à venir |
 | 7 | Première tranche verticale | à venir |
@@ -150,6 +150,9 @@ mode synchrone, graine 42. Le nombre d'agents se règle rôle par rôle dans la 
 ## Documentation
 
 - [`docs/contexte-projet.md`](docs/contexte-projet.md) : décisions de conception et leurs raisons.
+- [`docs/evenements/`](docs/evenements/README.md) : contrat d'événements (enveloppe, 12 types,
+  JSON Schema), généré depuis le code.
+- [`docs/mesures/`](docs/mesures/) : benchmark des modèles sur la machine de référence.
 - [`docs/Architecture_Mondes-Vivants_Creme-solaire.pdf`](docs/Architecture_Mondes-Vivants_Creme-solaire.pdf) :
   schémas d'architecture et dimensionnement.
 - [`docs/Mondes-Vivants_Projet-5A-IABD.html`](docs/Mondes-Vivants_Projet-5A-IABD.html) : énoncé et

@@ -120,6 +120,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
 | Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
 | Benchmark Ollama | `.venv\Scripts\python -m llm.benchmark` (résultats dans `docs/mesures/`) |
+| Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration"` sans Docker) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
 | Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |
@@ -138,6 +139,10 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
 - Chaque run est identifié par un `run_id` et une graine explicite, pour la reproductibilité.
 - Tout paramètre de simulation vient de `configs/*.yaml` via `sim.config.load_config`. Les
   services et les clés viennent de `.env` via `sim.settings.load_settings`.
+- Événements : un type = une classe de `bus/events.py`, publiée avec `bus.producer`, lue avec
+  `bus.consumer` (qui envoie les messages non conformes dans `sim.dlq`). Changer la forme d'un
+  payload impose d'incrémenter son `schema_version` et de régénérer `docs/evenements/`.
+- Temps simulé : minutes entières depuis le jour 1 à 00:00 (`sim.domaine`), jamais de flottant.
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 

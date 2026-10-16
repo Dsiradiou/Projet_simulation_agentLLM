@@ -310,6 +310,7 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Dépendances : pip + `requirements.lock`. Configuration des runs en YAML validée par Pydantic. |
 | 16 oct. | Kafka 4.3.1 et Redis 8.8.3 sous Docker. Une partition par topic (ordre total, rejeu), rétention 7 jours, création automatique des topics désactivée. Redis sans persistance. Client Kafka : aiokafka. |
 | 16 oct. | Ollama 0.40.4 réglé (3 modèles chargés, 4 requêtes parallèles, contexte 2048, cache q8_0). Benchmark : latences proches des hypothèses, sorties de ~110 tokens au lieu de ~70, JSON invalide uniquement par troncature à 160 tokens. |
+| 16 oct. | Contrat d'événements v1.0 : 12 types sur les 7 topics, JSON validé par Pydantic, documentation générée depuis le code. Temps simulé en minutes entières. 7 actions d'agent fermées. Un événement par fait observable. |
 
 ---
 

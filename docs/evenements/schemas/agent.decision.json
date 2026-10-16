@@ -1,0 +1,245 @@
+{
+  "$defs": {
+    "Action": {
+      "description": "Action concrète décidée par un agent pour la journée.",
+      "enum": [
+        "acheter",
+        "appliquer",
+        "recommander",
+        "critiquer",
+        "en_parler",
+        "ignorer",
+        "abandonner"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "AgentDecisionPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/Action"
+        },
+        "sens": {
+          "$ref": "#/$defs/Sens"
+        },
+        "justification": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Justification",
+          "type": "string"
+        },
+        "porteur": {
+          "description": "L'agent utilise le produit à l'issue de cette décision.",
+          "title": "Porteur",
+          "type": "boolean"
+        },
+        "moteur": {
+          "$ref": "#/$defs/Moteur"
+        },
+        "palier": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Palier"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "appel_llm": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LlmCall"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "action",
+        "sens",
+        "justification",
+        "porteur",
+        "moteur"
+      ],
+      "title": "AgentDecisionPayload",
+      "type": "object"
+    },
+    "LlmCall": {
+      "additionalProperties": false,
+      "description": "Coût d'une décision LLM (E4), tentatives échouées comprises.",
+      "properties": {
+        "modele": {
+          "minLength": 1,
+          "title": "Modele",
+          "type": "string"
+        },
+        "tokens_entree": {
+          "minimum": 0,
+          "title": "Tokens Entree",
+          "type": "integer"
+        },
+        "tokens_sortie": {
+          "minimum": 0,
+          "title": "Tokens Sortie",
+          "type": "integer"
+        },
+        "duree_s": {
+          "minimum": 0,
+          "title": "Duree S",
+          "type": "number"
+        },
+        "tentatives": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Tentatives",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "modele",
+        "tokens_entree",
+        "tokens_sortie",
+        "duree_s"
+      ],
+      "title": "LlmCall",
+      "type": "object"
+    },
+    "Moteur": {
+      "enum": [
+        "llm",
+        "regle",
+        "repli"
+      ],
+      "title": "Moteur",
+      "type": "string"
+    },
+    "Palier": {
+      "description": "Taille du modèle LLM attribuée à un rôle (A5). Les agents à règles n'ont pas de palier.",
+      "enum": [
+        "grand",
+        "moyen",
+        "petit"
+      ],
+      "title": "Palier",
+      "type": "string"
+    },
+    "Sens": {
+      "description": "Sens que l'agent attribue au produit : catégories fermées, jamais de texte libre (B1).",
+      "enum": [
+        "efficace",
+        "tendance",
+        "banal",
+        "depasse"
+      ],
+      "title": "Sens",
+      "type": "string"
+    },
+    "Zone": {
+      "enum": [
+        "pharmacie",
+        "plage",
+        "piscine",
+        "reseaux_sociaux",
+        "centre_commercial",
+        "terrain_sport",
+        "domicile"
+      ],
+      "title": "Zone",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "description": "Identifiant unique.",
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "description": "Run qui a produit l'événement.",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "agent.decision",
+      "default": "agent.decision",
+      "title": "Type",
+      "type": "string"
+    },
+    "sim_time_occurred": {
+      "description": "Moment simulé où le fait se produit.",
+      "minimum": 0,
+      "title": "Sim Time Occurred",
+      "type": "integer"
+    },
+    "sim_time_processed": {
+      "description": "Moment simulé où l'émetteur a fini de le traiter (≥ sim_time_occurred).",
+      "minimum": 0,
+      "title": "Sim Time Processed",
+      "type": "integer"
+    },
+    "wall_time_emitted": {
+      "description": "Horodatage réel d'émission, en UTC.",
+      "format": "date-time",
+      "title": "Wall Time Emitted",
+      "type": "string"
+    },
+    "source_agent_id": {
+      "description": "Émetteur : agent ou composant.",
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Source Agent Id",
+      "type": "string"
+    },
+    "zone": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Zone"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Zone concernée, si elle existe."
+    },
+    "caused_by": {
+      "default": [],
+      "description": "Événements à l'origine de celui-ci (traçabilité, F6).",
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Caused By",
+      "type": "array"
+    },
+    "payload": {
+      "$ref": "#/$defs/AgentDecisionPayload"
+    }
+  },
+  "required": [
+    "run_id",
+    "sim_time_occurred",
+    "sim_time_processed",
+    "source_agent_id",
+    "payload"
+  ],
+  "title": "AgentDecision",
+  "type": "object"
+}

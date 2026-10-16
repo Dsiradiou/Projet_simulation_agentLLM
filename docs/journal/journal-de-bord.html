@@ -64,7 +64,7 @@ exigences de l'énoncé.</p>
   <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="ok">terminée</td></tr>
   <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
-  <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="todo">à venir</td></tr>
+  <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="todo">à venir</td></tr>
   <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="todo">à venir</td></tr>
   <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="todo">à venir</td></tr>
@@ -542,6 +542,150 @@ tests/test_benchmark.py                    2 tests (prompt déterministe, taille
 version de schéma, <code>run_id</code>, deux horloges, <code>caused_by</code>), les schémas
 Pydantic de chaque type d'événement, et l'isolement des événements non conformes dans
 <code>sim.dlq</code>.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 4 — Contrat d'événements</h2>
+<p class="meta">16 octobre 2026 · Exigences concernées : F4 (schémas documentés et versionnés,
+événements non conformes isolés), C1 (granularité justifiée), C3 (deux horloges), F6
+(traçabilité), B1 (sens en catégories fermées).</p>
+
+<h3>Objectif</h3>
+<p>Fixer, avant d'écrire le moindre agent, la forme exacte de tout ce qui circule sur Kafka. Ce
+« contrat » est ce que la simulation, les indicateurs, l'historique, le rejeu et Godot ont en
+commun : s'il est clair et vérifié, chaque composant peut être écrit et testé séparément.</p>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong><code>bus/events.py</code></strong> : l'enveloppe commune et les 12 types
+    d'événements, chacun avec son schéma Pydantic, sa version et son topic.</li>
+  <li><strong><code>sim/domaine.py</code></strong> : le vocabulaire fermé du monde (7 zones,
+    4 sens, 7 actions) et le temps simulé.</li>
+  <li><strong><code>bus/producer.py</code></strong> : publie un événement sur le topic de son
+    type, avec accusé de réception et sans doublon.</li>
+  <li><strong><code>bus/consumer.py</code></strong> : lit et valide chaque message ; un message
+    non conforme est envoyé dans <code>sim.dlq</code>, compté, et la lecture continue.</li>
+  <li><strong><code>bus/export_schemas.py</code></strong> : génère la documentation du contrat
+    (<code>docs/evenements/README.md</code> et un JSON Schema par type) directement depuis le
+    code. Un test échoue si la documentation n'est plus à jour.</li>
+</ul>
+
+<h3>L'enveloppe commune</h3>
+<p>Tout événement porte les mêmes champs, quel que soit son type :</p>
+<table>
+  <tr><th>Champ</th><th>Rôle</th><th>Exigence</th></tr>
+  <tr><td><code>event_id</code></td><td>Identifiant unique (UUID)</td><td>F6</td></tr>
+  <tr><td><code>schema_version</code></td><td>Version du schéma du type ; une version inconnue est rejetée</td><td>F4</td></tr>
+  <tr><td><code>run_id</code></td><td>Run qui a produit l'événement</td><td>E2, E3</td></tr>
+  <tr><td><code>type</code></td><td>Type d'événement, qui détermine la forme du <code>payload</code></td><td>F4</td></tr>
+  <tr><td><code>sim_time_occurred</code></td><td>Moment <em>simulé</em> où le fait se produit</td><td>C3</td></tr>
+  <tr><td><code>sim_time_processed</code></td><td>Moment <em>simulé</em> où l'émetteur a fini de le traiter</td><td>C3</td></tr>
+  <tr><td><code>wall_time_emitted</code></td><td>Moment <em>réel</em> d'émission, en UTC</td><td>C3, E4</td></tr>
+  <tr><td><code>source_agent_id</code></td><td>Émetteur : un agent ou un composant</td><td>D2</td></tr>
+  <tr><td><code>zone</code></td><td>Zone concernée, si elle existe</td><td>D1</td></tr>
+  <tr><td><code>caused_by</code></td><td>Identifiants des événements à l'origine de celui-ci</td><td>F6, B4</td></tr>
+  <tr><td><code>payload</code></td><td>Contenu propre au type</td><td>—</td></tr>
+</table>
+
+<div class="box">
+  <strong>Les deux horloges (C3).</strong> Un agent déclenché le jour 3 à 10:00
+  (<code>sim_time_occurred</code>) dont la réflexion se termine à 10:20 simulées
+  (<code>sim_time_processed</code>) produit un événement émis à 14 h 32 min 05 s, heure réelle
+  (<code>wall_time_emitted</code>). Le contrat interdit qu'un fait soit traité avant de s'être
+  produit. Un message porte en plus son moment de <code>livraison</code> : il n'est lisible qu'à
+  partir de cette date, ce qui servira à détecter les violations de cohérence temporelle (C6).
+</div>
+
+<h3>Les 12 types d'événements</h3>
+<table>
+  <tr><th>Topic</th><th>Types</th></tr>
+  <tr><td><code>sim.world.events</code></td><td><code>horloge.pas</code> (début d'un jour), <code>monde.meteo</code>, <code>monde.stock</code>, <code>monde.perturbation</code></td></tr>
+  <tr><td><code>sim.agent.messages</code></td><td><code>agent.message</code> : direct, à toute une zone, ou sur les réseaux sociaux</td></tr>
+  <tr><td><code>sim.agent.decisions</code></td><td><code>agent.decision</code> (action, sens, justification, porteur ou non, moteur, coût de l'appel LLM), <code>agent.deplacement</code></td></tr>
+  <tr><td><code>sim.indicators</code></td><td><code>indicateur.valeur</code>, avec sa fenêtre de calcul</td></tr>
+  <tr><td><code>sim.control</code></td><td><code>controle.injection</code> (rupture de stock, polémique, vague de chaleur), <code>controle.commande</code> (pause, reprise, arrêt)</td></tr>
+  <tr><td><code>sim.incidents</code></td><td><code>incident</code> : sortie invalide, hors rôle, sans réponse, repli, violation temporelle</td></tr>
+  <tr><td><code>sim.dlq</code></td><td><code>dlq.rejet</code> : le message d'origine, son topic et la raison du rejet</td></tr>
+</table>
+<p>Une décision indique aussi son <strong>moteur</strong> : <code>llm</code>, <code>regle</code>
+(agent à règles) ou <code>repli</code> (agent LLM retombé sur sa règle après un échec, A4). Une
+décision LLM porte obligatoirement le coût de son appel (modèle, tokens en entrée et en sortie,
+durée, nombre de tentatives) : le coût de chaque run (E4) se calculera directement à partir des
+événements.</p>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Décision</th><th>Raison</th></tr>
+  <tr><td>Temps simulé en <strong>minutes entières</strong> depuis le jour 1 à 00:00</td><td>Un pas
+    dure un jour, mais un message peut être émis le soir et lu le lendemain midi (exemple de
+    l'énoncé pour C3). Des entiers se comparent exactement, sans erreur d'arrondi : indispensable
+    pour rejouer un run à l'identique et détecter une violation temporelle.</td></tr>
+  <tr><td><strong>Un événement par fait observable</strong> (granularité, C1)</td><td>Une décision,
+    un message, un déplacement, un changement de météo ou de stock. Jamais un instantané complet
+    de l'état à chaque pas : ce serait volumineux et redondant. C'est la plus petite unité qui
+    suffit au rejeu et à la traçabilité.</td></tr>
+  <tr><td><strong>7 actions fermées</strong> : acheter, appliquer, recommander, critiquer, en
+    parler, ignorer, abandonner</td><td>Comme pour le sens, une liste fermée évite le texte libre,
+    raccourcit les réponses des petits modèles et rend les décisions comptables. On pourra
+    l'étendre en incrémentant la version du schéma.</td></tr>
+  <tr><td><strong>JSON validé par Pydantic</strong> plutôt qu'Avro avec un registre de
+    schémas</td><td>Lisible à l'œil, natif en Python, sans serveur supplémentaire. Les JSON Schema
+    exportés jouent le rôle de documentation formelle.</td></tr>
+  <tr><td>Documentation <strong>générée depuis le code</strong></td><td>Elle ne peut pas être fausse :
+    un test vérifie qu'elle correspond au code.</td></tr>
+  <tr><td>Champs <strong>obligatoires à la réception</strong></td><td>À la construction,
+    l'identifiant et l'horodatage sont remplis automatiquement. Mais un message <em>reçu</em> sans
+    identifiant est rejeté : en inventer un casserait la traçabilité.</td></tr>
+</table>
+
+<h3>Ce que le contrat refuse</h3>
+<p>En plus des types de champs, des règles de cohérence sont vérifiées à chaque validation :</p>
+<ul>
+  <li>un fait traité avant de s'être produit, ou un événement qui se cite lui-même comme cause ;</li>
+  <li>un sens, une action ou une zone hors des listes fermées, un champ inconnu ;</li>
+  <li>une version de schéma inconnue, un horodatage sans fuseau horaire ;</li>
+  <li>un agent à règles qui déclarerait un palier ou un appel LLM ; une décision LLM sans son coût ;</li>
+  <li>un message livré avant d'avoir été émis, un message direct sans destinataire ;</li>
+  <li>un déplacement qui ne change pas de zone, un stock sans zone.</li>
+</ul>
+
+<h3>Les tests</h3>
+<table>
+  <tr><th>Test</th><th>Ce qu'il garantit</th></tr>
+  <tr><td>Aller-retour des 12 types</td><td>Chaque type s'encode puis se relit à l'identique, et part sur le bon topic.</td></tr>
+  <tr><td>15 décisions invalides + 5 messages illisibles</td><td>Chaque cas de la liste ci-dessus est refusé, avec un message qui nomme le champ fautif.</td></tr>
+  <tr><td>Couverture des topics</td><td>Chacun des 7 topics transporte au moins un type ; aucun nom de type n'est en double.</td></tr>
+  <tr><td>Documentation à jour</td><td>La documentation générée correspond exactement au code.</td></tr>
+  <tr><td>Intégration : <code>sim.dlq</code></td><td>Sur un vrai Kafka, 4 messages dont 2 invalides (texte illisible, version inconnue) : les 2 valides sont lus dans l'ordre, les 2 autres arrivent dans la file de rejet avec leur raison, et la lecture ne s'arrête pas.</td></tr>
+</table>
+<p>Résultat : <span class="ok">61 tests réussis</span> au total, aucune remarque de ruff.</p>
+
+<h3>État du dépôt après l'étape</h3>
+<pre style="font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 8px 12px; border-radius: 4px;">
+sim/domaine.py             zones, sens, actions, temps simulé
+bus/events.py              enveloppe et 12 types d'événements
+bus/producer.py            publication
+bus/consumer.py            lecture, validation, file de rejet
+bus/export_schemas.py      génération de la documentation
+docs/evenements/           README.md + 12 JSON Schema (générés)
+tests/test_events.py       42 tests unitaires du contrat
+tests/test_bus.py          test d'intégration de sim.dlq</pre>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le contrat d'événements est le point de rencontre de tous les composants : simulation,
+    indicateurs, historique, rejeu et Godot ne se connaissent pas, ils partagent ce contrat.</li>
+  <li>Un message non conforme ne fait jamais tomber la simulation : il est isolé dans
+    <code>sim.dlq</code> avec sa raison, et compté.</li>
+  <li><code>caused_by</code> relie chaque événement à ses causes : c'est ce qui permettra de
+    remonter d'une valeur d'indicateur aux décisions et messages qui l'ont produite (F6, B4).</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 5 — Horloge simulée et orchestrateur en mode synchrone : faire avancer le temps jour par
+jour, déclencher les agents, appliquer le délai de livraison des messages, identifier chaque run
+par un <code>run_id</code> et une graine.</p>
 </section>
 
 </body>

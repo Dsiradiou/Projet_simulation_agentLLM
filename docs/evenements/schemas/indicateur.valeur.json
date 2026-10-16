@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "IndicatorPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "nom": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Nom",
+          "type": "string"
+        },
+        "valeur": {
+          "title": "Valeur",
+          "type": "number"
+        },
+        "groupe": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Groupe concerné, ou None si global.",
+          "title": "Groupe"
+        },
+        "fenetre_debut": {
+          "description": "Minutes simulées depuis le jour 1 à 00:00.",
+          "minimum": 0,
+          "title": "Fenetre Debut",
+          "type": "integer"
+        },
+        "fenetre_fin": {
+          "description": "Minutes simulées depuis le jour 1 à 00:00.",
+          "minimum": 0,
+          "title": "Fenetre Fin",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "nom",
+        "valeur",
+        "fenetre_debut",
+        "fenetre_fin"
+      ],
+      "title": "IndicatorPayload",
+      "type": "object"
+    },
+    "Zone": {
+      "enum": [
+        "pharmacie",
+        "plage",
+        "piscine",
+        "reseaux_sociaux",
+        "centre_commercial",
+        "terrain_sport",
+        "domicile"
+      ],
+      "title": "Zone",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "description": "Identifiant unique.",
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "description": "Run qui a produit l'événement.",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "indicateur.valeur",
+      "default": "indicateur.valeur",
+      "title": "Type",
+      "type": "string"
+    },
+    "sim_time_occurred": {
+      "description": "Moment simulé où le fait se produit.",
+      "minimum": 0,
+      "title": "Sim Time Occurred",
+      "type": "integer"
+    },
+    "sim_time_processed": {
+      "description": "Moment simulé où l'émetteur a fini de le traiter (≥ sim_time_occurred).",
+      "minimum": 0,
+      "title": "Sim Time Processed",
+      "type": "integer"
+    },
+    "wall_time_emitted": {
+      "description": "Horodatage réel d'émission, en UTC.",
+      "format": "date-time",
+      "title": "Wall Time Emitted",
+      "type": "string"
+    },
+    "source_agent_id": {
+      "description": "Émetteur : agent ou composant.",
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Source Agent Id",
+      "type": "string"
+    },
+    "zone": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Zone"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Zone concernée, si elle existe."
+    },
+    "caused_by": {
+      "default": [],
+      "description": "Événements à l'origine de celui-ci (traçabilité, F6).",
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Caused By",
+      "type": "array"
+    },
+    "payload": {
+      "$ref": "#/$defs/IndicatorPayload"
+    }
+  },
+  "required": [
+    "run_id",
+    "sim_time_occurred",
+    "sim_time_processed",
+    "source_agent_id",
+    "payload"
+  ],
+  "title": "Indicator",
+  "type": "object"
+}

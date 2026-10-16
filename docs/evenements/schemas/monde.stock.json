@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "Produit": {
+      "enum": [
+        "marque",
+        "concurrent"
+      ],
+      "title": "Produit",
+      "type": "string"
+    },
+    "StockPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "produit": {
+          "$ref": "#/$defs/Produit"
+        },
+        "quantite": {
+          "minimum": 0,
+          "title": "Quantite",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "produit",
+        "quantite"
+      ],
+      "title": "StockPayload",
+      "type": "object"
+    },
+    "Zone": {
+      "enum": [
+        "pharmacie",
+        "plage",
+        "piscine",
+        "reseaux_sociaux",
+        "centre_commercial",
+        "terrain_sport",
+        "domicile"
+      ],
+      "title": "Zone",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "description": "Identifiant unique.",
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "description": "Run qui a produit l'événement.",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "monde.stock",
+      "default": "monde.stock",
+      "title": "Type",
+      "type": "string"
+    },
+    "sim_time_occurred": {
+      "description": "Moment simulé où le fait se produit.",
+      "minimum": 0,
+      "title": "Sim Time Occurred",
+      "type": "integer"
+    },
+    "sim_time_processed": {
+      "description": "Moment simulé où l'émetteur a fini de le traiter (≥ sim_time_occurred).",
+      "minimum": 0,
+      "title": "Sim Time Processed",
+      "type": "integer"
+    },
+    "wall_time_emitted": {
+      "description": "Horodatage réel d'émission, en UTC.",
+      "format": "date-time",
+      "title": "Wall Time Emitted",
+      "type": "string"
+    },
+    "source_agent_id": {
+      "description": "Émetteur : agent ou composant.",
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Source Agent Id",
+      "type": "string"
+    },
+    "zone": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Zone"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Zone concernée, si elle existe."
+    },
+    "caused_by": {
+      "default": [],
+      "description": "Événements à l'origine de celui-ci (traçabilité, F6).",
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Caused By",
+      "type": "array"
+    },
+    "payload": {
+      "$ref": "#/$defs/StockPayload"
+    }
+  },
+  "required": [
+    "run_id",
+    "sim_time_occurred",
+    "sim_time_processed",
+    "source_agent_id",
+    "payload"
+  ],
+  "title": "Stock",
+  "type": "object"
+}
