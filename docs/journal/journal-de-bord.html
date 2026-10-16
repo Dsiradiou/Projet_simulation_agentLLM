@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Journal de bord — Mondes vivants</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+  :root {
+    --ink: #1d2433; --muted: #5b6475; --line: #d7dce5;
+    --accent: #1f3c88; --accent-soft: #eef2fb; --ok: #1e7a46; --todo: #8a8f99;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.5;
+    color: var(--ink); background: #fff; margin: 0;
+  }
+  h1 { font-size: 22pt; color: var(--accent); margin: 0 0 4px; }
+  h2 {
+    font-size: 15pt; color: var(--accent); border-bottom: 2px solid var(--accent);
+    padding-bottom: 3px; margin: 26px 0 10px;
+  }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  ul { margin: 4px 0 8px; padding-left: 20px; }
+  li { margin: 2px 0; }
+  code { font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 0 3px; border-radius: 3px; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; }
+  th { background: var(--accent); color: #fff; text-align: left; padding: 5px 7px; }
+  td { border-bottom: 1px solid var(--line); padding: 4px 7px; vertical-align: top; }
+  .subtitle { color: var(--muted); margin: 0 0 14px; }
+  .meta { color: var(--muted); font-size: 9.5pt; }
+  .box { background: var(--accent-soft); border-left: 4px solid var(--accent); padding: 8px 12px; margin: 10px 0; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .todo { color: var(--todo); }
+  .step { page-break-before: always; }
+  .step table, pre, tr { break-inside: avoid; }
+  h2, h3 { break-after: avoid; }
+  .step-head { display: flex; justify-content: space-between; align-items: baseline; }
+</style>
+</head>
+<body>
+
+<h1>Journal de bord</h1>
+<p class="subtitle">Mondes vivants · Sujet 04 ÉPHÉMÈRE · Simulation multi-agents du lancement d'une crème solaire fictive</p>
+
+<div class="box">
+  <strong>À quoi sert ce document.</strong> Après chaque étape du développement, on y explique ce
+  qui a été fait, pourquoi, et ce qu'il faut retenir pour pouvoir le présenter au jury. Il se lit
+  dans l'ordre : chaque étape s'appuie sur les précédentes. Les règles permanentes du projet sont
+  dans <code>CLAUDE.md</code>, les décisions de conception dans <code>docs/contexte-projet.md</code>.
+</div>
+
+<h2>Le plan de travail</h2>
+<p>Le projet repart de zéro le 16 octobre 2026. Chaque étape est validée par le binôme avant de
+passer à la suivante, puis fait l'objet d'un commit. Les codes entre parenthèses renvoient aux
+exigences de l'énoncé.</p>
+
+<table>
+  <tr><th>#</th><th>Étape</th><th>Contenu</th><th>État</th></tr>
+  <tr><td colspan="4"><strong>Phase 0 — Faire place nette</strong></td></tr>
+  <tr><td>0</td><td>Nettoyage du dépôt</td><td>Retrait du prototype non conforme, mise à jour de CLAUDE.md, README et journal</td><td class="ok">terminée</td></tr>
+  <tr><td colspan="4"><strong>Phase 1 — Fondations</strong></td></tr>
+  <tr><td>1</td><td>Squelette du dépôt</td><td>Arborescence, <code>.gitignore</code>, <code>.env.example</code>, Python 3.12, ruff, fichier de configuration</td><td class="todo">à venir</td></tr>
+  <tr><td>2</td><td>Infrastructure Docker</td><td>Kafka (KRaft) et Redis en versions figées, création des 7 topics <code>sim.*</code></td><td class="todo">à venir</td></tr>
+  <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="todo">à venir</td></tr>
+  <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
+  <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="todo">à venir</td></tr>
+  <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="todo">à venir</td></tr>
+  <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="todo">à venir</td></tr>
+  <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="todo">à venir</td></tr>
+  <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="todo">à venir</td></tr>
+  <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
+  <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="todo">à venir</td></tr>
+  <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="todo">à venir</td></tr>
+  <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
+  <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="todo">à venir</td></tr>
+  <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="todo">à venir</td></tr>
+  <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="todo">à venir</td></tr>
+  <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="todo">à venir</td></tr>
+  <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="todo">à venir</td></tr>
+  <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
+  <tr><td>16</td><td>Expériences</td><td>Configurations C0 à C3, au moins 5 runs chacune, Bass, synchrone/asynchrone, coûts (E1, E2, E4, E5, C5)</td><td class="todo">à venir</td></tr>
+  <tr><td>17</td><td>Charge et pannes</td><td>Agent muet, pic d'événements, latence jusqu'aux indicateurs (O4, C7)</td><td class="todo">à venir</td></tr>
+  <tr><td>18</td><td>Soutenance</td><td>Configuration de démo réduite, deux tailles de population (C8), README, run enregistré, rapport</td><td class="todo">à venir</td></tr>
+</table>
+
+<p><strong>Pourquoi cet ordre.</strong> On construit d'abord la tuyauterie (événements, horloge,
+appels LLM) avec très peu d'agents, pour vérifier que tout circule. Le rejeu arrive tôt (étape 8)
+parce qu'il permet ensuite de développer la scène 3D sur des runs enregistrés, sans occuper la
+carte graphique avec les modèles. Le contenu du monde (marque, corpus, population complète) vient
+une fois la chaîne fiable.</p>
+
+<!-- ============================================================ -->
+<section class="step">
+<div class="step-head">
+  <h2>Étape 0 — Nettoyage du dépôt</h2>
+</div>
+<p class="meta">16 octobre 2026 · Exigences concernées : aucune directement ; prépare toutes les suivantes.</p>
+
+<h3>Objectif</h3>
+<p>Repartir d'une base propre : ne garder dans le dépôt que ce qui est conforme aux règles du
+projet (<code>CLAUDE.md</code>), aux décisions de conception (<code>docs/contexte-projet.md</code>)
+et à l'énoncé.</p>
+
+<h3>Pourquoi on a repris de zéro</h3>
+<p>Un premier prototype avait été écrit avant que la conception soit arrêtée. En le comparant aux
+règles du projet, plusieurs écarts sont apparus, dont certains touchent des exigences notées :</p>
+<table>
+  <tr><th>Écart dans le prototype</th><th>Règle ou exigence concernée</th></tr>
+  <tr><td>Nom de marque, ingrédient et indice de protection écrits en dur dans le code et les prompts</td><td>Le nom doit rester un paramètre de configuration, choisi après un test de contamination</td></tr>
+  <tr><td>Topics <code>simulation.*</code> au lieu des 7 topics <code>sim.*</code> prévus</td><td>C1, architecture</td></tr>
+  <tr><td>Événements sans <code>run_id</code>, sans <code>caused_by</code>, et date de traitement en temps réel au lieu du temps simulé</td><td>C3 (deux horloges), F6 (traçabilité), E3 (rejeu)</td></tr>
+  <tr><td>Pas de Redis ; images Docker en version <code>latest</code></td><td>F3 ; livrable reproductible sur une autre machine</td></tr>
+  <tr><td>Pas de <code>.gitignore</code>, fichiers compilés Python versionnés, arborescence différente</td><td>Conventions du dépôt</td></tr>
+  <tr><td>Visualisation 2D à base d'icônes</td><td>Remplacée par une scène 3D (décision du binôme)</td></tr>
+</table>
+<p>Corriger ces écarts un par un aurait coûté plus cher que de reconstruire proprement, étape par
+étape.</p>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Retrait du prototype du dépôt</strong> : <code>src/</code>, <code>godot_client/</code>,
+    <code>docker-compose.yml</code>, <code>requirements.txt</code>. Ces fichiers avaient été commités,
+    ils restent donc consultables dans l'historique git (commit <code>607297b</code>).</li>
+  <li><strong>Archivage hors du dépôt</strong> des fichiers jamais commités, qu'une suppression
+    aurait perdus définitivement : <code>src/agents/</code>, <code>src/rag/</code>,
+    <code>src/simulation_engine.py</code>, <code>data/knowledge/</code>, les caches Godot et
+    l'environnement virtuel. Ils sont dans
+    <code>C:\Users\Siradiou\archive_prototype_S9_2026-10-16\</code>.</li>
+  <li><strong>Mise à jour de <code>CLAUDE.md</code></strong> : chemin correct de l'énoncé, Python 3.12,
+    Godot en 3D low-poly, et une section « Méthode de travail » qui fixe la règle d'avancement
+    étape par étape.</li>
+  <li><strong>Journal des décisions</strong> complété dans <code>docs/contexte-projet.md</code>.</li>
+  <li><strong>Création du <code>README.md</code></strong> : description du projet pour GitHub et
+    tableau d'avancement, mis à jour à chaque commit.</li>
+  <li><strong>Installation de Python 3.12.10</strong> avec le gestionnaire d'installation officiel
+    (<code>py install 3.12</code>), pour l'utilisateur seulement, sans droits administrateur.
+    Python 3.14 reste installé et reste la version par défaut ; on appelle 3.12 explicitement avec
+    <code>py -V:3.12</code>.</li>
+  <li><strong>Création de ce journal de bord</strong> : source HTML dans
+    <code>docs/journal/journal-de-bord.html</code>, PDF généré à la racine par
+    <code>docs/journal/build.ps1</code> (impression via Microsoft Edge, déjà présent sous Windows,
+    donc aucune dépendance à installer).</li>
+</ul>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Décision</th><th>Raison</th></tr>
+  <tr><td>Python <strong>3.12</strong></td><td>Version stable bien prise en charge par les bibliothèques prévues (ChromaDB notamment), qui suivent souvent les nouvelles versions de Python avec retard. Python 3.12.10 a été installé à côté de 3.14 (voir ci-dessous).</td></tr>
+  <tr><td>Scène Godot en <strong>3D low-poly</strong>, rendu léger</td><td>Plus lisible et plus parlante pour le jury, tout en laissant de la mémoire graphique aux modèles LLM (budget d'environ 1 à 1,5 Go pour Windows et Godot).</td></tr>
+  <tr><td>Modèles 3D gratuits choisis sur maquettes</td><td>Plusieurs essais seront présentés au binôme, qui choisira (étape 10).</td></tr>
+  <tr><td>Avancement étape par étape, commit après validation</td><td>Chaque étape est comprise et expliquable par les deux membres avant d'aller plus loin.</td></tr>
+</table>
+
+<h3>État du dépôt après l'étape</h3>
+<pre style="font-family: Consolas, monospace; font-size: 9.5pt; background: #f2f4f8; padding: 8px 12px; border-radius: 4px;">
+CLAUDE.md                  règles permanentes du projet
+README.md                  présentation et état d'avancement
+journal-de-bord.pdf        ce document
+docs/
+  contexte-projet.md       décisions de conception
+  Architecture_…pdf        schémas d'architecture
+  Mondes-Vivants_…html     énoncé
+  journal/
+    journal-de-bord.html   source de ce document
+    build.ps1              génération du PDF</pre>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le projet a été reconstruit sur une conception écrite et validée avant de coder, pour que
+    chaque composant réponde à une exigence identifiée de l'énoncé.</li>
+  <li>Interpréteur et environnement virtuel sont deux choses distinctes : Python 3.12 est installé
+    une fois sur la machine, puis l'environnement virtuel <code>.venv</code> du projet (étape 1) est
+    créé à partir de lui et contient toutes les bibliothèques. Ainsi les dépendances du projet
+    n'interfèrent pas avec le reste de la machine, et la procédure se reproduit sur la machine de
+    la collaboratrice.</li>
+  <li>Rien n'a été perdu : l'ancien code est dans l'historique git ou archivé.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 1 — Squelette du dépôt : environnement virtuel <code>.venv</code> en Python 3.12, arborescence, <code>.gitignore</code>,
+<code>.env.example</code>, outillage ruff, et fichier de configuration qui portera
+<code>BRAND_NAME</code>, le nombre d'agents, le mode d'exécution et la graine.</p>
+</section>
+
+</body>
+</html>

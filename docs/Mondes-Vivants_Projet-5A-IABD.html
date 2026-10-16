@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Mondes Vivants — projet 5A IABD, EIGSI Casablanca : simulation multi-agents LLM avec Kafka et Godot.">
+<title>Mondes Vivants</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column (~68ch) with full-bleed "console" moments — the live hero simulation and the catalogue switcher — set off as instrument panels. */
+:root{
+  --bg:#EDEFF3;
+  --surface:#F8F9FB;
+  --ink:#141829;
+  --muted:#596078;
+  --line:#CFD4DE;
+  --accent:#2F43C9;
+  --amber:#B97710;
+  --belief-a:#2F43C9;
+  --belief-b:#D2841A;
+  --chip-ink:#F8F9FB;
+  --f-display:"Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --measure:68ch;
+  --wide:1120px;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1120; --surface:#161A2E; --ink:#E6E8F3; --muted:#9BA1BA; --line:#2A3052;
+    --accent:#8E9CFF; --amber:#F0B45A; --belief-a:#8E9CFF; --belief-b:#F0B45A; --chip-ink:#0E1120;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1120; --surface:#161A2E; --ink:#E6E8F3; --muted:#9BA1BA; --line:#2A3052;
+  --accent:#8E9CFF; --amber:#F0B45A; --belief-a:#8E9CFF; --belief-b:#F0B45A; --chip-ink:#0E1120;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:var(--f-body); font-size:1.075rem; line-height:1.6;
+  padding-inline:clamp(16px,4vw,40px); padding-block:0 64px;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent); text-underline-offset:3px}
+a:focus-visible, button:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:3px}
+h1,h2,h3,h4{font-family:var(--f-display); line-height:1.08; text-wrap:balance; margin:0}
+p{margin:0}
+em{font-style:italic}
+.wrap{max-width:var(--wide); margin-inline:auto}
+.col{max-width:var(--measure)}
+.eyebrow{font-family:var(--f-mono); font-size:.74rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.mono{font-family:var(--f-mono)}
+
+/* nav */
+.nav{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:10;
+  margin-inline:calc(-1 * clamp(16px,4vw,40px));
+  padding-inline:clamp(16px,4vw,40px);
+  background:color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.nav-inner{max-width:var(--wide); margin-inline:auto; display:flex; align-items:center; gap:20px; height:52px}
+.brand{font-family:var(--f-display); font-weight:800; font-size:1rem; letter-spacing:-.01em; white-space:nowrap; color:var(--ink); text-decoration:none}
+.nav-links{display:flex; gap:18px; overflow-x:auto; scrollbar-width:none; flex:1; min-width:0}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{font-family:var(--f-mono); font-size:.78rem; color:var(--muted); text-decoration:none; white-space:nowrap; padding-block:6px}
+.nav-links a:hover{color:var(--ink)}
+
+/* hero */
+.hero{padding-block:clamp(36px,6vw,72px) 28px; display:grid; gap:28px}
+.hero h1{font-size:clamp(2.8rem,8.5vw,6.2rem); font-weight:800; letter-spacing:-.035em}
+.hero h1 .w{display:inline-block; animation:rise .9s cubic-bezier(.2,.7,.1,1) both}
+.hero h1 .w:nth-child(2){animation-delay:.12s; color:var(--accent)}
+@keyframes rise{from{transform:translateY(.35em); opacity:.15} to{transform:none; opacity:1}}
+.lede{font-size:clamp(1.12rem,2vw,1.32rem); line-height:1.5; max-width:58ch}
+.facts{display:flex; flex-wrap:wrap; gap:8px 22px}
+.facts span{font-family:var(--f-mono); font-size:.8rem; color:var(--muted)}
+.facts b{color:var(--ink); font-weight:500}
+
+.console{
+  border:1px solid var(--line); border-radius:var(--r); background:var(--surface);
+  overflow:hidden; display:grid;
+}
+.console canvas{display:block; width:100%; height:clamp(300px,40vw,440px)}
+.console{margin:0}
+.sim-grid{display:grid; grid-template-columns:minmax(0,1fr) 300px}
+@media (max-width:860px){ .sim-grid{grid-template-columns:1fr} }
+.sim-stage{min-width:0}
+.console canvas{cursor:pointer; touch-action:manipulation}
+.inspector{border-left:1px solid var(--line); padding:16px; display:grid; gap:10px; align-content:start; min-width:0}
+@media (max-width:860px){ .inspector{border-left:none; border-top:1px solid var(--line)} }
+.inspector h3{font-size:1.25rem; display:flex; align-items:center; gap:8px}
+.inspector h3::before{content:""; width:10px; height:10px; border-radius:50%; border:2px solid var(--ink)}
+.kv{margin:0; display:grid; gap:6px; font-size:.9rem; line-height:1.35}
+.kv div{display:grid; grid-template-columns:118px minmax(0,1fr); gap:8px}
+.kv dt{font-family:var(--f-mono); font-size:.7rem; color:var(--muted); padding-top:2px}
+.kv dd{margin:0}
+.memlog{list-style:none; padding:0; margin:0; display:grid; gap:7px; font-size:.86rem; line-height:1.35; min-height:10.5em; align-content:start}
+.memlog li{display:grid; grid-template-columns:72px minmax(0,1fr); gap:8px; border-radius:3px; animation:memin 1.2s ease}
+.memlog time{font-family:var(--f-mono); font-size:.7rem; color:var(--muted); padding-top:2px; font-variant-numeric:tabular-nums}
+.memlog .empty{color:var(--muted); font-style:italic; display:block}
+@keyframes memin{from{background:color-mix(in srgb, var(--amber) 22%, transparent)} to{background:transparent}}
+.seg{display:inline-flex; border:1px solid var(--ink); border-radius:999px; overflow:hidden}
+.segb{font-family:var(--f-mono); font-size:.76rem; background:transparent; color:var(--ink); border:0; padding:6px 12px; cursor:pointer}
+.segb[aria-pressed="true"]{background:var(--ink); color:var(--surface)}
+.legend{display:flex; gap:14px; flex-wrap:wrap}
+.dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle}
+.know{border-top:1px dashed var(--line); padding-top:14px}
+
+.figcap{border-top:none; padding-top:0}
+.bloc.empty{display:none}
+.hud{
+  display:flex; flex-wrap:wrap; align-items:center; gap:10px 22px;
+  padding:10px 14px; border-top:1px solid var(--line);
+  font-family:var(--f-mono); font-size:.76rem; color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.hud b{color:var(--ink); font-weight:500}
+.hud .spacer{flex:1}
+.btn{
+  font-family:var(--f-mono); font-size:.76rem; color:var(--ink);
+  background:transparent; border:1px solid var(--ink); border-radius:999px;
+  padding:6px 12px; cursor:pointer;
+}
+.btn:hover{background:var(--ink); color:var(--surface)}
+.caption{font-family:var(--f-mono); font-size:.74rem; color:var(--muted); line-height:1.5}
+
+/* sections */
+section{padding-block:clamp(48px,7vw,88px) 0; scroll-margin-top:64px}
+.sec-head{display:grid; gap:12px; margin-bottom:32px}
+.sec-head h2{font-size:clamp(1.8rem,4vw,2.7rem); font-weight:800; letter-spacing:-.02em}
+.rule{height:2px; background:var(--ink); transform-origin:left; width:100%; max-width:var(--wide)}
+.js .rule{transform:scaleX(.08); transition:transform 1.1s cubic-bezier(.2,.7,.1,1)}
+.js .rule.on{transform:scaleX(1)}
+.intro{font-size:1.15rem; max-width:var(--measure)}
+
+/* objectives */
+.objs{display:grid; gap:0; border-top:1px solid var(--line)}
+.obj{display:grid; grid-template-columns:56px minmax(0,1fr) 190px; gap:12px 24px; padding-block:20px; border-bottom:1px solid var(--line); align-items:start}
+.obj .code{font-family:var(--f-display); font-weight:800; font-size:1.5rem; color:var(--accent)}
+.obj p{max-width:var(--measure)}
+.obj .ex{color:var(--muted); font-style:italic; margin-top:6px; font-size:1rem}
+.obj aside{display:grid; gap:6px; font-family:var(--f-mono); font-size:.74rem; color:var(--muted)}
+.bloom{display:inline-flex; align-items:center; gap:8px; color:var(--ink)}
+.bloom .lv{display:inline-flex; gap:2px}
+.bloom .lv i{width:7px; height:12px; background:var(--line); border-radius:1px}
+.bloom .lv i.f{background:var(--accent)}
+@media (max-width:760px){
+  .obj{grid-template-columns:44px minmax(0,1fr)}
+  .obj aside{grid-column:2}
+}
+.notbox{margin-top:36px; display:grid; gap:12px; max-width:var(--measure)}
+.notbox h3{font-size:1.25rem}
+.notlist{list-style:none; padding:0; margin:0; display:grid; gap:10px}
+.notlist li{padding-left:22px; position:relative}
+.notlist li::before{content:"×"; position:absolute; left:0; top:-1px; font-family:var(--f-mono); color:var(--amber); font-weight:500}
+
+/* challenge */
+.levels{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px}
+.chip{
+  font-family:var(--f-mono); font-size:.76rem; border:1px solid var(--line); background:var(--surface);
+  color:var(--ink); border-radius:999px; padding:7px 14px; cursor:pointer;
+}
+.chip[aria-pressed="true"]{background:var(--ink); color:var(--surface); border-color:var(--ink)}
+.chip .n{opacity:.6; margin-left:6px}
+.legend-levels{display:flex; flex-wrap:wrap; gap:10px 24px; margin-bottom:18px; font-size:.98rem; color:var(--muted)}
+.tag{display:inline-block; font-family:var(--f-mono); font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; padding:2px 7px; border-radius:3px; vertical-align:2px; white-space:nowrap}
+.tag.socle{background:var(--ink); color:var(--surface)}
+.tag.standard{border:1px solid var(--accent); color:var(--accent)}
+.tag.excellence{background:var(--amber); color:var(--chip-ink)}
+.blocs{display:grid; gap:36px}
+.bloc{display:grid; grid-template-columns:72px minmax(0,1fr); gap:8px 24px}
+.bloc .letter{font-family:var(--f-display); font-weight:800; font-size:3rem; line-height:1; color:var(--accent)}
+.bloc h3{font-size:1.4rem; margin-bottom:8px}
+.bloc .note{color:var(--muted); font-size:.98rem; margin-bottom:10px; max-width:var(--measure)}
+.reqs{list-style:none; padding:0; margin:0; display:grid; gap:14px}
+.req{display:grid; grid-template-columns:44px minmax(0,1fr); gap:10px; max-width:76ch}
+.req .id{font-family:var(--f-mono); font-size:.82rem; color:var(--muted); padding-top:3px}
+.req .ex{display:block; color:var(--muted); font-style:italic; font-size:1rem; margin-top:4px}
+.req.dim{display:none}
+@media (max-width:600px){ .bloc{grid-template-columns:1fr} .bloc .letter{font-size:2.2rem} }
+.constraints{
+  margin-top:44px; border:1px solid var(--ink); border-radius:var(--r); padding:22px clamp(16px,3vw,28px);
+  display:grid; gap:14px; background:var(--surface);
+}
+.constraints h3{font-size:1.1rem}
+.cgrid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr)); gap:12px 22px}
+.cgrid div{display:grid; gap:2px}
+.cgrid .k{font-family:var(--f-mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.cgrid .v{font-family:var(--f-display); font-weight:600; font-size:1.05rem}
+
+/* catalogue */
+.rules{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:18px 28px; margin-bottom:36px}
+.rules div{border-top:2px solid var(--ink); padding-top:10px; display:grid; gap:6px}
+.rules h4{font-size:1rem}
+.rules p{font-size:.98rem; color:var(--muted)}
+.tabs{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px}
+@media (max-width:900px){ .tabs{grid-template-columns:repeat(4,minmax(0,1fr))} }
+@media (max-width:520px){ .tabs{grid-template-columns:repeat(2,minmax(0,1fr))} }
+.tab{
+  text-align:left; border:1px solid var(--line); background:var(--surface); color:var(--ink);
+  border-radius:var(--r); padding:12px; cursor:pointer; display:grid; gap:4px; min-width:0;
+  transition:border-color .2s, transform .2s;
+}
+.tab:hover{border-color:var(--ink); transform:translateY(-2px)}
+.tab .num{font-family:var(--f-mono); font-size:.7rem; color:var(--muted)}
+.tab .nm{font-family:var(--f-display); font-weight:800; font-size:1rem; letter-spacing:.01em; overflow-wrap:anywhere}
+.tab .ph{font-size:.85rem; color:var(--muted); line-height:1.3}
+.tab[aria-selected="true"]{background:var(--ink); border-color:var(--ink); color:var(--surface)}
+.tab[aria-selected="true"] .num, .tab[aria-selected="true"] .ph{color:var(--surface); opacity:.75}
+.panel{margin-top:22px; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); padding:clamp(18px,4vw,40px)}
+.panel.swap{animation:swap .45s cubic-bezier(.2,.7,.1,1)}
+@keyframes swap{from{transform:translateY(8px); opacity:.4} to{transform:none; opacity:1}}
+.fiche{display:grid; gap:26px}
+.fiche header{display:grid; gap:8px}
+.fiche h3{font-size:clamp(1.6rem,3.6vw,2.4rem); font-weight:800; letter-spacing:-.02em}
+.fiche h3 small{display:block; font-family:var(--f-body); font-weight:400; font-style:italic; font-size:clamp(1.05rem,2vw,1.3rem); color:var(--muted); letter-spacing:0; margin-top:6px}
+.fgrid{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:26px 44px}
+@media (max-width:820px){ .fgrid{grid-template-columns:1fr} }
+.fblock{display:grid; gap:8px}
+.fblock h4{font-family:var(--f-mono); font-weight:500; font-size:.74rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+.fblock ul{margin:0; padding-left:1.1em; display:grid; gap:6px}
+.question{border-left:3px solid var(--amber); padding-left:16px; font-size:1.12rem}
+.defi{font-size:1rem; color:var(--muted)}
+.refs{font-size:.92rem; color:var(--muted)}
+.refs ul{padding-left:1.1em}
+
+/* deliverables */
+.deliv{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:18px}
+.deliv article{border-top:2px solid var(--ink); padding-top:14px; display:grid; gap:10px; align-content:start}
+.deliv h3{font-size:1.3rem}
+.deliv p{font-size:1rem}
+.deliv .sub{font-family:var(--f-mono); font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:var(--accent)}
+.crit{list-style:none; padding:0; margin:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:0 36px; counter-reset:c}
+.crit li{display:grid; grid-template-columns:36px minmax(0,1fr); gap:10px; padding-block:14px; border-bottom:1px solid var(--line)}
+.crit li::before{counter-increment:c; content:counter(c); font-family:var(--f-display); font-weight:800; color:var(--accent); font-size:1.3rem; line-height:1.2}
+.crit b{font-family:var(--f-display); font-weight:600}
+.gate{margin-bottom:22px; padding:14px 18px; background:var(--ink); color:var(--surface); border-radius:var(--r); max-width:var(--measure)}
+
+/* jury */
+.jury{display:grid; gap:0}
+.jury blockquote{margin:0; padding-block:22px; border-bottom:1px solid var(--line); display:grid; grid-template-columns:56px minmax(0,1fr); gap:16px}
+.jury blockquote span{font-family:var(--f-mono); color:var(--muted); font-size:.8rem; padding-top:8px}
+.jury p{font-family:var(--f-display); font-weight:600; font-size:clamp(1.2rem,2.6vw,1.6rem); line-height:1.25; letter-spacing:-.01em; max-width:40ch}
+
+/* resources */
+.res{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:28px 40px}
+.res div{display:grid; gap:10px; align-content:start}
+.res h3{font-size:1.1rem}
+.res ul{margin:0; padding-left:1.1em; display:grid; gap:8px; font-size:.95rem}
+footer{margin-top:72px; padding-top:20px; border-top:1px solid var(--line); display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+  .js .rule{transform:none}
+}
+</style>
+</head>
+<body>
+
+
+<nav class="nav" aria-label="Sections">
+  <div class="nav-inner">
+    <a class="brand" href="#top">Mondes Vivants</a>
+    <div class="nav-links">
+      <a href="#objectifs">Objectifs</a>
+      <a href="#defi">Défi commun</a>
+      <a href="#catalogue">Les sept mondes</a>
+      <a href="#livrables">Livrables</a>
+      <a href="#evaluation">Évaluation</a>
+      <a href="#jury">Jury</a>
+      <a href="#ressources">Ressources</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap" id="top">
+
+  <header class="hero">
+    <p class="eyebrow">EIGSI Casablanca · Cycle ingénieur 5A · Option IA &amp; Big Data</p>
+    <h1><span class="w">Mondes</span> <span class="w">vivants</span></h1>
+    <p class="lede">Simuler un phénomène social ou naturel avec des agents LLM autonomes qui se parlent, se souviennent, se trompent, et finissent, ou non, par partager une même lecture de leur monde. Ce monde s'écoule en continu, s'observe en direct et se mesure.</p>
+    <div class="facts">
+      <span>Format <b>binôme</b></span>
+      <span>Durée <b>8 semaines</b></span>
+      <span>Streaming <b>Apache Kafka</b></span>
+      <span>Visualisation <b>Godot</b></span>
+      <span>LLM <b>100 % gratuits</b></span>
+    </div>
+
+    <figure class="console">
+      <div class="sim-grid">
+        <div class="sim-stage"><canvas id="sim" role="img" aria-label="Animation décorative : des agents se déplacent entre cinq lieux, se parlent, et un agent sélectionné est suivi avec sa mémoire"></canvas></div>
+        <aside class="inspector" aria-label="Agent inspecté">
+          <p class="eyebrow">Agent inspecté</p>
+          <h3 id="insName">Agent 07</h3>
+          <dl class="kv">
+            <div><dt>Lieu</dt><dd id="insPlace">–</dd></div>
+            <div><dt>Intention</dt><dd id="insGoal">–</dd></div>
+            <div><dt>Croyance</dt><dd id="insBelief">–</dd></div>
+            <div><dt>Prochaine réflexion</dt><dd id="insNext">–</dd></div>
+          </dl>
+          <p class="eyebrow">Mémoire</p>
+          <ol class="memlog" id="insMem"></ol>
+        </aside>
+      </div>
+      <div class="hud">
+        <span>temps simulé <b id="clkSim">J1 · 07:00</b></span>
+        <span>temps réel <b id="clkReal">00:00</b></span>
+        <span>messages <b id="nMsg">0</b></span>
+        <span class="spacer"></span>
+        <span class="seg" role="group" aria-label="Mode d'exécution"><button type="button" class="segb" data-mode="sync" aria-pressed="false">Synchrone</button><button type="button" class="segb" data-mode="async" aria-pressed="true">Asynchrone</button></span>
+        <button class="btn" id="inject" type="button">Annonce au marché</button>
+        <button class="btn" id="reset" type="button">Relancer</button>
+      </div>
+      <figcaption class="hud caption figcap">
+        <span class="legend"><span><i class="dot" style="background:var(--muted)"></i>n'a rien entendu</span><span><i class="dot" style="background:var(--belief-b)"></i>y croit</span><span><i class="dot" style="background:var(--belief-a)"></i>doute</span></span>
+        <span>Animation décorative, à règles simples et sans LLM. Touchez un agent pour l'inspecter. Elle illustre le temps simulé, la mémoire d'un agent et la différence entre exécution synchrone et asynchrone, sans préjuger du mécanisme ni de l'indicateur attendus dans votre projet.</span>
+      </figcaption>
+    </figure>
+  </header>
+
+  <!-- OBJECTIFS -->
+  <section id="objectifs">
+    <div class="sec-head">
+      <p class="eyebrow">Préambule</p>
+      <h2>Objectifs pédagogiques</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="intro" style="margin-bottom:24px">À l'issue des 8 semaines, chaque binôme doit être capable de :</p>
+    <div class="objs">
+      <div class="obj"><span class="code">O1</span><div><p>Concevoir des agents LLM dotés d'un rôle, d'une mémoire propre et d'une capacité de dialogue, dont les décisions restent cohérentes avec leur profil sur toute la durée d'un run. Cette cohérence est vérifiée par un taux de sortie de rôle mesuré. Concevoir une population hétérogène, où des modèles de tailles différentes et des agents à règles incarnent des capacités différentes.</p><p class="ex">FILETS : un pêcheur se souvient, la saison suivante, de sa promesse de réduire ses prises, même s'il la trahit.</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>6 · Créer</span><span>Conception d'agents LLM</span><span>Prouvé par A1, A2, A3, A5, A6</span></aside></div>
+      <div class="obj"><span class="code">O2</span><div><p>Diagnostiquer les dérives des agents (sortie de rôle, réponse inexploitable, posture d'« assistant prudent ») et mesurer leur effet sur le phénomène observé.</p><p class="ex">ÉCHO : des habitants qui corrigent spontanément la rumeur au lieu de la relayer.</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>4 · Analyser</span><span>Conception d'agents LLM</span><span>Prouvé par A4, rapport</span></aside></div>
+      <div class="obj"><span class="code">O3</span><div><p>Concevoir et mettre en œuvre la chaîne de streaming qui transporte les événements de la simulation, calcule les indicateurs en temps réel et alimente la visualisation, en justifiant chaque choix.</p><p class="ex">GUICHET : les réserves de la Caisse baissent à l'écran au moment même où les retraits ont lieu.</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>6 · Créer</span><span>Streaming et système distribué</span><span>Prouvé par B2, C1, D1</span></aside></div>
+      <div class="obj"><span class="code">O4</span><div><p>Caractériser expérimentalement le comportement du système sous charge et en conditions dégradées (quota d'API atteint, agent muet, pic d'événements), et identifier le facteur limitant.</p><p class="ex">Quota atteint à 30 agents : le monde se fige-t-il, ou continue-t-il en mode dégradé ?</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>4 · Analyser</span><span>Streaming et système distribué</span><span>Prouvé par C2, C3, rapport</span></aside></div>
+      <div class="obj"><span class="code">O5</span><div><p>Concevoir un protocole expérimental : hypothèses testables, scénarios, comparaison à une baseline sans LLM, runs répétés.</p><p class="ex">ÉCHO : « un démenti de la Régie émis avant la deuxième journée simulée réduit la part d'habitants convaincus, par rapport à un démenti émis plus tard ».</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>6 · Créer</span><span>Démarche expérimentale</span><span>Prouvé par B1, B3, E1, E2</span></aside></div>
+      <div class="obj"><span class="code">O6</span><div><p>Juger la validité des mesures d'émergence et de l'apport du LLM : le résultat traduit-il le phénomène, ou un artefact du modèle ?</p><p class="ex">FILETS : distinguer une norme de prélèvement partagée d'une coïncidence où chacun pêche la même quantité.</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>5 · Évaluer</span><span>Démarche expérimentale</span><span>Prouvé par B3, E1, soutenance</span></aside></div>
+      <div class="obj"><span class="code">O7</span><div><p>Mesurer le coût d'une simulation (appels, tokens, temps de calcul, énergie quand elle est mesurable) et juger le compromis entre ce coût et le gain démontré, notamment en arbitrant entre modèles de tailles différentes et agents à règles.</p><p class="ex">ESSAIM : un choix de site un peu meilleur justifie-t-il cent fois plus d'appels que la baseline à règles ?</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>5 · Évaluer</span><span>Transverse · sobriété</span><span>Prouvé par E4, E5</span></aside></div>
+      <div class="obj"><span class="code">O8</span><div><p>Défendre, à l'écrit comme à l'oral, des conclusions étayées par les mesures, en exposant leurs limites et la variabilité observée.</p><p class="ex">Écrire « l'essaim retient le meilleur site dans 7 runs sur 10 » plutôt que « ça marche ».</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i></span>5 · Évaluer</span><span>Transverse · communication scientifique</span><span>Prouvé par le rapport et la soutenance</span></aside></div>
+      <div class="obj"><span class="code">O9</span><div><p>Concevoir l'architecture de données de la simulation : stockage organisé selon les besoins d'accès, contrat d'événements, base de connaissances interrogée par les agents (RAG), historique exploitable d'un run à l'autre. Chaque choix est justifié.</p><p class="ex">GUICHET : les déposants consultent les communiqués de la direction et la presse locale, et l'historique permet de comparer trois scénarios de garantie des dépôts.</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></span>6 · Créer</span><span>Ingénierie des données et RAG</span><span>Prouvé par F1 à F6</span></aside></div>
+      <div class="obj"><span class="code">O10</span><div><p>Analyser l'effet du modèle de temps sur le phénomène : exécution synchrone ou asynchrone, ordre des événements, écart entre le moment où un événement se produit et celui où il est traité.</p><p class="ex">ÉCHO : la rumeur se propage-t-elle de la même façon quand les agents les plus rapides parlent plus souvent que les autres ?</p></div><aside><span class="bloom"><span class="lv"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i></span>4 · Analyser</span><span>Streaming, temps et asynchronisme</span><span>Prouvé par C3 à C6</span></aside></div>
+    </div>
+    <p class="caption" style="margin-top:14px">Un <b>run</b> désigne une exécution complète de la simulation, du lancement à l'arrêt.</p>
+
+    <div class="notbox">
+      <h3>Ce projet n'est pas…</h3>
+      <ul class="notlist">
+        <li><b>Un jeu vidéo abouti.</b> La scène Godot doit être lisible et informative avant d'être belle.</li>
+        <li><b>Un modèle prédictif validé sur des données réelles.</b> Aucun des sept mondes n'existe.</li>
+        <li><b>Une étude en sciences sociales.</b> La littérature sert à poser vos hypothèses, pas à produire un résultat sur le comportement humain.</li>
+        <li><b>Un projet de fine-tuning.</b> Vous travaillez avec des modèles existants, tels quels.</li>
+        <li><b>Une course au nombre d'agents.</b> Un petit monde bien instrumenté vaut mieux qu'une foule qu'on ne sait pas mesurer.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- DEFI -->
+  <section id="defi">
+    <div class="sec-head">
+      <p class="eyebrow">Commun aux sept sujets</p>
+      <h2>Le défi commun : ce que toute simulation doit démontrer</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="intro" style="margin-bottom:26px">Quel que soit le sujet choisi, vous construisez un monde vivant observable. Des agents y vivent, se parlent, se trompent et finissent, ou non, par partager une même lecture de leur situation. Ce monde s'écoule en continu sous les yeux d'un observateur, qui peut lire ce que pense un habitant puis bousculer la situation. Votre travail consiste à montrer que ce qui émerge est mesurable, robuste et imputable aux agents LLM.</p>
+
+    <div class="legend-levels">
+      <span><span class="tag socle">Socle</span> obligatoire pour valider le projet</span>
+      <span><span class="tag standard">Standard</span> attendu pour une bonne note</span>
+      <span><span class="tag excellence">Excellence</span> distingue les meilleurs projets</span>
+    </div>
+    <div class="levels" role="group" aria-label="Filtrer les exigences par niveau">
+      <button class="chip" type="button" data-f="all" aria-pressed="true">Toutes<span class="n">23</span></button>
+      <button class="chip" type="button" data-f="socle" aria-pressed="false">Socle<span class="n">14</span></button>
+      <button class="chip" type="button" data-f="standard" aria-pressed="false">Standard<span class="n">6</span></button>
+      <button class="chip" type="button" data-f="excellence" aria-pressed="false">Excellence<span class="n">3</span></button>
+    </div>
+
+    <div class="blocs">
+      <div class="bloc">
+        <span class="letter">A</span>
+        <div>
+          <h3>Des agents qui pensent et se souviennent</h3>
+          <p class="note">Les exigences A1 à A4 et D2 portent sur les agents LLM. La population attendue est hybride : des agents LLM de capacités différentes cohabitent avec des agents à règles (A5, A6).</p>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">A1</span><div><span class="tag socle">Socle</span> Le système dote chaque agent LLM d'une mémoire propre qui influence ses décisions. Un agent doit pouvoir se souvenir d'un échange vieux de plusieurs jours simulés et en tenir compte.<span class="ex">GUICHET : le retraité se rappelle que l'employé d'agence a éludé sa question trois jours plus tôt.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">A2</span><div><span class="tag socle">Socle</span> Les agents échangent en langage naturel, et ces échanges modifient ce que le destinataire croit ou fait.</div></li>
+            <li class="req" data-l="standard"><span class="id">A3</span><div><span class="tag standard">Standard</span> Le binôme démontre que deux agents de profils différents, placés dans la même situation, peuvent décider différemment, et il explique pourquoi.<span class="ex">ÉCHO : la pharmacienne et le commerçant reçoivent le même message mais ne le relaient pas de la même façon.</span></div></li>
+            <li class="req" data-l="standard"><span class="id">A4</span><div><span class="tag standard">Standard</span> Le système continue de fonctionner quand un agent sort de son rôle, répond de façon inexploitable ou ne répond pas. Chaque incident est tracé et dénombré.</div></li>
+            <li class="req" data-l="standard"><span class="id">A5</span><div><span class="tag standard">Standard</span> Le système fait vivre au moins deux modèles LLM de tailles différentes, attribués aux agents selon leur profil. On admet, comme hypothèse de travail, que la taille du modèle représente des capacités cognitives différentes entre individus. L'attribution repose sur le rôle et l'expérience du profil, jamais sur une catégorie sociale.<span class="ex">ESSAIM : les éclaireuses expérimentées raisonnent avec un modèle plus grand que les ouvrières qui attendent dans la grappe.</span></div></li>
+            <li class="req" data-l="standard"><span class="id">A6</span><div><span class="tag standard">Standard</span> Des agents à règles cohabitent avec les agents LLM dans la même simulation. Le binôme justifie la répartition entre les deux.</div></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bloc">
+        <span class="letter">B</span>
+        <div>
+          <h3>Un contexte commun qui émerge et se mesure</h3>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">B1</span><div><span class="tag socle">Socle</span> Dès le début du projet, le binôme définit en termes observables ce que « contexte commun » signifie pour son sujet.<span class="ex">ÉPHÉMÈRE : ce que le ruban « veut dire » pour chaque groupe du campus.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">B2</span><div><span class="tag socle">Socle</span> Le système calcule au moins un indicateur d'émergence pendant le run. Il l'affiche à côté de la scène, synchronisé avec elle.</div></li>
+            <li class="req" data-l="socle"><span class="id">B3</span><div><span class="tag socle">Socle</span> Le binôme démontre que son indicateur distingue un run où un contexte commun émerge d'un run où il n'émerge pas.</div></li>
+            <li class="req" data-l="excellence"><span class="id">B4</span><div><span class="tag excellence">Excellence</span> Pour une variation marquée de l'indicateur, le binôme présente les échanges qui l'ont précédée et argumente leur rôle.<span class="ex">GUICHET : la conversation qui a précédé le basculement de la boulangère.</span></div></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bloc">
+        <span class="letter">C</span>
+        <div>
+          <h3>Un monde en flux, dans le temps</h3>
+          <p class="note">Vos agents ne pensent pas tous à la même vitesse : un petit modèle local répond en une seconde, une API saturée en trente. Le temps est donc un objet de conception à part entière, pas un détail d'implémentation.</p>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">C1</span><div><span class="tag socle">Socle</span> Les événements du monde transitent par Kafka. Le binôme justifie la granularité des événements qu'il publie.</div></li>
+            <li class="req" data-l="socle"><span class="id">C2</span><div><span class="tag socle">Socle</span> Le nombre d'agents se fixe au lancement, sans modification de code.</div></li>
+            <li class="req" data-l="socle"><span class="id">C3</span><div><span class="tag socle">Socle</span> La simulation possède une horloge simulée explicite. Chaque événement porte le moment simulé où il se produit et le moment où il a été traité, et le système distingue les deux.<span class="ex">ÉPHÉMÈRE : un message publié le lundi soir sur le réseau interne n'est lu par certains étudiants que le mardi midi.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">C4</span><div><span class="tag socle">Socle</span> La simulation s'exécute dans deux modes, sélectionnables au lancement : un mode synchrone, où tous les agents agissent au même pas de temps, et un mode asynchrone, où chacun agit à son propre rythme, latences réelles des LLM comprises.</div></li>
+            <li class="req" data-l="standard"><span class="id">C5</span><div><span class="tag standard">Standard</span> Le binôme compare les deux modes sur les mêmes scénarios et mesure leur effet sur le phénomène et sur le coût. Il formule une hypothèse avant de mesurer.<span class="ex">MARÉE : en mode asynchrone, les visiteurs qui réfléchissent vite atteignent-ils les sorties avant les autres, et la carte mentale collective en est-elle changée ?</span></div></li>
+            <li class="req" data-l="standard"><span class="id">C6</span><div><span class="tag standard">Standard</span> Aucun agent n'agit sur une information qu'il n'aurait pas pu recevoir à ce moment simulé. Les violations de cohérence temporelle sont détectées et comptées.<span class="ex">FIÈVRE GRISE : un habitant ne peut pas réagir à un bulletin du dispensaire publié après sa décision.</span></div></li>
+            <li class="req" data-l="excellence"><span class="id">C7</span><div><span class="tag excellence">Excellence</span> Le binôme mesure le décalage entre un événement et sa prise en compte dans les indicateurs, et montre comment il évolue sous charge.</div></li>
+            <li class="req" data-l="excellence"><span class="id">C8</span><div><span class="tag excellence">Excellence</span> Le binôme fait tourner au moins deux tailles de population en soutenance et compare leur comportement.</div></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bloc">
+        <span class="letter">D</span>
+        <div>
+          <h3>Un monde qu'on regarde, qu'on interroge et qu'on perturbe</h3>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">D1</span><div><span class="tag socle">Socle</span> Le système affiche dans Godot, en direct, le comportement des agents et l'état du monde, de façon compréhensible pour un observateur qui ne connaît pas le code.</div></li>
+            <li class="req" data-l="socle"><span class="id">D2</span><div><span class="tag socle">Socle</span> L'utilisateur peut sélectionner un agent pendant le run et consulter sa mémoire ainsi que la justification de sa dernière décision. Pour un agent à règles, il consulte son état et la règle appliquée.<span class="ex">FIÈVRE GRISE : comprendre pourquoi ce commerçant garde sa boutique ouverte.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">D3</span><div><span class="tag socle">Socle</span> L'utilisateur peut injecter un événement en direct depuis l'interface et en voir les effets se propager.<span class="ex">FILETS : déclencher une sécheresse qui divise le stock par deux.</span></div></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bloc">
+        <span class="letter">E</span>
+        <div>
+          <h3>Une démarche qui prouve</h3>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">E1</span><div><span class="tag socle">Socle</span> Le binôme compare sa simulation à une version à règles fixes du même monde, soumise aux mêmes scénarios, pour démontrer ce que le LLM apporte. Conclure que le LLM n'apporte rien est un résultat recevable s'il est démontré.<span class="ex">ESSAIM : la version LLM décide-t-elle mieux, plus vite, ou de façon plus fragile ?</span></div></li>
+            <li class="req" data-l="socle"><span class="id">E2</span><div><span class="tag socle">Socle</span> Chaque conclusion repose sur au moins 5 runs par configuration, sur au moins 2 configurations. La dispersion entre runs est présentée et discutée. Les runs répétés peuvent tourner sur un modèle local ou à échelle réduite, à condition de le justifier.<span class="ex">FIÈVRE GRISE : à petite échelle, une courbe épidémique isolée ne prouve rien.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">E3</span><div><span class="tag socle">Socle</span> Un run passé se rejoue à l'identique à partir des seules données enregistrées, sans nouvel appel LLM. Le rejeu reproduit la même visualisation et les mêmes indicateurs.</div></li>
+            <li class="req" data-l="socle"><span class="id">E4</span><div><span class="tag socle">Socle</span> Le binôme mesure le coût de chaque run (appels LLM, tokens, temps de calcul, énergie quand elle est mesurable) et le met en regard de l'apport démontré en E1.</div></li>
+            <li class="req" data-l="standard"><span class="id">E5</span><div><span class="tag standard">Standard</span> Le binôme utilise la répartition entre modèles de tailles différentes et agents à règles comme levier de sobriété. Il démontre le gain par rapport à une configuration où tous les agents utilisent le plus grand modèle, à apport comparable.<span class="ex">FIÈVRE GRISE : combien d'appels économise-t-on, et la courbe épidémique change-t-elle ?</span></div></li>
+          </ul>
+        </div>
+      </div>
+      <div class="bloc">
+        <span class="letter">F</span>
+        <div>
+          <h3>Des données qui se stockent, se retrouvent et se tracent</h3>
+          <p class="note">Une simulation produit des milliers d'événements, et ses agents doivent retrouver ce qui compte au bon moment. Le corpus fictif de votre monde est à écrire par vous. Ce qui est retrouvé, par qui et quand dépend du sujet choisi : chaque fiche du catalogue indique la matière disponible.</p>
+          <ul class="reqs">
+            <li class="req" data-l="socle"><span class="id">F1</span><div><span class="tag socle">Socle</span> Les décisions des agents LLM s'appuient sur des informations retrouvées dans une base de connaissances (RAG), et pas seulement sur ce que contient leur prompt. Le binôme choisit les sources adaptées à son sujet et justifie ce choix.<span class="ex">GUICHET : avant de décider, la boulangère retrouve le dernier communiqué de la direction et ce que son voisin lui a dit la veille.</span></div></li>
+            <li class="req" data-l="socle"><span class="id">F2</span><div><span class="tag socle">Socle</span> Le binôme démontre la qualité de la récupération : pour un échantillon de décisions, il montre ce qui a été retrouvé et évalue sa pertinence.</div></li>
+            <li class="req" data-l="socle"><span class="id">F3</span><div><span class="tag socle">Socle</span> Le binôme distingue et justifie où vivent le flux d'événements, l'état courant du monde, l'historique des runs et la base de connaissances, chacun selon ses besoins d'accès : volume, fréquence, latence, durée de conservation.</div></li>
+            <li class="req" data-l="socle"><span class="id">F4</span><div><span class="tag socle">Socle</span> Chaque type d'événement possède un schéma documenté et versionné. Un événement non conforme est détecté et isolé sans arrêter la simulation.</div></li>
+            <li class="req" data-l="standard"><span class="id">F5</span><div><span class="tag standard">Standard</span> L'historique de plusieurs runs s'interroge par des requêtes reproductibles, pour comparer les scénarios et produire les résultats du rapport.<span class="ex">FILETS : comparer l'état du lac au bout de dix saisons sur les cinq runs « communication autorisée » et les cinq runs « communication interdite ».</span></div></li>
+            <li class="req" data-l="standard"><span class="id">F6</span><div><span class="tag standard">Standard</span> Pour tout indicateur affiché, on peut remonter jusqu'aux événements bruts qui l'ont produit.</div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="constraints">
+      <h3>Contraintes non négociables</h3>
+      <div class="cgrid">
+        <div><span class="k">Streaming</span><span class="v">Apache Kafka</span></div>
+        <div><span class="k">Visualisation</span><span class="v">Godot</span></div>
+        <div><span class="k">LLM</span><span class="v">100 % gratuits, API ou local</span></div>
+        <div><span class="k">Population</span><span class="v">Nombre d'agents paramétrable</span></div>
+        <div><span class="k">Frameworks</span><span class="v">Autorisés si vous savez expliquer leur fonctionnement interne</span></div>
+        <div><span class="k">Connaissances</span><span class="v">RAG obligatoire, sources adaptées au sujet</span></div>
+        <div><span class="k">Exécution</span><span class="v">Deux modes, synchrone et asynchrone</span></div>
+        <div><span class="k">Monde</span><span class="v">Fictif et neutre</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATALOGUE -->
+  <section id="catalogue">
+    <div class="sec-head">
+      <p class="eyebrow">Choisissez un sujet</p>
+      <h2>Les sept mondes</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="intro" style="margin-bottom:28px">Chaque binôme choisit <b>un seul</b> sujet parmi les sept.</p>
+    <div class="rules">
+      <div><h4>Le récit est plus grand que votre simulation</h4><p>Une fiche décrit une ville, une foule, un essaim. Votre simulation sera probablement plus petite : vous devrez montrer que le phénomène existe encore à l'échelle que vous atteignez.</p></div>
+      <div><h4>Le budget d'appels est une contrainte de conception</h4><p>Le budget d'appels LLM gratuits est central. Il est mesuré et évalué au même titre que le reste.</p></div>
+      <div><h4>Deux horloges</h4><p>Le temps simulé n'a pas à suivre le temps d'horloge, et vos agents ne pensent pas tous à la même vitesse. Vous ferez tourner votre monde en mode synchrone et en mode asynchrone, et vous comparerez.</p></div>
+      <div><h4>Chaque monde a sa mémoire</h4><p>Les agents s'appuient sur une base de connaissances. Le corpus fictif de votre monde est à écrire par vous ; la rubrique « Matière à consulter » de chaque fiche indique ce qui existe.</p></div>
+      <div><h4>Des phénomènes, pas des solutions</h4><p>Une fiche décrit un phénomène et des attentes, jamais une solution. Les mécanismes, les indicateurs et l'architecture sont à concevoir par vous.</p></div>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Sujets du catalogue">
+      <button class="tab" role="tab" id="t-echo" aria-controls="echo" aria-selected="true" data-k="echo"><span class="num">01</span><span class="nm">ÉCHO</span><span class="ph">Rumeur et désinformation</span></button>
+      <button class="tab" role="tab" id="t-maree" aria-controls="maree" aria-selected="false" data-k="maree"><span class="num">02</span><span class="nm">MARÉE</span><span class="ph">Foule et évacuation</span></button>
+      <button class="tab" role="tab" id="t-guichet" aria-controls="guichet" aria-selected="false" data-k="guichet"><span class="num">03</span><span class="nm">GUICHET</span><span class="ph">Panique bancaire</span></button>
+      <button class="tab" role="tab" id="t-ephemere" aria-controls="ephemere" aria-selected="false" data-k="ephemere"><span class="num">04</span><span class="nm">ÉPHÉMÈRE</span><span class="ph">Viralité d'une tendance</span></button>
+      <button class="tab" role="tab" id="t-filets" aria-controls="filets" aria-selected="false" data-k="filets"><span class="num">05</span><span class="nm">FILETS</span><span class="ph">Tragédie des communs</span></button>
+      <button class="tab" role="tab" id="t-fievre" aria-controls="fievre" aria-selected="false" data-k="fievre"><span class="num">06</span><span class="nm">FIÈVRE GRISE</span><span class="ph">Épidémie et comportements</span></button>
+      <button class="tab" role="tab" id="t-essaim" aria-controls="essaim" aria-selected="false" data-k="essaim"><span class="num">07</span><span class="nm">ESSAIM</span><span class="ph">Décision collective</span></button>
+    </div>
+
+    <div class="panel" id="panel">
+
+      <article class="fiche" id="echo" role="tabpanel" tabindex="0" aria-labelledby="t-echo">
+        <header><p class="eyebrow">Sujet 01 · Rumeur et désinformation</p><h3>ÉCHO<small>La rumeur qui court plus vite que le démenti</small></h3></header>
+        <p class="question">À partir de quand une affirmation isolée devient-elle une « vérité » partagée par la ville, et sous quelle forme ? Le contexte commun est ici la version dominante du récit et la confiance collective qui lui est accordée : il peut se stabiliser, se fragmenter en versions rivales, ou s'effondrer.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Sérane est une ville moyenne organisée autour d'un marché couvert, de trois quartiers résidentiels et d'une messagerie de voisinage où tout le monde est inscrit. Un matin, un message anonyme affirme que l'eau du réservoir des Hauts-de-Sérane est contaminée. La Régie des Eaux n'a encore rien dit. Personne ne sait d'où vient l'information.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Une pharmacienne que tout le quartier consulte et qui hésite à engager sa réputation. Un retraité méfiant envers toute communication officielle. Des parents inquiets, prêts à croire au pire pour protéger leurs enfants. Un étudiant qui vérifie tout et passe pour un rabat-joie. Un commerçant qui aurait intérêt à ce que la panique dope ses ventes d'eau en bouteille. Chacun accorde et retire sa confiance selon sa propre logique.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Une rumeur ne se contente pas de se transmettre : elle se transforme. Chaque personne qui la relaie la reformule, l'enrichit ou l'atténue. « L'eau a un goût bizarre » devient « trois enfants hospitalisés ». Un modèle à règles fixes fait passer chaque habitant par des états figés. Un agent LLM, lui, peut juger la crédibilité d'une source, déformer le contenu, douter, ou choisir de se taire par prudence. C'est cette mutation du récit qu'il faut rendre observable.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>Qui sait quoi, en direct, et par qui il l'a appris.</li><li>La déformation du récit au fil des transmissions, de la version d'origine à la version actuelle.</li><li>Des groupes qui se forment et se défont selon ce qu'ils croient.</li><li>L'arrivée d'un démenti et son effet réel.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Comment savoir que deux messages formulés différemment portent la même rumeur ? Comment mesurer qu'un récit commun a émergé ?</li><li>Combien d'agents LLM votre budget gratuit permet-il réellement, et la déformation du récit survit-elle à cette échelle ?</li><li>Un LLM aligné sur la sécurité a tendance à corriger spontanément la désinformation. Vos agents se comportent-ils comme des humains crédules ou comme des assistants prudents ?</li><li>Si tous les agents partagent le même modèle, leurs reformulations sont-elles trop semblables pour être réalistes ?</li><li>Qu'est-ce qui distingue un démenti efficace d'un démenti qui renforce la rumeur ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Présence, moment et émetteur d'un démenti officiel (la Régie, un médecin, un anonyme).</li><li>Proportion d'habitants méfiants envers les institutions.</li><li>Densité et forme du réseau de voisinage.</li><li>Introduction d'une seconde rumeur concurrente.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> L'objet propagé n'est pas stable : il faut suivre un contenu qui mute, pas seulement compter des personnes informées.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Les archives de la messagerie de voisinage, les communiqués passés de la Régie des Eaux, les bulletins d'analyse de l'eau, et ce que chaque habitant se rappelle des alertes précédentes.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Daley, D. J. &amp; Kendall, D. G. (1964). <i>Epidemics and Rumours</i>. Nature, 204, 1118.</li><li>Chuang, Y.-S. et al. (2024). <i>Simulating Opinion Dynamics with Networks of LLM-based Agents</i>. Findings of NAACL 2024. arXiv:2311.09618.</li><li>Hu, T., Liakopoulos, D., Wei, X., Marculescu, R. &amp; Yadwadkar, N. J. (2025). <i>Simulating Rumor Spreading in Social Networks using LLM Agents</i>. arXiv:2502.01450 (prépublication).</li></ul></div>
+      </article>
+
+      <article class="fiche" id="maree" role="tabpanel" tabindex="0" aria-labelledby="t-maree" hidden>
+        <header><p class="eyebrow">Sujet 02 · Foule et évacuation</p><h3>MARÉE<small>Quand une foule doit décider où aller</small></h3></header>
+        <p class="question">Comment une foule qui ne sait rien construit-elle une représentation partagée de la situation, et cette représentation sauve-t-elle ou piège-t-elle les gens ? Le contexte commun est la carte mentale collective : où est le danger, quelles sorties sont sûres, qui croire.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Chaque été, l'esplanade de Port-Aubel accueille la Fête des Lanternes : une scène, des stands, une passerelle et trois sorties de tailles inégales. Ce soir, quelques centaines de personnes sont présentes. Vers 22 h, une odeur de fumée monte près des stands du sud. Une partie du public ne la remarque pas. Le haut-parleur grésille, le message est à peine audible.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Une famille qui refuse de partir sans un enfant égaré. Un agent de sécurité débordé dont la parole pèse plus que celle des autres. Des habitués qui connaissent une sortie discrète. Des visiteurs qui ne connaissent que l'entrée par laquelle ils sont arrivés. Un groupe d'amis qui filme au lieu de partir. Leurs priorités divergent : sauver sa peau, protéger les siens, aider, comprendre.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Une évacuation n'est pas seulement un problème de flux physique ; c'est d'abord un problème d'interprétation. Faut-il s'inquiéter ? Où est le danger ? Quelle sortie prendre ? Les modèles classiques déplacent des particules soumises à des forces. Un agent LLM peut interpréter un signal ambigu (une fumée, un cri), chercher ses proches avant de fuir, suivre un inconnu qui semble sûr de lui, ou transmettre une information fausse (« la sortie nord est bloquée »). Ce sont aussi ces décisions qui créent l'embouteillage, pas seulement la densité.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>Les déplacements individuels en direct sur le plan de l'esplanade.</li><li>Ce que chaque personne croit de la situation, et l'écart avec la réalité.</li><li>La formation de goulots, de groupes qui suivent un meneur, de zones d'hésitation.</li><li>Le décompte des personnes évacuées et le temps écoulé.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Comment mesurer qu'une foule « s'accorde » sur une sortie sans que personne ne l'ait décidé ?</li><li>Tous les participants doivent-ils être des agents LLM ? Quel effet votre choix a-t-il sur le phénomène observé ?</li><li>Un LLM produit-il un comportement trop rationnel, trop calme ou trop altruiste par rapport à une vraie foule ?</li><li>Le mythe de la « panique irrationnelle » est contesté dans la littérature. Votre simulation le reproduit-elle malgré vous ?</li><li>Comment garder une visualisation lisible quand le raisonnement des agents est beaucoup plus lent que leurs déplacements ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Clarté et crédibilité des annonces officielles.</li><li>Nombre et visibilité des agents de sécurité.</li><li>Fermeture soudaine d'une sortie en cours d'évacuation.</li><li>Proportion de groupes familiaux et d'individus seuls.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> C'est le seul sujet qui couple un espace continu, où chaque pas compte, avec un raisonnement lent et coûteux. L'arbitrage entre réalisme, fluidité et sobriété y est le plus serré du catalogue.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Le plan de l'esplanade et sa signalétique, les consignes de sécurité de la fête, les annonces du haut-parleur, et ce que les habitués se rappellent des éditions précédentes.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Helbing, D. &amp; Molnár, P. (1995). <i>Social force model for pedestrian dynamics</i>. Physical Review E, 51, 4282–4286.</li><li>Helbing, D., Farkas, I. &amp; Vicsek, T. (2000). <i>Simulating dynamical features of escape panic</i>. Nature, 407, 487–490.</li><li>Ntarouis, N. &amp; Geraerts, R. (2026). <i>Generative agents in crowd simulation: a cognitive approach with Large Language Models</i>. Acta Polytechnica CTU Proceedings, 57, 263–274.</li></ul></div>
+      </article>
+
+      <article class="fiche" id="guichet" role="tabpanel" tabindex="0" aria-labelledby="t-guichet" hidden>
+        <header><p class="eyebrow">Sujet 03 · Panique bancaire</p><h3>GUICHET<small>La banque solide qui tombe parce qu'on la croit perdue</small></h3></header>
+        <p class="question">Comment une inquiétude diffuse bascule-t-elle en certitude collective que « tout le monde retire », et existe-t-il un point de non-retour ? Le contexte commun est la croyance partagée sur la solidité de la Caisse et sur le comportement attendu des autres déposants.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>La Caisse Coopérative de Brévanne est la banque de toute une vallée. Elle compte trois agences : une au bourg, une au marché du samedi, une près de la zone artisanale. Ses comptes sont sains, mais comme toute banque, elle a prêté la plus grande partie des dépôts et ne garde en caisse qu'une fraction de ce qu'elle doit. On se croise au café, au marché, devant l'école. Un vendredi, un article affirme qu'un gros emprunteur de la Caisse est en difficulté.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Une boulangère dont toute la trésorerie est à la Caisse et qui ne peut pas se permettre de la perdre. Un fonctionnaire retraité, client depuis quarante ans, qui refuse de céder. Un jeune entrepreneur connecté qui lit tout et réagit vite. Un employé d'agence, tenu au silence, qui voit les retraits s'accumuler. La direction, qui doit choisir ses mots. Chacun arbitre entre loyauté, intérêt personnel et peur d'être le dernier.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Une panique bancaire est une prophétie autoréalisatrice : si assez de déposants retirent par peur, la banque fait réellement défaut, même solvable. Le déposant ne raisonne pas seulement sur la santé de la banque, mais sur ce que les autres vont faire : « je ne crois pas à la faillite, mais si mes voisins retirent, je serai le dernier servi ». Un agent LLM peut produire ce raisonnement de second ordre, peser un communiqué rassurant ou s'en méfier, et l'exprimer dans ses échanges. Une simple règle de seuil ne le peut pas.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>Les déplacements vers les agences et les files qui s'y forment, en direct.</li><li>Les réserves de la Caisse qui diminuent, en regard de l'état d'esprit des déposants.</li><li>Les conversations qui font basculer un déposant d'une posture à l'autre.</li><li>Le moment où la situation devient irréversible, s'il existe.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Comment détecter, en cours de simulation, qu'on approche d'un basculement plutôt que de le constater après coup ?</li><li>Combien de déposants votre budget gratuit permet-il de faire raisonner, et un bank run reste-t-il crédible à cette échelle ?</li><li>Un LLM connaît la théorie des bank runs. Vos agents raisonnent-ils comme des déposants ou comme des économistes qui récitent un manuel ?</li><li>Un même communiqué produit-il des réactions variées, ou tous les agents réagissent-ils à l'unisson ?</li><li>Votre simulation distingue-t-elle une panique justifiée (la banque est vraiment fragile) d'une panique autoréalisatrice ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Existence et plafond d'une garantie des dépôts.</li><li>Contenu, ton et moment du communiqué de la direction.</li><li>Limitation temporaire des retraits ou fermeture d'une agence.</li><li>Part de déposants très connectés qui reçoivent l'information en premier.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> Coupler les croyances des agents avec une contrainte comptable stricte, sur un équilibre fragile et très sensible aux conditions initiales.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Les rapports annuels de la Caisse, les articles de la presse locale, le règlement de la garantie des dépôts, les communiqués de la direction, et le souvenir d'une crise passée dans une banque voisine.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Diamond, D. W. &amp; Dybvig, P. H. (1983). <i>Bank Runs, Deposit Insurance, and Liquidity</i>. Journal of Political Economy, 91(3), 401–419.</li><li>Kazinnik, S. <i>Bank Run, Interrupted: Modeling Deposit Withdrawals with Generative AI</i>. Management Science. doi:10.1287/mnsc.2024.06807.</li><li>Ruano, C. &amp; Rajan, S. (2026). <i>Social Contagion and Bank Runs: An Agent-Based Model with LLM Depositors</i>. arXiv:2602.15066 (prépublication).</li></ul></div>
+      </article>
+
+      <article class="fiche" id="ephemere" role="tabpanel" tabindex="0" aria-labelledby="t-ephemere" hidden>
+        <header><p class="eyebrow">Sujet 04 · Viralité d'une tendance</p><h3>ÉPHÉMÈRE<small>Naissance, gloire et mort d'une mode</small></h3></header>
+        <p class="question">Comment une communauté construit-elle collectivement le sens d'un signe, puis le défait-elle ? Qu'est-ce qui détermine qu'une mode meurt vite ou s'installe durablement ? Le contexte commun est la norme partagée de ce qui est « tendance » et la signification attribuée au ruban à chaque moment.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Tessaline est une cité universitaire avec ses résidences, sa cafétéria, ses associations et son réseau social interne. Un lundi, deux étudiantes de l'atelier de design se mettent à porter un ruban de couleur noué au poignet, sans explication. Rien ne dit que le geste survivra à la semaine. Rien ne dit non plus qu'il ne sera pas partout dans un mois.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Des pionniers en quête de distinction, qui abandonnent tout ce qui devient banal. Des suiveurs qui attendent de voir avant d'adopter. Une figure populaire de l'association sportive dont chaque choix est imité. Des réfractaires qui rejettent toute mode par principe. Un groupe qui adopte le ruban pour s'en moquer. Chacun négocie entre appartenance et singularité.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Une tendance obéit à un cycle paradoxal : plus elle se répand, plus elle perd ce qui la rendait désirable. Les premiers adoptants s'en détachent dès que « tout le monde » l'a. Une mode transporte aussi un sens qui évolue : le ruban signifie d'abord « je fais partie du cercle créatif », puis « je suis la foule », puis « je suis ringard ». Un agent LLM peut interpréter ce sens, s'en distinguer, l'ironiser ou le détourner. Un modèle de diffusion classique ne sait que propager une adoption.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>Le campus en direct : qui porte le ruban, qui l'abandonne, qui le détourne.</li><li>La courbe de vie de la tendance en cours de construction.</li><li>L'évolution de ce que le ruban « veut dire » selon les groupes.</li><li>La naissance éventuelle d'une contre-tendance.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Comment mesurer qu'un signe a acquis un sens partagé, puis que ce sens a changé ?</li><li>Un cycle complet demande une longue durée simulée : comment le faire tenir dans votre budget d'appels gratuits, et à quelle échelle une mode reste-t-elle une mode ?</li><li>Un LLM est entraîné sur un discours moyen. Saura-t-il produire de vrais comportements de distinction, ou tous les agents convergeront-ils vers une attitude consensuelle ?</li><li>Une adoption rapide entraîne-t-elle un abandon rapide dans votre simulation ? Est-ce un résultat, ou un effet de vos prompts ?</li><li>Comment distinguer une mode éteinte d'une mode devenue simple habitude ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Identité et nombre des premiers adoptants (marginaux ou populaires).</li><li>Vitesse d'exposition, par exemple un relais massif sur le réseau interne.</li><li>Cloisonnement plus ou moins fort entre groupes du campus.</li><li>Introduction d'une tendance rivale à mi-parcours.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> Capturer un cycle complet, de la montée au déclin, avec une émergence qui porte sur un sens, plus difficile à objectiver qu'un comportement. Ce que vous entendez par « sens partagé » devra être rendu mesurable dès le début du projet.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Le fil du réseau social interne, le journal étudiant, les chartes des associations, et ce que chacun se rappelle des modes des années précédentes.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Granovetter, M. (1978). <i>Threshold Models of Collective Behavior</i>. American Journal of Sociology, 83(6), 1420–1443.</li><li>Bass, F. M. (1969). <i>A New Product Growth Model for Consumer Durables</i>. Management Science, 15(5), 215–227.</li><li>Berger, J. &amp; Le Mens, G. (2009). <i>How adoption speed affects the abandonment of cultural tastes</i>. PNAS, 106(20), 8146–8150.</li></ul></div>
+      </article>
+
+      <article class="fiche" id="filets" role="tabpanel" tabindex="0" aria-labelledby="t-filets" hidden>
+        <header><p class="eyebrow">Sujet 05 · Tragédie des communs</p><h3>FILETS<small>La tragédie des communs autour d'un lac qui se régénère</small></h3></header>
+        <p class="question">Une norme de prélèvement partagée apparaît-elle avant l'effondrement du stock, et résiste-t-elle à la tentation ? Le contexte commun est ce que la vallée tient pour vrai et pour juste : l'état du lac, la prise « raisonnable », la réputation de chacun.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Le lac de Vellmor est la seule réserve de poisson d'une vallée fermée. Quatre hameaux se le partagent : Ostrel, Bramois, Tilque et Hennad. On y pêche chaque jour, on vend au marché du hameau, on se retrouve le soir chez l'ancien pour parler du lac. Personne ne possède le lac, aucune règle n'encadre la pêche. Au départ, le poisson abonde, et le lac se repeuple seul, à condition qu'on lui en laisse le temps.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Des familles anciennes qui ont connu une pénurie et prêchent la prudence. Des nouveaux venus endettés, qui pensent à la saison plutôt qu'à la décennie. Un ancien respecté qui arbitre les disputes sans aucun pouvoir officiel. Certains parlent beaucoup et pêchent peu ; d'autres se taisent et relèvent leurs filets en cachette.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Chacun a intérêt à prendre un peu plus que sa part ; tous ont intérêt à ce que le stock survive. Hardin y voyait une ruine inévitable ; Ostrom a montré que des communautés inventent leurs propres règles pour l'éviter. Dans un modèle à règles fixes, la stratégie est écrite d'avance (« pêcher 10 % du stock »). Un agent LLM, lui, argumente, promet et se justifie : « J'ai pris plus cette saison parce que l'hiver a été dur, je réduirai au printemps. » La règle collective n'est plus programmée : elle se négocie, et elle peut être trahie.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>L'état du lac en direct, avec son historique.</li><li>Les sorties de pêche, les ventes et les échanges entre pêcheurs, au moment où ils ont lieu.</li><li>L'écart entre ce que chacun annonce et ce qu'il prend réellement.</li><li>L'apparition d'une règle collective, sa contestation ou son abandon.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Comment distinguer une vraie norme partagée d'une simple coïncidence où tout le monde pêche la même quantité ? Quel signal prouve qu'une règle est née ?</li><li>Le lac évolue en continu, les pêcheurs décident à leur rythme. Que vaut une décision prise sur un stock qui a déjà changé ?</li><li>Combien de pêcheurs votre budget gratuit permet-il de faire négocier, et la tragédie, ou son évitement, apparaît-elle encore à cette échelle ?</li><li>Vos agents coopèrent-ils parce qu'ils raisonnent, ou parce que le modèle a été entraîné à être conciliant ?</li><li>Comment montrer que la survie ou l'effondrement du lac tient au comportement des agents plutôt qu'aux paramètres du lac ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Vitesse de repeuplement du lac et chocs ponctuels (une sécheresse qui divise le stock par deux).</li><li>Proportion de pêcheurs prudents et de pêcheurs opportunistes.</li><li>Communication autorisée ou interdite, à l'échelle de la vallée ou du seul hameau.</li><li>Visibilité ou non de ce que pêchent les autres.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> Selon les travaux récents, la plupart des LLM épuisent la ressource, souvent faute d'anticipation. Avec de petits modèles gratuits, il faudra distinguer une vraie tragédie sociale d'une simple erreur de calcul.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Les récits des anciennes pénuries, les comptes du marché de chaque hameau, les accords passés entre hameaux s'il en existe, et les observations que chacun a faites du lac.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Hardin, G. (1968). <i>The Tragedy of the Commons</i>. Science, 162(3859), 1243–1248.</li><li>Ostrom, E. (1990). <i>Governing the Commons: The Evolution of Institutions for Collective Action</i>. Cambridge University Press.</li><li>Piatti, G. et al. (2024). <i>Cooperate or Collapse: Emergence of Sustainable Cooperation in a Society of LLM Agents</i>. NeurIPS 2024. arXiv:2404.16698.</li></ul></div>
+      </article>
+
+      <article class="fiche" id="fievre" role="tabpanel" tabindex="0" aria-labelledby="t-fievre" hidden>
+        <header><p class="eyebrow">Sujet 06 · Épidémie et comportements</p><h3>FIÈVRE GRISE<small>Quand une contagion rencontre des choix humains</small></h3></header>
+        <p class="question">Une compréhension partagée du risque apparaît-elle assez tôt pour freiner l'épidémie ? Le contexte commun est le récit que la ville se fait de la maladie (gravité, transmission, bons gestes), qu'il soit juste ou faux.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Corvale est une petite ville organisée autour d'un marché, d'une école, d'un atelier et d'un dispensaire. Un matin, deux ouvriers arrivent avec une fièvre inconnue. Une rumeur accuse le puits du quartier bas ; le dispensaire parle plutôt de contacts rapprochés. Le conseil de la ville hésite à fermer le marché.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Une soignante crédible mais débordée, dont les messages arrivent toujours en retard. Des commerçants qui vivent de chaque jour d'ouverture. Des parents inquiets qui répètent tout ce qu'ils entendent. Un habitant charismatique, persuadé que la fièvre est inventée. Des personnes âgées isolées et vulnérables, qui dépendent des autres. La confiance envers le dispensaire varie d'un quartier à l'autre.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Un modèle SIR classique suppose un taux de contact constant. En réalité, chacun adapte sa conduite à ce qu'il croit : le commerçant qui juge la maladie bénigne garde sa boutique ouverte, la mère qui a entendu parler d'un décès garde ses enfants à la maison. La contagion change les croyances, et les croyances changent la contagion. Un agent LLM peut confronter des informations contradictoires et trancher : « Le dispensaire dit de rester chez soi, ma cousine dit que c'est exagéré, et je n'ai rien vendu depuis deux semaines. » Aucune probabilité fixe ne remplace ce raisonnement situé.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>L'état de santé des habitants et leurs déplacements, en direct.</li><li>La circulation d'une rumeur, visuellement distincte de celle du virus.</li><li>La courbe épidémique, en regard de l'évolution des comportements.</li><li>Le raisonnement d'un habitant choisi, au moment où il décide de sortir ou de rester chez lui.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>La ville finit-elle par partager un même récit, ou se divise-t-elle en camps qui ne se parlent plus ? Que faut-il mesurer pour le montrer ?</li><li>Le virus passe à chaque contact, mais un habitant ne réfléchit pas à chaque pas. Comment éviter qu'il décide sur une situation sanitaire déjà dépassée ?</li><li>Une épidémie a besoin de nombreux contacts pour exister : tous les habitants doivent-ils être des agents LLM, et quel effet votre choix a-t-il sur la courbe obtenue ?</li><li>Vos agents s'isolent-ils parce qu'ils ont pesé le risque, ou parce qu'ils récitent des consignes sanitaires apprises à l'entraînement ?</li><li>Comparez votre courbe à celle d'un SIR sans changement de comportement. Qu'est-ce qui explique l'écart ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Contagiosité et gravité de la maladie.</li><li>Moment et contenu des messages officiels ; injection d'une fausse information à un instant choisi.</li><li>Confiance initiale envers le dispensaire, quartier par quartier.</li><li>Coût économique de l'isolement, avec ou sans aide aux commerçants.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> Deux propagations, le virus et l'information, avancent à des vitesses différentes : il faut les faire tenir ensemble et montrer laquelle entraîne l'autre. À petite échelle, une courbe épidémique est très bruitée : une seule simulation ne prouvera rien.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Les bulletins du dispensaire, les fiches d'hygiène, les délibérations du conseil de la ville, les rumeurs du quartier, et le souvenir d'une épidémie ancienne.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Kermack, W. O. &amp; McKendrick, A. G. (1927). <i>A Contribution to the Mathematical Theory of Epidemics</i>. Proceedings of the Royal Society A, 115(772), 700–721.</li><li>Funk, S., Gilad, E., Watkins, C. &amp; Jansen, V. A. A. (2009). <i>The spread of awareness and its impact on epidemic outbreaks</i>. PNAS, 106(16), 6872–6877.</li><li>Williams, R., Hosseinichimeh, N., Majumdar, A. &amp; Ghaffarzadegan, N. (2023). <i>Epidemic Modeling with Generative Agents</i>. arXiv:2307.04986 (prépublication).</li></ul></div>
+      </article>
+
+      <article class="fiche" id="essaim" role="tabpanel" tabindex="0" aria-labelledby="t-essaim" hidden>
+        <header><p class="eyebrow">Sujet 07 · Décision collective d'un essaim</p><h3>ESSAIM<small>Comment des abeilles choisissent un nid sans chef</small></h3></header>
+        <p class="question">L'essaim choisit-il le meilleur site, en combien de temps, et à quel moment la décision devient-elle irréversible ? Le contexte commun est la préférence collective en construction : les sites encore en course, ceux qui ont été abandonnés, et le moment où l'essaim « sait » où il va.</p>
+        <div class="fgrid">
+          <div class="fblock"><h4>Le monde</h4><p>Au printemps, dans la forêt de Lorbes, une colonie devenue trop nombreuse se divise. La vieille reine part avec des milliers d'ouvrières ; l'essaim se pose en grappe sur une branche, à découvert. Il a quelques jours pour trouver une cavité. Une dizaine d'abris sont possibles : un chêne creux, une souche humide, une fissure dans un rocher, un nichoir abandonné.</p></div>
+          <div class="fblock"><h4>Qui peuple ce monde</h4><p>Des éclaireuses enthousiastes qui défendent avec vigueur le premier site trouvé. D'autres, méfiantes, qui vont vérifier avant de relayer. Des ouvrières qui attendent dans la grappe, se laissent convaincre, puis militent à leur tour. Quelques-unes qui cherchent à freiner un engouement. L'essaim est pressé, mais un mauvais choix l'empêcherait de passer l'hiver.</p></div>
+          <div class="fblock"><h4>Le phénomène</h4><p>Des éclaireuses explorent, puis reviennent danser pour recruter d'autres éclaireuses vers leur site. Plus le site est bon, plus la danse insiste. Les sites médiocres perdent leurs partisanes, jusqu'à ce que l'essaim se rallie à l'un d'eux. Aucune abeille n'a comparé tous les sites ; la reine ne décide rien. Pourquoi un LLM pour un insecte ? La question est légitime, et c'est à vous d'y répondre, mesures à l'appui. Un avantage : la bonne réponse est connue, puisque le meilleur site existe.</p></div>
+          <div class="fblock"><h4>Ce qu'on doit voir à l'écran</h4><ul><li>La forêt, les sites candidats et les allers-retours des éclaireuses, en direct.</li><li>Le soutien reçu par chaque site, jusqu'à la décision.</li><li>Le plaidoyer d'une éclaireuse choisie, au moment où elle recrute.</li><li>L'instant où l'essaim s'envole vers le site retenu.</li></ul></div>
+          <div class="fblock"><h4>Pistes de réflexion</h4><ul><li>Quel indicateur permet de voir arriver le consensus avant même la décision ?</li><li>Un vol dure un temps physique, une délibération LLM un temps de calcul. Comment éviter que la lenteur du modèle devienne, à votre insu, un paramètre biologique ?</li><li>Le phénomène naît du nombre : combien d'éclaireuses votre budget gratuit permet-il, et toutes doivent-elles être des agents LLM ?</li><li>Un modèle à règles simples reproduit déjà ce consensus. Votre version décide-t-elle mieux, plus vite, ou de façon plus fragile ?</li><li>Vos éclaireuses jugent-elles un site sur ce qu'elles ont vu, ou sur ce que le modèle sait déjà des abeilles ?</li></ul></div>
+          <div class="fblock"><h4>Leviers d'expérimentation</h4><ul><li>Nombre d'éclaireuses et de sites ; deux sites de qualité presque égale pour créer un dilemme.</li><li>Exigence de l'essaim avant de partir.</li><li>Distance : un excellent site éloigné face à un site moyen tout proche.</li><li>Présence d'éclaireuses têtues qui ne changent jamais d'avis.</li></ul></div>
+        </div>
+        <p class="defi"><b>Défi spécifique.</b> Défendre le choix du LLM face à une solution plus simple qui fonctionne déjà : le binôme doit prouver, mesures à l'appui, que ce choix change réellement quelque chose.</p>
+        <p class="defi know"><b>Matière à consulter.</b> Aucun document : la base de connaissances est entièrement vécue. Chaque éclaireuse retrouve les sites qu'elle a visités, les qualités qu'elle y a observées et les danses qu'elle a vues dans la grappe.</p>
+        <div class="refs fblock"><h4>Pour s'inspirer</h4><ul><li>Seeley, T. D. (2010). <i>Honeybee Democracy</i>. Princeton University Press.</li><li>Passino, K. M., Seeley, T. D. &amp; Visscher, P. K. (2008). <i>Swarm cognition in honey bees</i>. Behavioral Ecology and Sociobiology, 62(3), 401–414.</li><li>Jimenez-Romero, C., Yegenoglu, A. &amp; Blum, C. (2025). <i>Multi-agent systems powered by large language models: applications in swarm intelligence</i>. Frontiers in Artificial Intelligence, 8. doi:10.3389/frai.2025.1593017 (porte sur les fourmis et les vols d'oiseaux, référence indirecte).</li></ul></div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- LIVRABLES -->
+  <section id="livrables">
+    <div class="sec-head">
+      <p class="eyebrow">À rendre</p>
+      <h2>Livrables attendus</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="deliv">
+      <article>
+        <span class="sub">Code</span>
+        <h3>Dépôt Git + README</h3>
+        <p>Lancer la simulation de façon reproductible sur une autre machine, en suivant une procédure documentée. Le dépôt fige les versions utilisées et explique comment choisir le nombre d'agents, le mode d'exécution et les modèles. Il documente les schémas d'événements, contient le corpus fictif du monde et fournit au moins un run enregistré, rejouable sans appel LLM.</p>
+      </article>
+      <article>
+        <span class="sub">Écrit</span>
+        <h3>Rapport technique hybride</h3>
+        <p><b>Partie technique.</b> Architecture et choix justifiés, architecture de données (stockage, schémas d'événements, base de connaissances), modèle de temps, gestion des contraintes des LLM gratuits, articulation entre la simulation, Kafka et Godot.</p>
+        <p><b>Partie scientifique, rédigée comme un mini-article.</b> Question, hypothèses, protocole, résultats avec leur dispersion, comparaison à la baseline, discussion et limites.</p>
+        <p><b>Bilan de sobriété.</b> Coût mesuré des runs, mis en regard de l'apport démontré.</p>
+      </article>
+      <article>
+        <span class="sub">Oral</span>
+        <h3>Soutenance + démo live</h3>
+        <p>La simulation tourne en direct. Le binôme montre l'inspection d'un agent, l'injection d'un événement et le rejeu d'un run enregistré, puis répond aux questions du jury.</p>
+        <p>Si un quota d'API tombe pendant la démo, le rejeu sert de filet de sécurité. Savoir l'utiliser fait partie de l'exercice.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- EVALUATION -->
+  <section id="evaluation">
+    <div class="sec-head">
+      <p class="eyebrow">Comment le projet est jugé</p>
+      <h2>Critères d'évaluation</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="gate">Une simulation qui n'atteint pas le <b>socle</b> du défi commun ne peut pas être validée. Au-delà du socle, l'évaluation porte sur huit critères.</p>
+    <ol class="crit">
+      <li><span><b>Agents LLM.</b> Cohérence des profils dans la durée, rôle effectif de la mémoire, maîtrise des dérives, hétérogénéité de la population (modèles de tailles différentes, agents à règles).</span></li>
+      <li><span><b>Émergence et mesure.</b> Définition observable du contexte commun, pertinence de l'indicateur, capacité à distinguer l'émergence de son absence.</span></li>
+      <li><span><b>Streaming et temps.</b> Circulation des événements dans Kafka, indicateurs calculés pendant le run, gestion du temps simulé, modes synchrone et asynchrone, cohérence temporelle.</span></li>
+      <li><span><b>Données et RAG.</b> Architecture de stockage justifiée, contrat d'événements, qualité de la récupération, exploitation de l'historique, traçabilité des indicateurs.</span></li>
+      <li><span><b>Visualisation et interaction.</b> Lisibilité de la scène Godot, inspection d'un agent, injection d'événements, synchronisation avec les indicateurs.</span></li>
+      <li><span><b>Démarche expérimentale.</b> Hypothèses, baseline sans LLM, runs répétés, rejouabilité, honnêteté sur les limites.</span></li>
+      <li><span><b>Sobriété.</b> Qualité de la mesure du coût, pertinence de la répartition entre modèles et agents à règles, justesse de l'arbitrage entre coût et apport.</span></li>
+      <li><span><b>Communication.</b> Clarté du rapport hybride, qualité de la démonstration, solidité des réponses aux questions du jury.</span></li>
+    </ol>
+    <p class="caption" style="margin-top:14px">Les exigences Standard et Excellence du défi commun distinguent les bons projets des projets remarquables.</p>
+  </section>
+
+  <!-- JURY -->
+  <section id="jury">
+    <div class="sec-head">
+      <p class="eyebrow">Préparez-vous</p>
+      <h2>Les questions que le jury vous posera</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="jury">
+      <blockquote><span>Q1</span><p>Si l'on remplaçait vos agents LLM par votre baseline, qu'est-ce qui disparaîtrait exactement de votre écran et de vos courbes ?</p></blockquote>
+      <blockquote><span>Q2</span><p>Votre indicateur mesure-t-il l'émergence d'un contexte commun, ou simplement la ressemblance des réponses d'un même modèle ? Comment le savez-vous ?</p></blockquote>
+      <blockquote><span>Q3</span><p>Quelle conclusion de votre rapport resterait vraie avec dix fois plus d'agents, et laquelle tomberait ?</p></blockquote>
+      <blockquote><span>Q4</span><p>Avec un budget d'appels divisé par deux, que sacrifieriez-vous, et quelle conclusion tomberait ?</p></blockquote>
+      <blockquote><span>Q5</span><p>Montrez une décision prise à partir d'une information mal retrouvée. Qu'a fait l'agent, et votre système s'en est-il aperçu ?</p></blockquote>
+      <blockquote><span>Q6</span><p>Votre résultat principal tient-il dans les deux modes, synchrone et asynchrone ? Sinon, lequel des deux décrit le mieux votre phénomène ?</p></blockquote>
+    </div>
+  </section>
+
+  <!-- RESSOURCES -->
+  <section id="ressources">
+    <div class="sec-head">
+      <p class="eyebrow">Pour démarrer</p>
+      <h2>Ressources</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="res">
+      <div>
+        <h3>Simulations à base d'agents LLM</h3>
+        <ul>
+          <li>Park, J. S. et al. (2023). <i>Generative Agents: Interactive Simulacra of Human Behavior</i>. <a href="https://arxiv.org/abs/2304.03442">arXiv:2304.03442</a></li>
+          <li>Vezhnevets, A. S. et al. (2023). <i>Generative agent-based modeling with actions grounded in physical, social, or digital space using Concordia</i>. <a href="https://arxiv.org/abs/2312.03664">arXiv:2312.03664</a></li>
+          <li>Altera.AL (2024). <i>Project Sid: Many-agent simulations toward AI civilization</i>. <a href="https://arxiv.org/abs/2411.00114">arXiv:2411.00114</a></li>
+          <li>Piao, J. et al. (2025). <i>AgentSociety: Large-Scale Simulation of LLM-Driven Generative Agents</i>. <a href="https://arxiv.org/abs/2502.08691">arXiv:2502.08691</a></li>
+          <li>Yang, Z. et al. (2024). <i>OASIS: Open Agent Social Interaction Simulations with One Million Agents</i>. <a href="https://arxiv.org/abs/2411.11581">arXiv:2411.11581</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>Outils</h3>
+        <ul>
+          <li><a href="https://kafka.apache.org/documentation/">Documentation Apache Kafka</a></li>
+          <li><a href="https://docs.godotengine.org/">Documentation Godot Engine</a> (sections Networking et UI)</li>
+          <li>LLM en local : <a href="https://ollama.com">Ollama</a>, <a href="https://github.com/ggml-org/llama.cpp">llama.cpp</a>, <a href="https://lmstudio.ai">LM Studio</a></li>
+          <li>Offres d'API gratuites : Groq, Google Gemini API, OpenRouter (modèles <span class="mono">:free</span>), Mistral (plan Experiment), GitHub Models. Leurs quotas changent souvent et doivent être vérifiés au démarrage. Certaines offres gratuites réutilisent les données envoyées.</li>
+          <li>Modèles en plusieurs tailles : la plupart des familles ouvertes (Qwen, Llama, Gemma, Phi, Mistral) existent de moins d'un milliard à plusieurs dizaines de milliards de paramètres. Les petites tailles tournent sur un ordinateur portable.</li>
+          <li>Frameworks multi-agents (facultatifs) : LangGraph, CrewAI, AG2, Mesa, Concordia.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Données, RAG et temps</h3>
+        <ul>
+          <li>Lewis, P. et al. (2020). <i>Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks</i>. NeurIPS 2020. <a href="https://arxiv.org/abs/2005.11401">arXiv:2005.11401</a></li>
+          <li>Lamport, L. (1978). <i>Time, Clocks, and the Ordering of Events in a Distributed System</i>. Communications of the ACM, 21(7), 558–565.</li>
+          <li>Akidau, T. et al. (2015). <i>The Dataflow Model: A Practical Approach to Balancing Correctness, Latency, and Cost in Massive-Scale, Unbounded, Out-of-Order Data Processing</i>. PVLDB, 8(12), 1792–1803.</li>
+          <li>Kleppmann, M. (2017). <i>Designing Data-Intensive Applications</i>. O'Reilly. Chapitres sur le stockage, les flux d'événements et le temps.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Mesurer la sobriété</h3>
+        <ul>
+          <li><a href="https://codecarbon.io">CodeCarbon</a> : énergie consommée par les calculs locaux.</li>
+          <li><a href="https://ecologits.ai">EcoLogits</a> : estimation de l'impact des appels d'API d'IA générative.</li>
+          <li>Samsi, S. et al. (2023). <i>From Words to Watts: Benchmarking the Energy Costs of Large Language Model Inference</i>. <a href="https://arxiv.org/abs/2310.03003">arXiv:2310.03003</a></li>
+          <li>Luccioni, A. S., Jernite, Y. &amp; Strubell, E. (2024). <i>Power Hungry Processing: Watts Driving the Cost of AI Deployment?</i> ACM FAccT. <a href="https://arxiv.org/abs/2311.16863">arXiv:2311.16863</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="caption" style="margin-top:24px">Les références propres à chaque phénomène figurent dans les fiches du catalogue.</p>
+  </section>
+
+  <footer>
+    <span class="caption">EIGSI Casablanca · Option IA &amp; Big Data · Cycle ingénieur 5A</span>
+    <span class="caption">Mondes Vivants · Projet de simulation multi-agents LLM</span>
+  </footer>
+</main>
+
+<script>
+document.documentElement.classList.add('js');
+if(!document.documentElement.lang) document.documentElement.lang='fr';
+
+/* ---------- section rules draw-in ---------- */
+(function(){
+  const rules = document.querySelectorAll('.rule');
+  if(!('IntersectionObserver' in window)){ rules.forEach(r=>r.classList.add('on')); return; }
+  const io = new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target);} }),{threshold:.2});
+  rules.forEach(r=>io.observe(r));
+})();
+
+/* ---------- requirement filter ---------- */
+(function(){
+  const chips = document.querySelectorAll('.chip');
+  const reqs = document.querySelectorAll('.req');
+  chips.forEach(c=>{ const n=c.querySelector('.n'); if(n) n.textContent = c.dataset.f==='all' ? reqs.length : [...reqs].filter(r=>r.dataset.l===c.dataset.f).length; });
+  chips.forEach(c=>c.addEventListener('click',()=>{
+    const f = c.dataset.f;
+    chips.forEach(x=>x.setAttribute('aria-pressed', String(x===c)));
+    reqs.forEach(r=>r.classList.toggle('dim', f!=='all' && r.dataset.l!==f));
+    document.querySelectorAll('.bloc').forEach(b=>b.classList.toggle('empty', !b.querySelector('.req:not(.dim)')));
+  }));
+})();
+
+/* ---------- catalogue tabs ---------- */
+(function(){
+  const tabs = [...document.querySelectorAll('.tab')];
+  const panel = document.getElementById('panel');
+  function show(k, focus){
+    const t = tabs.find(x=>x.dataset.k===k); if(!t) return;
+    tabs.forEach(x=>{ const on = x===t; x.setAttribute('aria-selected', String(on)); x.tabIndex = on?0:-1;
+      document.getElementById(x.dataset.k).hidden = !on; });
+    panel.classList.remove('swap'); void panel.offsetWidth; panel.classList.add('swap');
+    if(focus) t.focus();
+  }
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>show(t.dataset.k));
+    t.addEventListener('keydown',e=>{
+      let j=null;
+      if(e.key==='ArrowRight') j=(i+1)%tabs.length;
+      if(e.key==='ArrowLeft') j=(i-1+tabs.length)%tabs.length;
+      if(j!==null){ e.preventDefault(); show(tabs[j].dataset.k,true); }
+    });
+  });
+  const h = (location.hash||'').slice(1);
+  tabs.forEach(t=>{ t.tabIndex = t.getAttribute('aria-selected')==='true'?0:-1; });
+  if(tabs.some(t=>t.dataset.k===h)){ show(h); }
+})();
+
+/* ---------- hero animation (decorative, rule-based, no LLM) ---------- */
+(function(){
+  const cv=document.getElementById('sim'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const $=id=>document.getElementById(id);
+  const PLACES=[
+    {n:'Quartier nord',to:'au quartier nord',x:.15,y:.25},{n:'Puits',to:'au puits',x:.84,y:.24},{n:'Marché',to:'au marché',x:.5,y:.53},
+    {n:'Atelier',to:"à l'atelier",x:.84,y:.8},{n:'Quartier sud',to:'au quartier sud',x:.16,y:.8}
+  ];
+  const MARKET=2, WELL=1;
+  const VARIANTS=["l'eau du puits a un goût bizarre","il paraît que l'eau du puits est trouble","on dit que des gens sont malades à cause du puits","le puits serait contaminé, il faut acheter de l'eau"];
+  const SIM_PER_SEC=12;          // simulated minutes per real second
+  const SYNC_STEP=30;            // shared step in synchronous mode (sim minutes)
+  let W=0,H=0,dpr=1,C={}, agents=[], packets=[], rings=[], simMin=0, realSec=0, msgs=0;
+  let mode='async', nextTick=0, focus=null, memVersion=-1, lastPanel=0;
+
+  const rgb=v=>{v=v.trim(); if(v[0]==='#'){ if(v.length===4) v='#'+[...v.slice(1)].map(c=>c+c).join(''); return [1,3,5].map(i=>parseInt(v.slice(i,i+2),16)); } return [128,128,128]; };
+  const col=(c,a)=>`rgba(${c.join(',')},${a===undefined?1:a})`;
+  function readColors(){ const st=getComputedStyle(document.documentElement);
+    ['muted','line','ink','surface','belief-a','belief-b'].forEach(k=>C[k]=rgb(st.getPropertyValue('--'+k))); }
+  const beliefCol=b=>b===1?C['belief-b']:b===2?C['belief-a']:C.muted;
+  const beliefTxt=b=>b===1?'y croit':b===2?'doute':"n'a rien entendu";
+  const pad=n=>String(n).padStart(2,'0');
+  const who=a=>'l\u2019agent '+a.id.slice(6);
+  const fmt=m=>{ m=Math.floor(m); return `J${Math.floor(m/1440)+1} · ${pad(Math.floor(m%1440/60))}:${pad(m%60)}`; };
+  const pr=()=>Math.min(W,H)*.12;   // place radius px
+
+  function size(){ const r=cv.getBoundingClientRect(); if(!r.width||!r.height) return false;
+    dpr=Math.min(window.devicePixelRatio||1,2); W=r.width; H=r.height;
+    cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); return true; }
+
+  function remember(a,txt){ a.mem.unshift({t:simMin,txt}); if(a.mem.length>7) a.mem.pop(); a.mv++; }
+  function slot(){ const ang=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*.62; return {ox:Math.cos(ang)*r, oy:Math.sin(ang)*r}; }
+  function target(a){ const p=PLACES[a.goal]; return {x:p.x*W+a.ox*pr(), y:p.y*H+a.oy*pr()}; }
+  function schedule(a){ a.next = mode==='async' ? simMin + 12 + Math.random()*48 : nextTick; }
+
+  function seed(){
+    simMin=7*60; realSec=0; msgs=0; packets=[]; rings=[];
+    nextTick=simMin+SYNC_STEP;
+    const n=Math.max(16,Math.min(28,Math.round(W/34)));
+    agents=Array.from({length:n},(_,i)=>{
+      const home=[0,4,0,4,3][i%5]; const sl=slot();
+      const a={id:'Agent '+pad(i+1), at:home, goal:home, moving:false, ox:sl.ox, oy:sl.oy, x:0, y:0,
+        speed:.45+Math.random()*.5, belief:0, variant:0, cred:.35+Math.random()*.5, mem:[], mv:0, flash:0, trail:[]};
+      const t=target(a); a.x=t.x; a.y=t.y; return a;
+    });
+    // the rumour starts at the well
+    [0,1].forEach(i=>{ const a=agents[i]; a.at=a.goal=WELL; const t=target(a); a.x=t.x; a.y=t.y; a.belief=1; remember(a,"remarque que l'eau du puits a un goût bizarre"); });
+    // a first rumour-teller and the inspected agent start at the market, with a few neighbours
+    [2,6,7,8].forEach(i=>{ const a=agents[i]; a.at=a.goal=MARKET; const t=target(a); a.x=t.x; a.y=t.y; });
+    agents[2].belief=1; remember(agents[2],"a entendu au puits que l'eau avait un goût bizarre");
+    agents.forEach(a=>schedule(a));
+    focus=agents[6]; remember(focus,'se réveille '+PLACES[focus.at].to);
+    memVersion=-1;
+  }
+
+  function send(from,to,kind){ packets.push({from,to,kind,variant:from.variant,t:0}); msgs++; }
+  function deliver(pk){
+    const a=pk.from,b=pk.to;
+    if(pk.kind==='rumour'){
+      const v=VARIANTS[pk.variant];
+      remember(a,`raconte à ${who(b)} : « ${v} »`);
+      if(b.belief===0){
+        b.belief=Math.random()<b.cred?1:2; b.variant=Math.min(pk.variant+1,VARIANTS.length-1);
+        remember(b,`entend de ${who(a)} : « ${v} »`);
+        remember(b,b.belief===1?"y croit, et pense le répéter":"n'y croit pas trop");
+      } else if(b.belief===2 && Math.random()<.22){ b.belief=1; remember(b,`finit par y croire, après ${who(a)}`); }
+      else remember(b,`réentend l'histoire, de ${who(a)}`);
+    } else {
+      remember(a,`dit à ${who(b)} qu'il n'y croit pas`);
+      if(b.belief===1 && Math.random()<.3){ b.belief=2; remember(b,`commence à douter, après ${who(a)}`); }
+      else remember(b,`écoute les doutes de ${who(a)}`);
+    }
+  }
+
+  function think(a){
+    a.flash=1;
+    if(!a.moving){
+      const here=agents.filter(o=>o!==a && !o.moving && o.at===a.at);
+      if(a.belief>0 && here.length && Math.random()<.7){
+        send(a, here[Math.floor(Math.random()*here.length)], a.belief===1?'rumour':'doubt');
+      } else if(Math.random()<.45){
+        let g; do{ g=Math.floor(Math.random()*PLACES.length); }while(g===a.at);
+        a.goal=g; a.moving=true; const sl=slot(); a.ox=sl.ox; a.oy=sl.oy;
+        remember(a,'décide d’aller '+PLACES[g].to);
+      }
+    }
+    schedule(a);
+  }
+
+  function announce(){
+    const p=PLACES[MARKET]; rings.push({x:p.x*W,y:p.y*H,t:0});
+    agents.filter(a=>!a.moving && a.at===MARKET).forEach(a=>{
+      remember(a,"entend l'annonce officielle : l'eau du puits est saine");
+      if(a.belief===1 && Math.random()<.6){ a.belief=2; remember(a,"se met à douter de la rumeur"); }
+    });
+  }
+
+  function update(dt){
+    realSec+=dt; simMin+=dt*SIM_PER_SEC;
+    if(mode==='sync'){
+      if(simMin>=nextTick){ nextTick+=SYNC_STEP; agents.forEach(a=>{ a.next=nextTick; think(a); }); }
+    } else {
+      agents.forEach(a=>{ if(simMin>=a.next) think(a); });
+    }
+    agents.forEach(a=>{
+      if(a.flash>0) a.flash=Math.max(0,a.flash-dt*1.6);
+      const t=target(a), dx=t.x-a.x, dy=t.y-a.y, d=Math.hypot(dx,dy);
+      const step=a.speed*60*dt*(a.moving?1.6:.25);
+      if(d>step){ a.x+=dx/d*step; a.y+=dy/d*step; }
+      else { a.x=t.x; a.y=t.y; if(a.moving){ a.moving=false; a.at=a.goal; remember(a,'arrive '+PLACES[a.at].to); } }
+      if(a===focus){ a.trail.push([a.x,a.y]); if(a.trail.length>90) a.trail.shift(); }
+    });
+    packets.forEach(pk=>{ pk.t+=dt*1.4; if(pk.t>=1 && !pk.done){ pk.done=true; deliver(pk); } });
+    packets=packets.filter(pk=>!pk.done);
+    rings.forEach(r=>r.t+=dt*.7); rings=rings.filter(r=>r.t<1);
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    ctx.strokeStyle=col(C.line,.5); ctx.lineWidth=1;
+    for(let x=0;x<W;x+=40){ ctx.beginPath(); ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); ctx.stroke(); }
+    for(let y=0;y<H;y+=40){ ctx.beginPath(); ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); ctx.stroke(); }
+    const R=pr();
+    ctx.font='500 11px "IBM Plex Mono", ui-monospace, monospace'; ctx.textAlign='center';
+    PLACES.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x*W,p.y*H,R,0,Math.PI*2);
+      ctx.fillStyle=col(C.line,.35); ctx.fill(); ctx.strokeStyle=col(C.line,1); ctx.stroke();
+      ctx.fillStyle=col(C.muted,1); ctx.fillText(p.n.toUpperCase(), p.x*W, p.y*H-R-7);
+    });
+    rings.forEach(r=>{ ctx.beginPath(); ctx.arc(r.x,r.y,R*(.6+r.t*1.6),0,Math.PI*2); ctx.strokeStyle=col(C.ink,(1-r.t)*.7); ctx.lineWidth=2; ctx.stroke(); });
+    if(focus && focus.trail.length>1){
+      ctx.beginPath(); focus.trail.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
+      ctx.strokeStyle=col(C.ink,.35); ctx.lineWidth=1.5; ctx.setLineDash([3,4]); ctx.stroke(); ctx.setLineDash([]);
+    }
+    packets.forEach(pk=>{
+      const a=pk.from,b=pk.to, x=a.x+(b.x-a.x)*pk.t, y=a.y+(b.y-a.y)*pk.t;
+      const c=pk.kind==='rumour'?C['belief-b']:C['belief-a'];
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.strokeStyle=col(c,.35); ctx.lineWidth=1; ctx.stroke();
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fillStyle=col(c,1); ctx.fill();
+    });
+    agents.forEach(a=>{
+      const c=beliefCol(a.belief), dim=focus && a!==focus && !(packets.some(p=>(p.from===a||p.to===a)&&(p.from===focus||p.to===focus)));
+      if(a.flash>0){ ctx.beginPath(); ctx.arc(a.x,a.y,5+(1-a.flash)*10,0,Math.PI*2); ctx.strokeStyle=col(C.ink,a.flash*.5); ctx.lineWidth=1; ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(a.x,a.y,4.5,0,Math.PI*2); ctx.fillStyle=col(c,dim?.7:1); ctx.fill();
+    });
+    if(focus){
+      const f=focus;
+      ctx.beginPath(); ctx.arc(f.x,f.y,30,0,Math.PI*2); ctx.setLineDash([2,4]); ctx.strokeStyle=col(C.ink,.45); ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(f.x,f.y,8.5,0,Math.PI*2); ctx.strokeStyle=col(C.ink,1); ctx.lineWidth=2; ctx.stroke();
+      const label=f.id, tw=ctx.measureText(label).width+12, lx=Math.min(Math.max(f.x,tw/2+2),W-tw/2-2), ly=f.y-40<14?f.y+44:f.y-40;
+      ctx.fillStyle=col(C.ink,1); ctx.fillRect(lx-tw/2,ly-11,tw,18);
+      ctx.fillStyle=col(C.surface,1); ctx.textAlign='center'; ctx.fillText(label,lx,ly+2);
+    }
+    $('clkSim').textContent=fmt(simMin);
+    $('clkReal').textContent=pad(Math.floor(realSec/60))+':'+pad(Math.floor(realSec%60));
+    $('nMsg').textContent=msgs;
+  }
+
+  function panel(force){
+    if(!focus) return;
+    $('insName').textContent=focus.id;
+    $('insPlace').textContent=focus.moving?'en chemin':PLACES[focus.at].n;
+    $('insGoal').textContent=focus.moving?'aller '+PLACES[focus.goal].to:(focus.belief>0?'parler à ses voisins':'observer, écouter');
+    $('insBelief').textContent=beliefTxt(focus.belief);
+    $('insNext').textContent=mode==='async'?fmt(focus.next)+' · à son rythme':fmt(nextTick)+' · pas commun';
+    if(force || focus.mv!==memVersion){
+      memVersion=focus.mv; const ol=$('insMem'); ol.textContent='';
+      if(!focus.mem.length){ const li=document.createElement('li'); li.className='empty'; li.textContent='Aucun souvenir pour l’instant.'; ol.appendChild(li); }
+      focus.mem.slice(0,6).forEach((m,i)=>{ const li=document.createElement('li'); if(!force && i>0) li.style.animation='none';
+        const t=document.createElement('time'); t.textContent=fmt(m.t); const sp=document.createElement('span'); sp.textContent=m.txt;
+        li.append(t,sp); ol.appendChild(li); });
+    }
+  }
+
+  function setMode(m){
+    mode=m; document.querySelectorAll('.segb').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===m)));
+    nextTick=Math.ceil(simMin/SYNC_STEP)*SYNC_STEP+SYNC_STEP; agents.forEach(schedule); panel(true);
+  }
+  function fastForward(sec){ for(let t=0;t<sec;t+=1/30) update(1/30); }
+
+  let raf=null,last=0;
+  function loop(ts){ const dt=last?Math.min(.05,(ts-last)/1000):0; last=ts; update(dt); draw();
+    if(ts-lastPanel>200){ lastPanel=ts; panel(false); } raf=requestAnimationFrame(loop); }
+  function start(){ if(!size()) return; readColors(); seed();
+    if(reduce){ fastForward(40); draw(); panel(true); } else { panel(true); raf=requestAnimationFrame(loop); } }
+
+  cv.addEventListener('click',e=>{
+    const r=cv.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+    let best=null,bd=22; agents.forEach(a=>{ const d=Math.hypot(a.x-x,a.y-y); if(d<bd){bd=d;best=a;} });
+    if(best){ focus=best; focus.trail=[]; memVersion=-1; panel(true); draw(); }
+  });
+  document.querySelectorAll('.segb').forEach(b=>b.addEventListener('click',()=>{ setMode(b.dataset.mode); if(reduce){ fastForward(15); draw(); panel(true); } }));
+  $('inject').addEventListener('click',()=>{ announce(); if(reduce){ fastForward(15); draw(); } panel(true); });
+  $('reset').addEventListener('click',()=>{ seed(); if(reduce) fastForward(40); draw(); panel(true); });
+  let rt; window.addEventListener('resize',()=>{ clearTimeout(rt); rt=setTimeout(()=>{ const oW=W,oH=H; if(!size()) return;
+    if(!agents.length||!oW||!oH){ seed(); } else { agents.forEach(a=>{ a.x*=W/oW; a.y*=H/oH; a.trail=[]; }); } draw(); },150); });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ readColors(); draw(); });
+  new MutationObserver(()=>{ readColors(); draw(); }).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+  document.addEventListener('visibilitychange',()=>{ if(reduce) return; if(document.hidden){ cancelAnimationFrame(raf); raf=null; } else if(!raf){ last=0; raf=requestAnimationFrame(loop); } });
+  if(document.readyState==='complete') start(); else window.addEventListener('load',start);
+})();
+</script>
+
+</body>
+</html>

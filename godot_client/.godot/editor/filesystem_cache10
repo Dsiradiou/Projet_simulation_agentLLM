@@ -1,8 +1,0 @@
-78098b89c88a74ebe8c20117b8754620
-::res://::1791979062
-::res://scenes/::1791978786
-Main.tscn::PackedScene::209268711391072476::1791978786::0::1::::<><><>0<>0<><>::res://scripts/Main.gd<>res://scripts/NetworkClient.gd
-::res://scripts/::1791978753
-AgentView.gd::GDScript::1016115358620772753::1791978753::0::1::::<>Area2D<><>0<>0<><>::
-Main.gd::GDScript::71919269655476989::1791978762::0::1::::<>Node2D<><>0<>0<><>::
-NetworkClient.gd::GDScript::6332337227308047547::1791978718::0::1::::NetworkClient<>Node<><>0<>0<><>::
