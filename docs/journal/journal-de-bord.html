@@ -70,7 +70,7 @@ exigences de l'énoncé.</p>
   <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="ok">terminée</td></tr>
   <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
-  <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="todo">à venir</td></tr>
+  <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="ok">terminée</td></tr>
   <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
   <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="todo">à venir</td></tr>
@@ -1266,6 +1266,146 @@ Dépendances ajoutées : <code>pyarrow 26.0.0</code> et <code>duckdb 1.5.6</code
 <h3>Prochaine étape</h3>
 <p>Étape 9 — Pont FastAPI : diffuser les événements vers Godot par WebSocket, en direct ou en
 rejeu, inspecter un agent (D2), injecter un événement (D3), mettre en pause ou arrêter un run.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 9 — Pont FastAPI</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : D1 (affichage en direct), D2 (inspection
+d'un agent), D3 (injection d'un événement en direct), E3 (rejeu), C3 et C6 (dates et cohérence
+temporelle), F6 (traçabilité).</p>
+
+<h3>Objectif</h3>
+<p>Ouvrir la simulation à une interface. Godot (étape 10) n'a pas de client Kafka : le pont reçoit
+les événements et les pousse par WebSocket, en direct ou en rejeu. Il répond aussi aux questions
+de l'observateur (qui est cet agent, pourquoi a-t-il décidé cela ?) et transmet ses actions
+(injecter une perturbation, mettre en pause, arrêter).</p>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th><th>Raison</th></tr>
+  <tr><td>Où tourne le pont</td><td>Dans <strong>son propre processus</strong>
+    (<code>python -m bridge</code>)</td><td>Il ne parle à la simulation qu'à travers Kafka,
+    Redis et Parquet. Godot reste connecté pendant que les runs démarrent et s'arrêtent.</td></tr>
+  <tr><td>Quand une injection prend effet</td><td>Au <strong>début du jour simulé
+    suivant</strong></td><td>Cohérent avec la barrière synchrone et C6 : aucun agent ne découvre
+    une perturbation au milieu d'une journée déjà commencée.</td></tr>
+  <tr><td>Qui la perçoit</td><td>Tout le monde, ou <strong>une seule zone</strong> si elle est
+    précisée</td><td>Une rupture de stock à la pharmacie ne concerne pas la plage.</td></tr>
+  <tr><td>Quelles perturbations</td><td>Les 3 existantes (rupture de stock, polémique, vague de
+    chaleur)</td><td>Leurs effets mécaniques arrivent avec les agents à règles (étape 13) ; la
+    liste sera enrichie à l'étape 11.</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>bridge/app.py</code></td><td>L'application FastAPI : WebSocket, inspection, injections, commandes.</td></tr>
+  <tr><td><code>bridge/vue.py</code></td><td>Vue du monde construite à partir du seul flux d'événements (direct et rejeu).</td></tr>
+  <tr><td><code>bridge/client.py</code></td><td>Client de test du WebSocket, en attendant Godot.</td></tr>
+  <tr><td><code>sim/controle.py</code></td><td>Lecture de <code>sim.control</code> par l'orchestrateur.</td></tr>
+  <tr><td><code>sim/orchestrateur.py</code></td><td>Pause, reprise, arrêt propre, injection transformée en perturbation, ciblage par zone.</td></tr>
+  <tr><td><code>sim/etat.py</code></td><td>État Redis enrichi pour l'inspection, statut et heure simulée du run courant.</td></tr>
+  <tr><td><code>docs/pont.md</code></td><td>Référence du pont pour l'interface : routes, messages, codes de réponse.</td></tr>
+</table>
+
+<h3>Ce que propose le pont</h3>
+<table>
+  <tr><th>Route</th><th>Exigence</th><th>Rôle</th></tr>
+  <tr><td><code>WS /ws</code></td><td>D1</td><td>Un instantané du monde à la connexion, puis chaque événement du run en cours.</td></tr>
+  <tr><td><code>WS /ws?rejeu=&lt;run_id&gt;&amp;vitesse=2</code></td><td>E3</td><td>Le même flux, relu depuis l'historique : pour Godot, rien ne change.</td></tr>
+  <tr><td><code>GET /agents/{id}</code></td><td>D2</td><td>État de l'agent, justification et coût de sa dernière décision, ses 10 dernières décisions, ses messages. Pour un agent à règles : son seuil et la règle appliquée.</td></tr>
+  <tr><td><code>POST /injections</code></td><td>D3</td><td>Une perturbation, éventuellement limitée à une zone.</td></tr>
+  <tr><td><code>POST /commandes</code></td><td>—</td><td>Pause, reprise, arrêt, appliqués entre deux jours.</td></tr>
+  <tr><td><code>GET /etat</code>, <code>/agents</code>, <code>/runs</code></td><td>D1, E3</td><td>État courant, liste des agents, runs rejouables.</td></tr>
+</table>
+<p>FastAPI génère une page <code>/docs</code> qui permet d'essayer chaque route à la main.</p>
+
+<h3>Le chemin d'une injection</h3>
+<ol>
+  <li>L'observateur envoie <code>POST /injections</code>. Le pont publie un
+    <code>controle.injection</code> sur <code>sim.control</code>, daté de l'heure simulée courante
+    du run.</li>
+  <li>Avant le jour suivant, l'orchestrateur relève <code>sim.control</code> (un message non
+    conforme part dans <code>sim.dlq</code>).</li>
+  <li>À 00:00 du jour suivant, il publie une <code>monde.perturbation</code> dont
+    <code>caused_by</code> pointe sur l'injection (F6).</li>
+  <li>Les agents de la zone la perçoivent, ce qui les déclenche. Leurs décisions citent la
+    perturbation, et leurs messages propagent l'effet.</li>
+</ol>
+
+<h3>La démonstration sur un vrai run LLM</h3>
+<p>Pont, client WebSocket et tranche de 5 jours. Au jour 1, injection d'une polémique sur les
+réseaux sociaux : « une vidéo virale accuse la crème de laisser des traces blanches et de coller au
+sable ». Trace complète dans <code>docs/mesures/pont_2026-10-18_1345.md</code>.</p>
+<table>
+  <tr><th>Jour</th><th>Ce qu'on voit dans le flux</th></tr>
+  <tr><td>J3, 00:00</td><td>La perturbation est publiée pour la zone <em>réseaux sociaux</em>.</td></tr>
+  <tr><td>J3</td><td>Le pharmacien, seul dans cette zone, passe de <em>tendance</em> à <em>dépassé · critiquer</em> : « les traces blanches c'est pas une option ici ». Il publie : « Trop de traces blanches, trop collante. »</td></tr>
+  <tr><td>J4</td><td>Le baigneur passe d'<em>efficace</em> à <em>banal</em> (« le pharmacien m'a dit qu'il ne l'utiliserait pas »). Le créateur <em>critique</em> à son tour, en citant <code>pharmacien_01</code>.</td></tr>
+</table>
+<p>L'effet de l'injection se propage donc d'un agent à l'autre par les messages, ce que D3
+demande. L'inspection du pharmacien montre sa justification, son coût (qwen3:8b, 579 tokens en
+entrée, 104 en sortie, 2,3 s) et une décision dont <code>caused_by</code> pointe sur la
+perturbation. Le bilan compte <code>injections : 1</code>, et l'injection du pont est enregistrée
+dans l'historique avec le reste (<code>evenements_externes : 1</code>).</p>
+
+<h3>Défauts trouvés en vérifiant</h3>
+<ul>
+  <li><strong>Heure simulée d'une injection.</strong> Dans la démonstration, l'injection est datée
+    J1 10:00 alors que la simulation était déjà au jour 2, d'où un effet au jour 3. Le pont lisait
+    l'heure du dernier état écrit. L'orchestrateur publie maintenant son heure courante au début
+    de chaque jour : l'injection est datée juste (C3), et prend effet au jour qui suit.</li>
+  <li><strong>Comptage de l'historique.</strong> L'écrivain enregistre aussi, à raison, les
+    injections et commandes publiées par le pont pendant le run. Le contrôle de fin de run
+    compare désormais les événements de l'orchestrateur et compte à part ceux du pont.</li>
+</ul>
+
+<h3>Nouveau constat</h3>
+<div class="box">
+  <strong>Une perturbation n'a encore qu'un effet narratif</strong> : son texte est montré aux
+  agents concernés, mais une rupture de stock n'empêche encore aucun achat et une vague de chaleur
+  ne change pas la météo. Ces effets mécaniques viendront avec les agents à règles et la vraie
+  météo (étape 13). Ajouté à la table des constats ouverts.
+</div>
+
+<h3>Les tests</h3>
+<p>17 nouveaux tests :</p>
+<ul>
+  <li><strong>Orchestrateur</strong> : une injection devient une perturbation le jour suivant,
+    dans sa seule zone, datée et traçable, et recomptée par le rejeu. Pause puis reprise ; arrêt
+    propre, y compris pendant une pause.</li>
+  <li><strong>Vue et suivi</strong> : la vue du monde est reconstruite depuis les événements ; le
+    suivi en direct bascule sur un nouveau run et ignore les autres ; un client trop lent est
+    déconnecté.</li>
+  <li><strong>API</strong> : injection publiée pour le run courant et datée de son heure simulée ;
+    demandes invalides refusées (422) ; rien n'est publié sans run en cours (409) ; commandes ;
+    inspection d'un agent LLM et d'un agent à règles ; instantané à la connexion ; rejeu par
+    WebSocket identique à l'historique.</li>
+  <li><strong>De bout en bout</strong> : le vrai pont, sur Kafka et Redis, injecte une
+    perturbation dans un vrai run puis l'arrête. La perturbation de l'historique cite bien
+    l'injection, et le run s'arrête proprement avant sa fin.</li>
+</ul>
+<p>Résultat : <span class="ok">156 tests réussis</span>, aucun ignoré, aucune remarque de ruff.
+Dépendances ajoutées : <code>fastapi 0.144.0</code>, <code>uvicorn 0.54.0</code>,
+<code>websockets 17.2</code>.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le pont est indépendant de la simulation : il ne connaît que le bus, l'état et
+    l'historique.</li>
+  <li>Une injection suit le même chemin que tout le reste : un événement versionné, validé, daté
+    dans les deux horloges et traçable jusqu'à ses effets.</li>
+  <li>On a vu une polémique se propager : un agent la perçoit, critique, et deux autres reprennent
+    ses mots le lendemain.</li>
+  <li>Direct et rejeu passent par le même WebSocket : la démonstration peut se faire sur un run
+    enregistré si les modèles font défaut.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 10 — Scène Godot 3D : plusieurs maquettes low-poly à comparer (bâtiments distincts par
+zone, plage avec sable et mer, personnages animés), puis la scène choisie branchée sur le pont,
+avec le panneau d'indicateurs et l'inspection d'un agent (D1, D2, D3).</p>
 </section>
 
 </body>

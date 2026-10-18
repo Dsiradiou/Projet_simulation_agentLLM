@@ -64,9 +64,15 @@ def formater(event: ev.Envelope) -> str | None:
             essai = f" (essai {i.tentative})" if i.tentative else ""
             return f"{quand}  INCIDENT    {i.nature.value}{essai} {i.agent_id or ''} : {i.detail}"
         case ev.Disturbance():
-            return (
-                f"{quand}  événement   {event.payload.nature.value} : {event.payload.description}"
-            )
+            p = event.payload
+            zone = f" [{event.zone}]" if event.zone else ""
+            return f"{quand}  événement   {p.nature.value}{zone} : {p.description}"
+        case ev.Injection():
+            p = event.payload
+            zone = f" [{event.zone}]" if event.zone else ""
+            return f"{quand}  INJECTION   {p.nature.value}{zone} : {p.description} (jour suivant)"
+        case ev.Command():
+            return f"{quand}  COMMANDE    {event.payload.commande}"
         case ev.Indicator():
             p = event.payload
             groupe = f" [{p.groupe}]" if p.groupe else ""

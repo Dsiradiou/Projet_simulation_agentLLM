@@ -4,6 +4,7 @@ Un message qui ne respecte aucun schéma est publié dans `sim.dlq`, compté, pu
 simulation continue.
 """
 
+import asyncio
 from collections.abc import Callable, Iterable
 
 from aiokafka import AIOKafkaConsumer
@@ -31,15 +32,19 @@ class EventConsumer:
         sim_now: Callable[[], int] = lambda: 0,
         group_id: str | None = None,
         dlq_topic: str = Topic.DLQ.value,
+        depuis_fin: bool = False,
     ) -> None:
-        """`run_id` et `sim_now` datent les rejets : un message illisible n'a pas de date fiable."""
+        """`run_id` et `sim_now` datent les rejets : un message illisible n'a pas de date fiable.
+        Avec `depuis_fin`, la lecture commence à la fin des topics (messages publiés après
+        `start`), sinon au début de la rétention."""
         self._consumer = AIOKafkaConsumer(
             *topics,
             bootstrap_servers=bootstrap_servers,
             group_id=group_id,
-            auto_offset_reset="earliest",
+            auto_offset_reset="latest" if depuis_fin else "earliest",
             enable_auto_commit=group_id is not None,
         )
+        self._depuis_fin = depuis_fin
         self._dlq = dlq
         self._dlq_topic = dlq_topic
         self._run_id = run_id
@@ -49,6 +54,12 @@ class EventConsumer:
 
     async def start(self) -> None:
         await self._consumer.start()
+        if self._depuis_fin:  # fixe la position tout de suite : rien de publié ensuite n'échappe
+            async with asyncio.timeout(15):
+                while not self._consumer.assignment():
+                    await asyncio.sleep(0.05)
+            for partition in self._consumer.assignment():
+                await self._consumer.position(partition)
 
     async def stop(self) -> None:
         await self._consumer.stop()

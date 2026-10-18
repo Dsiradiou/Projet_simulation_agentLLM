@@ -24,6 +24,7 @@ COMPARABLES = (
     "incidents",
     "violations_temporelles",
     "incidents_par_nature",
+    "injections",
     "relances",
     "replis",
     "tokens_entree",
@@ -52,6 +53,8 @@ def bilan_depuis(events: list[ev.Envelope], population: int) -> dict:
                     bilan.compter_appel(event.payload.appel_llm)
                 if event.payload.moteur is ev.Moteur.REPLI:
                     bilan.replis += 1
+            case ev.Disturbance() if event.caused_by:  # conséquence d'une injection (D3)
+                bilan.injections += 1
             case ev.AgentMessage():
                 bilan.messages += 1
             case ev.AgentMove():

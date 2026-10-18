@@ -57,7 +57,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 6 | Couche LLM (routeur par palier, replis, coûts) | ✅ terminée |
 | 7 | Première tranche verticale | ✅ terminée |
 | 8 | Historique et rejeu sans LLM | ✅ terminée |
-| 9 | Pont FastAPI | à venir |
+| 9 | Pont FastAPI | ✅ terminée |
 | 10 | Scène Godot 3D | à venir |
 | 11 | Le monde : marque, population | à venir |
 | 12 | Corpus fictif et RAG | à venir |
@@ -150,6 +150,22 @@ et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complèt
 versions, commit git), `bilan.json` (compteurs du run, dont le nombre d'événements publiés et
 enregistrés) et `evenements/` (historique Parquet).
 
+## Pont vers l'interface
+
+Le pont FastAPI relie la simulation à l'interface (Godot, étape 10). Il tourne à part et peut rester
+ouvert entre les runs. Référence complète : [`docs/pont.md`](docs/pont.md).
+
+```powershell
+.venv\Scripts\python -m bridge          # http://127.0.0.1:8000 ; essais à la main sur /docs
+.venv\Scripts\python -m bridge.client   # affiche le flux WebSocket (ou --rejeu <run_id> --vitesse 2)
+```
+
+- `WS /ws` : instantané du monde puis événements en direct ; `?rejeu=<run_id>` pour un run enregistré.
+- `GET /agents/{id}` : état, justification et coût de la dernière décision, historique (D2).
+- `POST /injections` : perturbation (rupture de stock, polémique, vague de chaleur), pour tous ou une
+  zone, appliquée au début du jour simulé suivant (D3).
+- `POST /commandes` : pause, reprise ou arrêt, entre deux jours.
+
 ## Historique et rejeu
 
 Chaque run est enregistré en Parquet dans `runs/<run_id>/evenements/` par un lecteur Kafka que le
@@ -191,7 +207,7 @@ toucher au code.
 | `bus/` | Kafka : producteurs, consommateurs, schémas d'événements |
 | `rag/` | Base de connaissances ChromaDB, récupération filtrée |
 | `indicators/` | Indicateurs d'émergence et traçabilité |
-| `bridge/` | Pont FastAPI vers Godot |
+| `bridge/` | Pont FastAPI vers Godot (WebSocket, inspection, injections) |
 | `replay/` | Journaux de run et rejeu sans LLM |
 | `corpus/` | Documents fictifs du monde |
 | `godot/` | Projet Godot (scène 3D) |
@@ -202,6 +218,7 @@ toucher au code.
 ## Documentation
 
 - [`docs/contexte-projet.md`](docs/contexte-projet.md) : décisions de conception et leurs raisons.
+- [`docs/pont.md`](docs/pont.md) : routes et messages du pont, pour l'interface.
 - [`docs/evenements/`](docs/evenements/README.md) : contrat d'événements (enveloppe, 12 types,
   JSON Schema), généré depuis le code.
 - [`docs/mesures/`](docs/mesures/) : benchmark des modèles sur la machine de référence.

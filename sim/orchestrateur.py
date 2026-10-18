@@ -1,7 +1,11 @@
 """Orchestrateur, mode synchrone (C4) : fait avancer le temps jour par jour et déclenche les agents.
 
+Avant chaque jour, l'orchestrateur relève les commandes et injections de l'interface (D3) :
+pause et reprise, arrêt propre, perturbations à appliquer ce jour-là.
+
 Déroulé d'un jour d :
-1. début du jour (00:00) : `horloge.pas`, puis les événements des acteurs du monde (météo...) ;
+1. début du jour (00:00) : `horloge.pas`, les événements des acteurs du monde (météo...), puis
+   les perturbations injectées depuis la veille, éventuellement limitées à une zone ;
 2. perception de chaque agent, construite sur l'état de la veille : c'est la barrière
    synchrone, aucun agent ne voit ce que les autres décident le jour même ;
 3. décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
@@ -34,9 +38,11 @@ from bus.events import (
     ClockStep,
     ClockStepPayload,
     Disturbance,
+    DisturbancePayload,
     Envelope,
     Incident,
     IncidentPayload,
+    Injection,
     LlmCall,
     Moteur,
     NatureIncident,
@@ -44,6 +50,7 @@ from bus.events import (
     WeatherPayload,
 )
 from sim.config import Config
+from sim.controle import SourceControle
 from sim.domaine import Canal
 from sim.etat import EtatMonde
 from sim.horloge import SimClock, ordre_paliers
@@ -68,6 +75,7 @@ class Bilan:
     incidents: int = 0
     violations_temporelles: int = 0
     incidents_par_nature: dict[str, int] = field(default_factory=dict)
+    injections: int = 0  # perturbations appliquées à la demande de l'interface (D3)
     relances: int = 0  # tentatives au-delà de la première
     replis: int = 0  # décisions d'agents LLM prises par la règle de repli
     bascules_palier: int = 0
@@ -115,6 +123,7 @@ class Orchestrateur:
         etat: EtatMonde | None = None,
         on_jour: Callable[[ResumeJour], None] | None = None,
         preparer: Callable[[Palier], Awaitable[float]] | None = None,
+        controle: SourceControle | None = None,
     ) -> None:
         self.config = config
         self.run = run
@@ -127,6 +136,10 @@ class Orchestrateur:
         self.etat = etat
         self.on_jour = on_jour
         self.preparer = preparer
+        self.controle = controle
+        self._injections: list[Injection] = []  # reçues, appliquées au début du jour suivant
+        self._en_pause = False
+        self._arret = False
         self.horloge = SimClock(config.simulation.duree_jours)
         self.boite = Boite()
         self.bilan = Bilan()
@@ -139,8 +152,12 @@ class Orchestrateur:
 
     async def executer(self, jours: int | None = None) -> Bilan:
         debut = time.perf_counter()
+        await self._statut("en_cours")
         for jour in range(1, (jours or self.config.simulation.duree_jours) + 1):
+            if not await self._relever_controle():
+                break
             await self.jour(jour)
+        await self._statut("arrete" if self._arret else "termine")
         self.bilan.duree_reelle_s = time.perf_counter() - debut
         self.bilan.duree_llm_s = round(self.bilan.duree_llm_s, 3)
         self.bilan.duree_chargement_s = round(self.bilan.duree_chargement_s, 3)
@@ -163,6 +180,8 @@ class Orchestrateur:
                 elif isinstance(event, Disturbance):
                     self._perturbations.append(event)
                     self._perturbations_vues.add(event.event_id)
+        await self._appliquer_injections(minute0)
+        await self._statut("en_cours")  # heure simulée courante, lue par le pont (C3)
 
         t = self.horloge.heure_decision()
         perceptions = self._percevoir(jour, t, barriere=minute0)
@@ -191,9 +210,57 @@ class Orchestrateur:
 
         self.bilan.jours = jour
         if self.etat:
-            await self.etat.ecrire_jour(jour, t, self.agents, self.meteo)
+            await self.etat.ecrire_jour(jour, t, self.agents, self.meteo, perceptions)
         if self.on_jour:
             self.on_jour(self._resume(jour, len(resultats)))
+
+    # --- contrôle depuis l'interface (D3) ------------------------------------------------------
+
+    async def _relever_controle(self) -> bool:
+        """Traite les commandes et garde les injections pour le jour qui commence. En pause,
+        attend une reprise ou un arrêt. Renvoie False si le run doit s'arrêter."""
+        if self.controle is None:
+            return True
+        while True:
+            for message in await self.controle.relever():
+                if isinstance(message, Injection):
+                    self._injections.append(message)
+                elif message.payload.commande == "pause":
+                    self._en_pause = True
+                elif message.payload.commande == "reprise":
+                    self._en_pause = False
+                else:
+                    self._arret = True
+            if self._arret:
+                return False
+            if not self._en_pause:
+                await self._statut("en_cours")
+                return True
+            await self._statut("pause")
+            await asyncio.sleep(0.2)
+
+    async def _appliquer_injections(self, minute0: int) -> None:
+        """Chaque injection devient une perturbation au début du jour : elle a été demandée la
+        veille (`sim_time_occurred` de l'injection) et prend effet maintenant (C3, C6)."""
+        for injection in self._injections:
+            event = Disturbance(
+                **self._dates(minute0),
+                source_agent_id="orchestrateur",
+                zone=injection.zone,
+                caused_by=(injection.event_id,),
+                payload=DisturbancePayload(
+                    nature=injection.payload.nature, description=injection.payload.description
+                ),
+            )
+            await self._publier(event)
+            self._perturbations.append(event)
+            self._perturbations_vues.add(event.event_id)
+            self.bilan.injections += 1
+        self._injections.clear()
+
+    async def _statut(self, statut: str) -> None:
+        if self.etat:
+            await self.etat.ecrire_statut(statut, self.horloge.jour, self.horloge.maintenant())
 
     # --- étapes du jour ---------------------------------------------------------------------
 
@@ -208,7 +275,9 @@ class Orchestrateur:
                 minute=t,
                 zone=agent.zone,
                 messages=self.boite.relever(agent.agent_id, t, barriere),
-                evenements=tuple(self._perturbations),
+                evenements=tuple(
+                    e for e in self._perturbations if e.zone is None or e.zone is agent.zone
+                ),
                 meteo=self.meteo,
                 part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone],
             )

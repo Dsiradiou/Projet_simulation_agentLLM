@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import time
+from collections import Counter
 from pathlib import Path
 
 import pyarrow as pa
@@ -88,13 +89,15 @@ class EcrivainHistorique:
         self.bootstrap_servers = bootstrap_servers
         self.run_id = run_id
         self.dossier = dossier_evenements(run_id, runs_dir)
-        self.recus = 0  # événements du run reçus
+        self.recus = 0  # événements du run reçus, tous producteurs confondus
+        self.recus_de: Counter[str] = Counter()  # par producteur (orchestrateur, pont...)
         self.ecrits = 0
         self.non_conformes = 0
         self._tampon: list[dict] = []
         self._parts = 0
         self._consumer: AIOKafkaConsumer | None = None
         self._attendus: int | None = None
+        self._producteur_attendu = "orchestrateur"
         self._fini = asyncio.Event()  # demande d'arrêt de la lecture
         self._ecrit = asyncio.Event()  # dernier lot écrit, lecteur arrêté
 
@@ -130,7 +133,7 @@ class EcrivainHistorique:
             if len(self._tampon) >= LOT_MAX or maintenant - dernier_flush >= FLUSH_S:
                 self._ecrire()
                 dernier_flush = maintenant
-            if self._attendus is not None and self.recus >= self._attendus:
+            if self._attendus is not None and self._complet():
                 self._fini.set()
             if inactivite_s is not None and maintenant - dernier_message >= inactivite_s:
                 self._fini.set()
@@ -138,11 +141,18 @@ class EcrivainHistorique:
         await self._consumer.stop()
         self._ecrit.set()
 
-    async def terminer(self, attendus: int, delai_s: float = 30.0) -> int:
-        """Fin de run : attend d'avoir reçu les `attendus` événements publiés et que le dernier
-        lot soit écrit. Renvoie le nombre d'événements enregistrés."""
+    def _complet(self) -> bool:
+        return self.recus_de[self._producteur_attendu] >= (self._attendus or 0)
+
+    async def terminer(
+        self, attendus: int, producteur: str = "orchestrateur", delai_s: float = 30.0
+    ) -> int:
+        """Fin de run : attend d'avoir reçu les `attendus` événements publiés par `producteur`
+        et que le dernier lot soit écrit. Les messages d'autres producteurs (le pont : injections,
+        commandes) sont enregistrés aussi. Renvoie le nombre d'événements reçus de `producteur`."""
         self._attendus = attendus
-        if self.recus >= attendus:
+        self._producteur_attendu = producteur
+        if self._complet():
             self._fini.set()
         try:
             async with asyncio.timeout(delai_s):
@@ -150,7 +160,7 @@ class EcrivainHistorique:
         except TimeoutError:
             self._fini.set()  # on écrit ce qui a été reçu ; l'écart est signalé par l'appelant
             await self._ecrit.wait()
-        return self.ecrits
+        return self.recus_de[producteur]
 
     def _recevoir(self, record: ConsumerRecord) -> None:
         try:
@@ -161,7 +171,9 @@ class EcrivainHistorique:
         if event.run_id != self.run_id:
             return
         self.recus += 1
-        self._tampon.append(_ligne(record, event))
+        ligne = _ligne(record, event)
+        self.recus_de[ligne["producteur"] or "inconnu"] += 1
+        self._tampon.append(ligne)
 
     def _ecrire(self) -> None:
         if not self._tampon:

@@ -125,6 +125,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
 | Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
+| Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama"` sans services) |
@@ -163,6 +164,11 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   modèle. L'ordre exact entre topics vient des en-têtes Kafka `producteur`/`seq` posés par
   `EventProducer` ; trier avec `bus.producer.ordre_publication`. Tout nouveau compteur de
   `Bilan` doit pouvoir être recalculé par `replay.bilan.bilan_depuis` (sinon le rejeu diverge).
+- Pont : processus séparé, ne parle à la simulation que par Kafka, Redis et Parquet ; il n'écrit
+  que sur `sim.control`. L'orchestrateur relève `sim.control` avant chaque jour : une injection
+  devient une `monde.perturbation` (avec `caused_by`) au début du jour suivant, pause et arrêt
+  s'appliquent entre deux jours. Toute route ou message `pont.*` ajouté se documente dans
+  `docs/pont.md`.
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 

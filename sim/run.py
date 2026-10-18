@@ -213,6 +213,7 @@ async def executer_run(
     from bus.producer import EventProducer
     from bus.topics import ensure_topics
     from replay.ecrivain import EcrivainHistorique
+    from sim.controle import LecteurControle
     from sim.etat import EtatMonde
     from sim.orchestrateur import Orchestrateur
 
@@ -226,10 +227,16 @@ async def executer_run(
     await etat.reinitialiser()
     try:
         async with EventProducer(settings.kafka_bootstrap_servers) as producer:
-            orchestrateur = Orchestrateur(
-                config, run, agents, acteurs, producer, etat, afficher, preparer
-            )
-            bilan = await orchestrateur.executer(jours)
+            # Commandes et injections du pont (D3), lues à partir de maintenant.
+            controle = LecteurControle(settings.kafka_bootstrap_servers, run.run_id, producer)
+            await controle.start()
+            try:
+                orchestrateur = Orchestrateur(
+                    config, run, agents, acteurs, producer, etat, afficher, preparer, controle
+                )
+                bilan = await orchestrateur.executer(jours)
+            finally:
+                await controle.stop()
         enregistres = await ecrivain.terminer(producer.published)
         await ecriture
     finally:
@@ -239,7 +246,8 @@ async def executer_run(
 
     resume = {k: v for k, v in vars(bilan).items() if k != "sequence_paliers"}
     resume["evenements_publies"] = producer.published
-    resume["evenements_enregistres"] = enregistres
+    resume["evenements_enregistres"] = enregistres  # publiés par l'orchestrateur et relus
+    resume["evenements_externes"] = ecrivain.recus - enregistres  # injections, commandes du pont
     (runs_dir / run.run_id / "bilan.json").write_text(
         json.dumps(resume, ensure_ascii=False, indent=2), encoding="utf-8"
     )
