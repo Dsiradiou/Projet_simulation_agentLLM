@@ -274,6 +274,21 @@ qu'il permet de démontrer.
 | Saisonnalité qui explique tout | Même saisonnalité dans la baseline, déclin mesuré en cours de saison |
 | Allégations de santé dans le corpus | Produit strictement cosmétique, aucune promesse médicale |
 
+### Constats ouverts, à régler aux étapes indiquées
+
+Constatés en cours de développement (mesures ou runs), pas encore corrigés. Relire cette table au
+début de chaque étape ; retirer une ligne quand le constat est réglé, en le notant dans le journal
+des décisions.
+
+| Constat | Origine | Étape | Piste |
+| --- | --- | --- | --- |
+| Un message « réseaux » touche toute la population : tous les agents sont redéclenchés chaque jour, soit 7 560 appels par run au lieu de ~2 155 | Étape 5, run factice | 11 | Diffuser aux seuls abonnés de l'émetteur |
+| La propension à parler dépend de la taille du modèle, pas du rôle : le 8b envoie un message à chaque décision (24/24), le 4b 7/24, le 1.7b jamais. Biaise la diffusion et la comparaison A5 | Étape 6, `docs/mesures/couche-llm_2026-10-18_1131.md` | 11, mesure à 14 | Consignes de parole par rôle dans les prompts, budget de messages par agent ; mesurer la part de messages par palier et par rôle |
+| Le 1.7b produit parfois une action incohérente avec son sens (« banal » + « acheter ») et des justifications trop longues | Étape 6, même mesure | 14 | Compter dans le taux de sortie de rôle ; renforcer le prompt si le taux est élevé |
+| Le 1.7b laisse parfois passer un caractère chinois dans le texte | Étape 6, essai préalable | 14 | Compté par `llm.validation` ; à intégrer au taux de sortie de rôle |
+| Le 8b répond « tendance » 24/38 au benchmark, 14/24 à la mesure de la couche LLM : biais de prior | Étapes 3 et 6 | 14, 16 | À mettre en regard du run témoin B3 (Q2 du jury) |
+| Même graine, réponses LLM pas identiques au token près (traitement en lot d'Ollama) | Étape 6 | 8 | Rejeu exact par le journal du run, jamais par un nouvel appel |
+
 ---
 
 ## 10. Clés API
@@ -313,6 +328,8 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Contrat d'événements v1.0 : 12 types sur les 7 topics, JSON validé par Pydantic, documentation générée depuis le code. Temps simulé en minutes entières. 7 actions d'agent fermées. Un événement par fait observable. |
 | 17 oct. | Orchestrateur synchrone : barrière quotidienne (décisions à 10:00 sur l'état de la veille), ordre des paliers alterné d'un jour à l'autre (bascules divisées par deux), délais de livraison zone 0 / direct 2 h / réseaux 6 h, parallélisme petit 2 / moyen 4 / grand 4. |
 | 17 oct. | À traiter à l'étape 11 : un message « réseaux » touche aujourd'hui toute la population, ce qui redéclenche tous les agents chaque jour (7 560 appels par run au lieu de ~2 155). Limiter la diffusion aux abonnés. |
+| 18 oct. | Couche LLM : schéma JSON imposé à Ollama (justification d'abord, sens et action fermés, message facultatif avec canal ; déplacements laissés aux règles). Une relance, puis repli « seuil + continuité » (avis de la veille, sinon seuil de Granovetter individuel, loi normale bornée 0,35 ± 0,15). Porteur déduit de l'action. Modèle de chaque palier en configuration (C2/C3 sans code). |
+| 18 oct. | Mesure sur les vrais modèles : 72/72 réponses valides au premier coup. Le 8b envoie un message à chaque décision, le 1.7b jamais : propension à parler liée à la taille du modèle, à corriger à l'étape 11 (prompts par rôle, budget de messages) et à mesurer à l'étape 14. |
 
 ---
 

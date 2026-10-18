@@ -15,11 +15,29 @@ simulation:
     reseaux: 360           # le temps qu'une publication remonte dans les fils : 6 h
 
 llm:
+  # Modèle attribué à chaque palier (A5). Les configurations C2 et C3 du plan d'expériences
+  # mettent tous les paliers sur un même modèle.
+  modeles:
+    grand: qwen3:8b
+    moyen: qwen3:4b
+    petit: qwen3:1.7b
   # Requêtes simultanées par palier, d'après le benchmark de l'étape 3 (docs/mesures/).
   parallelisme:
     grand: 4
     moyen: 4
     petit: 2               # instable au-delà de 2 sur le 1.7b
+  delai_max_s: 60          # au-delà, l'appel compte comme sans réponse (A4)
+  tokens_sortie_max: 320   # plafond de la réponse ; à 160, l'étape 3 voyait des JSON tronqués
+  contexte_tokens: 2048    # identique à OLLAMA_CONTEXT_LENGTH, sinon Ollama recharge le modèle
+  temperature: 0.8
+
+agents:
+  # Seuil d'adoption individuel (Granovetter) : part de porteurs dans sa zone à partir de
+  # laquelle un agent adopte. Tiré pour chaque agent dans une loi normale bornée à [0, 1],
+  # avec sa propre graine. Sert au repli des agents LLM (A4) et aux agents à règles.
+  seuil_adoption:
+    moyenne: 0.35
+    ecart_type: 0.15
 
 monde:
   # Valeurs provisoires : le nom de marque sera choisi à l'étape 11, après un test de contamination.

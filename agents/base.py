@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from agents.roles import Palier, Role, palier_du_role
-from bus.events import AgentMessage, Envelope, LlmCall, Moteur, WeatherPayload
+from bus.events import AgentMessage, Envelope, LlmCall, Moteur, NatureIncident, WeatherPayload
 from sim.domaine import Action, Canal, Sens, Zone
 
 
@@ -38,6 +38,16 @@ class MessageIntent:
 
 
 @dataclass(frozen=True)
+class IncidentAgent:
+    """Incident survenu pendant une décision (relance, repli...). L'agent ne publie rien lui-même :
+    l'orchestrateur le publie sur `sim.incidents`, rattaché à la décision (A4, F6)."""
+
+    nature: NatureIncident
+    detail: str
+    tentative: int = 0
+
+
+@dataclass(frozen=True)
 class Decision:
     action: Action
     sens: Sens
@@ -49,6 +59,17 @@ class Decision:
     messages: tuple[MessageIntent, ...] = ()
     deplacement: Zone | None = None
     caused_by: tuple[UUID, ...] = field(default=())  # événements de la perception utilisés
+    incidents: tuple[IncidentAgent, ...] = ()
+
+
+def porteur_apres(action: Action, porteur_avant: bool) -> bool:
+    """L'agent utilise-t-il le produit après cette action ? Acheter ou appliquer en fait un
+    porteur, abandonner l'en retire ; les autres actions ne changent rien."""
+    if action in (Action.ACHETER, Action.APPLIQUER):
+        return True
+    if action is Action.ABANDONNER:
+        return False
+    return porteur_avant
 
 
 class Agent(ABC):

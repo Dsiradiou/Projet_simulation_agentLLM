@@ -47,6 +47,10 @@ def test_agent_count_comes_from_config(tmp_path: Path) -> None:
         ("simulation", "delais_livraison_min", {"zone": 0, "direct": -5, "reseaux": 360}),
         ("llm", "parallelisme", {"grand": 4, "moyen": 4, "petit": 0}),
         ("llm", "parallelisme", {"grand": 4, "moyen": 4}),
+        ("llm", "modeles", {"grand": "qwen3:8b", "moyen": "qwen3:4b"}),
+        ("llm", "temperature", 3),
+        ("llm", "delai_max_s", 0),
+        ("agents", "seuil_adoption", {"moyenne": 1.5, "ecart_type": 0.1}),
     ],
 )
 def test_invalid_values_are_rejected(tmp_path: Path, section: str, key: str, value) -> None:

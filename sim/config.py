@@ -13,6 +13,7 @@ from pydantic import (
     ConfigDict,
     Field,
     NonNegativeInt,
+    PositiveFloat,
     PositiveInt,
     ValidationError,
     field_validator,
@@ -55,17 +56,33 @@ class SimulationConfig(_Section):
 
 
 class LlmConfig(_Section):
+    modeles: dict[Palier, str] = Field(description="Modèle Ollama de chaque palier (A5).")
     parallelisme: dict[Palier, PositiveInt] = Field(
         description="Requêtes simultanées par palier (mesuré à l'étape 3)."
     )
+    delai_max_s: PositiveFloat = Field(description="Délai d'un appel avant abandon (A4).")
+    tokens_sortie_max: PositiveInt = Field(description="Plafond de tokens de la réponse.")
+    contexte_tokens: PositiveInt = Field(description="Contexte, égal à OLLAMA_CONTEXT_LENGTH.")
+    temperature: float = Field(ge=0, le=2)
 
-    @field_validator("parallelisme")
+    @field_validator("modeles", "parallelisme")
     @classmethod
-    def _all_tiers(cls, value: dict[Palier, int]) -> dict[Palier, int]:
+    def _all_tiers(cls, value: dict[Palier, object]) -> dict[Palier, object]:
         missing = set(Palier) - set(value)
         if missing:
-            raise ValueError(f"parallélisme manquant pour : {', '.join(sorted(missing))}")
+            raise ValueError(f"palier manquant : {', '.join(sorted(missing))}")
         return value
+
+
+class SeuilConfig(_Section):
+    moyenne: float = Field(ge=0, le=1)
+    ecart_type: float = Field(ge=0, le=1)
+
+
+class AgentsConfig(_Section):
+    seuil_adoption: SeuilConfig = Field(
+        description="Loi du seuil d'adoption individuel (Granovetter), bornée à [0, 1]."
+    )
 
 
 class MondeConfig(_Section):
@@ -80,6 +97,7 @@ class Config(_Section):
     run: RunConfig
     simulation: SimulationConfig
     llm: LlmConfig
+    agents: AgentsConfig
     monde: MondeConfig
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."

@@ -120,9 +120,10 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
 | Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
 | Benchmark Ollama | `.venv\Scripts\python -m llm.benchmark` (résultats dans `docs/mesures/`) |
+| Mesure couche LLM | `.venv\Scripts\python -m llm.validation` (résultats dans `docs/mesures/`) |
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
-| Tests | `.venv\Scripts\python -m pytest` (`-m "not integration"` sans Docker) |
+| Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
 | Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |
 
@@ -149,9 +150,17 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   départager ni ordonner par `event_id` (tiré au hasard) ni par l'ordre d'un `set`. Un test
   compare deux runs de même graine dans deux processus distincts.
 - Un agent ne lit ni Kafka ni Redis : l'orchestrateur lui fournit une `Perception` et publie
-  sa `Decision` (`agents/base.py`).
+  sa `Decision` (`agents/base.py`), ainsi que les incidents qu'elle porte (`Decision.incidents`).
+- Couche LLM : schéma de sortie dans `llm/sortie.py`, appels via `llm.routeur.Routeur` (modèle
+  du palier lu dans `llm.modeles`), prompts dans `agents/prompts.py` (marque toujours lue dans
+  `config.monde`). Toute tentative, même ratée, compte dans le coût de la décision.
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
+
+## Constats ouverts
+
+Les défauts constatés et pas encore réglés sont listés, avec l'étape prévue pour les régler, dans
+`docs/contexte-projet.md` (section 9, « Constats ouverts »). Les relire au début de chaque étape.
 
 ## Décisions encore ouvertes
 

@@ -5,16 +5,17 @@ Déroulé d'un jour d :
 2. perception de chaque agent, construite sur l'état de la veille : c'est la barrière
    synchrone, aucun agent ne voit ce que les autres décident le jour même ;
 3. décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
-   agents LLM regroupés par palier dans l'ordre de `ordre_paliers` ;
+   agents LLM regroupés par palier dans l'ordre de `ordre_paliers` ; le modèle d'un palier est
+   chargé avant son groupe (`preparer`), pour mesurer la bascule à part ;
 4. publication, dans l'ordre des identifiants d'agents pour un run reproductible : décisions,
-   déplacements, messages (datés de leur livraison), incidents ;
+   incidents de la décision (relance, repli), déplacements, messages (datés de leur livraison) ;
 5. écriture de l'état courant dans Redis.
 """
 
 import asyncio
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID
@@ -36,6 +37,7 @@ from bus.events import (
     Envelope,
     Incident,
     IncidentPayload,
+    LlmCall,
     Moteur,
     NatureIncident,
     Weather,
@@ -65,11 +67,31 @@ class Bilan:
     deplacements: int = 0
     incidents: int = 0
     violations_temporelles: int = 0
+    incidents_par_nature: dict[str, int] = field(default_factory=dict)
+    relances: int = 0  # tentatives au-delà de la première
+    replis: int = 0  # décisions d'agents LLM prises par la règle de repli
     bascules_palier: int = 0
     tokens_entree: int = 0
     tokens_sortie: int = 0
+    duree_llm_s: float = 0.0  # somme des durées d'appel (en parallèle, dépasse le temps réel)
+    duree_chargement_s: float = 0.0  # chargements de modèles avant les groupes de palier
+    cout_par_modele: dict[str, dict[str, float]] = field(default_factory=dict)
     duree_reelle_s: float = 0.0
     sequence_paliers: list[str] = field(default_factory=list)
+
+    def compter_appel(self, appel: LlmCall) -> None:
+        self.appels_llm += appel.tentatives
+        self.relances += appel.tentatives - 1
+        self.tokens_entree += appel.tokens_entree
+        self.tokens_sortie += appel.tokens_sortie
+        self.duree_llm_s += appel.duree_s
+        cout = self.cout_par_modele.setdefault(
+            appel.modele, {"appels": 0, "tokens_entree": 0, "tokens_sortie": 0, "duree_s": 0.0}
+        )
+        cout["appels"] += appel.tentatives
+        cout["tokens_entree"] += appel.tokens_entree
+        cout["tokens_sortie"] += appel.tokens_sortie
+        cout["duree_s"] = round(cout["duree_s"] + appel.duree_s, 3)
 
 
 @dataclass(frozen=True)
@@ -92,6 +114,7 @@ class Orchestrateur:
         publisher: Publisher,
         etat: EtatMonde | None = None,
         on_jour: Callable[[ResumeJour], None] | None = None,
+        preparer: Callable[[Palier], Awaitable[float]] | None = None,
     ) -> None:
         self.config = config
         self.run = run
@@ -103,6 +126,7 @@ class Orchestrateur:
         self.publisher = publisher
         self.etat = etat
         self.on_jour = on_jour
+        self.preparer = preparer
         self.horloge = SimClock(config.simulation.duree_jours)
         self.boite = Boite()
         self.bilan = Bilan()
@@ -118,6 +142,8 @@ class Orchestrateur:
         for jour in range(1, (jours or self.config.simulation.duree_jours) + 1):
             await self.jour(jour)
         self.bilan.duree_reelle_s = time.perf_counter() - debut
+        self.bilan.duree_llm_s = round(self.bilan.duree_llm_s, 3)
+        self.bilan.duree_chargement_s = round(self.bilan.duree_chargement_s, 3)
         return self.bilan
 
     async def jour(self, jour: int) -> None:
@@ -152,6 +178,8 @@ class Orchestrateur:
         for palier, groupe in groupes:
             if groupe:
                 self._noter_palier(palier)
+                if palier is not None and self.preparer:
+                    self.bilan.duree_chargement_s += await self.preparer(palier)
                 resultats |= await self._decider_groupe(groupe, palier, perceptions)
 
         messages: list[AgentMessage] = []
@@ -238,17 +266,19 @@ class Orchestrateur:
             )
             suites = self._suites(agent, decision, event.event_id, t)
         except ValidationError as exc:
+            await self._incidents_agent(agent, decision)
             await self._incident(NatureIncident.SORTIE_INVALIDE, agent.agent_id, str(exc))
             return []
 
         await self._controler_c6(agent, event, t)
         await self._publier(event)
+        await self._incidents_agent(agent, decision, caused_by=(event.event_id,))
         agent.derniere_decision = decision
         self.bilan.decisions += 1
-        if decision.moteur is Moteur.LLM and decision.appel_llm:
-            self.bilan.appels_llm += decision.appel_llm.tentatives
-            self.bilan.tokens_entree += decision.appel_llm.tokens_entree
-            self.bilan.tokens_sortie += decision.appel_llm.tokens_sortie
+        if decision.appel_llm:  # y compris un repli : ses tentatives échouées ont coûté
+            self.bilan.compter_appel(decision.appel_llm)
+        if decision.moteur is Moteur.REPLI:
+            self.bilan.replis += 1
 
         messages = []
         for suite in suites:
@@ -332,20 +362,33 @@ class Orchestrateur:
     async def _publier(self, event: Envelope) -> None:
         await self.publisher.publish(event)
 
+    async def _incidents_agent(
+        self, agent: Agent, decision: Decision, caused_by: tuple[UUID, ...] = ()
+    ) -> None:
+        for incident in decision.incidents:
+            await self._incident(
+                incident.nature, agent.agent_id, incident.detail, caused_by, incident.tentative
+            )
+
     async def _incident(
         self,
         nature: NatureIncident,
         agent_id: str | None,
         detail: str,
         caused_by: tuple[UUID, ...] = (),
+        tentative: int = 0,
     ) -> None:
         self.bilan.incidents += 1
+        par_nature = self.bilan.incidents_par_nature
+        par_nature[nature.value] = par_nature.get(nature.value, 0) + 1
         await self._publier(
             Incident(
                 **self._dates(self.horloge.maintenant()),
                 source_agent_id="orchestrateur",
                 caused_by=caused_by,
-                payload=IncidentPayload(nature=nature, agent_id=agent_id, detail=detail[:2000]),
+                payload=IncidentPayload(
+                    nature=nature, agent_id=agent_id, detail=detail[:2000], tentative=tentative
+                ),
             )
         )
 

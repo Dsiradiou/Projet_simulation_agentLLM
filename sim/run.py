@@ -94,7 +94,7 @@ def main() -> None:
     parser.add_argument(
         "--factice",
         action="store_true",
-        help="agents factices sans LLM (seul mode disponible avant l'étape 6)",
+        help="agents factices sans LLM (seul mode branché avant l'étape 7)",
     )
     parser.add_argument(
         "--latence",
@@ -104,7 +104,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     if not args.factice:
-        parser.error("les agents LLM arrivent à l'étape 6 : utiliser --factice")
+        parser.error("les agents LLM sont branchés au run à l'étape 7 : utiliser --factice")
     asyncio.run(_lancer(args.config, args.jours, args.latence))
 
 

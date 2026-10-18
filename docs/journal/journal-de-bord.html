@@ -66,7 +66,7 @@ exigences de l'énoncé.</p>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
   <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="ok">terminée</td></tr>
-  <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="todo">à venir</td></tr>
+  <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="ok">terminée</td></tr>
   <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="todo">à venir</td></tr>
   <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
@@ -838,6 +838,163 @@ le vrai Redis.</p>
 <p>Étape 6 — Couche LLM : client Ollama avec sortie JSON imposée et réflexion désactivée,
 routage vers le bon modèle selon le palier, une relance puis repli sur une règle en cas de
 réponse invalide, incidents publiés, coût de chaque appel journalisé.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 6 — Couche LLM</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : A4 (tolérance aux pannes d'agent), A5
+(modèle selon le rôle), B1 (sens en catégories fermées), E4 (coût de chaque appel), F6
+(traçabilité), règle 5 de <code>CLAUDE.md</code> (sortie structurée).</p>
+
+<h3>Objectif</h3>
+<p>Faire décider de vrais agents par les modèles Qwen3 : leur donner un prompt construit à partir
+de leur perception, obtenir une réponse dont la forme est garantie, savoir quoi faire quand le
+modèle échoue, et mesurer ce que coûte chaque décision. Les agents LLM sont prêts ; ils seront
+branchés dans un vrai run à l'étape 7.</p>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>llm/sortie.py</code></td><td>Schéma JSON imposé au modèle et lecture validée de sa réponse.</td></tr>
+  <tr><td><code>llm/client.py</code></td><td>Appel à Ollama : JSON imposé, réflexion désactivée, graine, mesure des tokens et de la durée.</td></tr>
+  <tr><td><code>llm/routeur.py</code></td><td>Quel modèle pour quel palier, délai maximal, préchargement du modèle avant chaque groupe.</td></tr>
+  <tr><td><code>agents/agent_llm.py</code></td><td>L'agent LLM : prompt, appel, une relance, puis repli sur règle.</td></tr>
+  <tr><td><code>agents/prompts.py</code></td><td>Prompts (rôle, produit, situation du jour), construits depuis la configuration.</td></tr>
+  <tr><td><code>agents/regles.py</code></td><td>Seuil d'adoption individuel et règle de repli.</td></tr>
+  <tr><td><code>llm/validation.py</code></td><td>Mesure de la couche sur les vrais modèles (<code>python -m llm.validation</code>).</td></tr>
+  <tr><td><code>sim/orchestrateur.py</code></td><td>Publie les incidents de chaque décision et totalise les coûts par modèle.</td></tr>
+</table>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th><th>Raison</th></tr>
+  <tr><td>Règle de repli quand le modèle échoue deux fois</td><td><strong>Seuil + continuité</strong> :
+    l'agent garde son avis de la veille ; s'il n'en a pas, il adopte si la part de porteurs
+    autour de lui atteint son seuil individuel</td><td>Un repli ne doit pas changer brutalement le
+    sens d'un agent. La règle de seuil est celle de Granovetter, réutilisée par les agents à
+    règles (étape 13).</td></tr>
+  <tr><td>Ce que le modèle décide dans sa réponse</td><td>Justification, sens, action, et un
+    message facultatif avec son canal (zone, direct à un contact, réseaux)</td><td>Le canal fait
+    partie de la décision de parler. Les déplacements restent gérés par des règles (étape 11) :
+    un champ de plus coûterait des tokens et des erreurs au petit modèle.</td></tr>
+  <tr><td>Porteur ou non</td><td>Déduit de l'action : acheter ou appliquer fait un porteur,
+    abandonner l'en retire, le reste ne change rien</td><td>Une règle simple et explicable, plutôt
+    qu'un champ de plus à remplir par le modèle.</td></tr>
+  <tr><td>Modèle de chaque palier</td><td>Dans la configuration (<code>llm.modeles</code>)</td>
+    <td>Les configurations C2 (tout sur le 8b) et C3 (tout sur le 1.7b) se lancent sans toucher
+    au code.</td></tr>
+  <tr><td>Réglages des appels</td><td>Sortie plafonnée à 320 tokens, délai maximal 60 s,
+    température 0,8</td><td>À 160 tokens, l'étape 3 voyait des JSON tronqués. 60 s laisse de la
+    marge au 8b chargé à froid.</td></tr>
+</table>
+
+<h3>Une réponse dont la forme est garantie</h3>
+<p>Le schéma JSON est donné au paramètre <code>format</code> d'Ollama, qui <strong>contraint la
+génération</strong> : le modèle ne peut écrire qu'un JSON de cette forme. Le sens et l'action ne
+peuvent prendre que les valeurs des catégories fermées (B1). Le schéma est propre à chaque agent :
+un message direct ne peut viser qu'un de <em>ses</em> contacts.</p>
+<pre>{ "justification": "…une ou deux phrases…",
+  "sens": "efficace | tendance | banal | depasse",
+  "action": "acheter | appliquer | recommander | critiquer | en_parler | ignorer | abandonner",
+  "message": null
+           | { "canal": "zone | reseaux", "contenu": "…" }
+           | { "canal": "direct", "destinataire": "&lt;un contact&gt;", "contenu": "…" } }</pre>
+<p>La réponse est ensuite <strong>revalidée</strong> par Pydantic, car la contrainte d'Ollama ne
+couvre pas tout (texte vide, champ en trop…).</p>
+<div class="box">
+  <strong>Pourquoi la justification vient en premier.</strong> Ollama écrit les champs dans
+  l'ordre du schéma. En plaçant la justification avant le sens et l'action, le modèle formule sa
+  raison <em>avant</em> de choisir, au lieu de justifier après coup un choix déjà fait.
+</div>
+<p>Un essai préalable a montré que la longueur maximale imposée par le schéma <strong>coupe le
+texte en plein mot</strong>. Elle ne sert donc que de garde-fou (300 caractères) ; c'est le prompt
+qui demande des réponses courtes.</p>
+
+<h3>Quand le modèle échoue : relance, puis repli (A4)</h3>
+<ol>
+  <li>Réponse invalide ou délai dépassé : un incident (<code>sortie_invalide</code> ou
+    <code>sans_reponse</code>), puis <strong>une relance</strong>, qui rappelle au modèle la raison
+    du refus.</li>
+  <li>Second échec : incident <code>repli</code>, et la décision vient de la règle « seuil +
+    continuité ». Elle est publiée avec <code>moteur = repli</code> : on sait toujours quelles
+    décisions ne viennent pas du modèle.</li>
+</ol>
+<p>L'agent ne publie rien lui-même : il rend ses incidents avec sa décision, et l'orchestrateur
+les publie sur <code>sim.incidents</code>, rattachés à la décision par <code>caused_by</code>
+(F6). Une décision cite dans <code>caused_by</code> exactement les messages montrés au modèle :
+au plus les 8 plus récents, pour tenir dans le contexte de 2048 tokens.</p>
+
+<h3>Mesurer le coût (E4)</h3>
+<ul>
+  <li>Chaque décision porte son coût : modèle, tokens en entrée et en sortie, durée, nombre de
+    tentatives. Les tentatives ratées sont comptées : elles ont consommé du calcul.</li>
+  <li>Le bilan du run totalise appels, relances, replis, tokens et durée, <strong>par
+    modèle</strong>.</li>
+  <li>Avant chaque groupe de palier, le routeur <strong>précharge le modèle</strong> : le temps
+    de bascule est mesuré à part au lieu d'alourdir la latence du premier agent.</li>
+</ul>
+
+<h3>Résultats sur les vrais modèles</h3>
+<p>72 décisions (24 par modèle, un agent par rôle, situations variées), avec le parallélisme de la
+configuration. Détail dans <code>docs/mesures/couche-llm_2026-10-18_1131.md</code>.</p>
+<table>
+  <tr><th>Modèle</th><th>Valides au 1er coup</th><th>Replis</th><th>Latence médiane</th><th>p90</th><th>Tokens entrée / sortie</th><th>Messages envoyés</th></tr>
+  <tr><td>qwen3:1.7b</td><td>24/24</td><td>0</td><td>0,9 s</td><td>1,0 s</td><td>581 / 105</td><td>0/24</td></tr>
+  <tr><td>qwen3:4b</td><td>24/24</td><td>0</td><td>2,5 s</td><td>4,0 s</td><td>580 / 117</td><td>7/24</td></tr>
+  <tr><td>qwen3:8b</td><td>24/24</td><td>0</td><td>4,0 s</td><td>7,5 s</td><td>592 / 119</td><td>24/24</td></tr>
+</table>
+<p>Chargement du 8b avant son groupe : 7,4 s. Aucun texte hors français dans cette série (un essai
+préalable du 1.7b avait laissé passer un caractère chinois : la mesure le compte désormais).</p>
+<div class="box">
+  <strong>Constats à garder pour la suite.</strong>
+  <ul>
+    <li><strong>La propension à parler dépend de la taille du modèle</strong> : le 8b envoie un
+      message à chaque décision, le 1.7b jamais. C'est un effet du modèle, pas du rôle : il pèse
+      sur la diffusion et sur la comparaison demandée par A5. À traiter à l'étape 11 (prompts
+      par rôle, budget de messages) et à mesurer à l'étape 14.</li>
+    <li>Le 1.7b produit parfois une action incohérente avec son sens (« banal » mais
+      « acheter ») et des justifications de trois phrases. Ce sera l'objet du taux de sortie de
+      rôle (étape 14).</li>
+    <li>La graine rend chaque appel reproductible pris isolément, mais le traitement en lot
+      d'Ollama peut faire varier une réponse. Le rejeu exact d'un run passera donc par son
+      journal (étape 8), jamais par un nouvel appel au modèle.</li>
+  </ul>
+  Ces constats, comme celui de l'étape 5 sur la diffusion « réseaux », sont consignés avec leur
+  étape de correction dans <code>docs/contexte-projet.md</code> (section 9, « Constats
+  ouverts »), relue au début de chaque étape.
+</div>
+
+<h3>Les tests</h3>
+<p>39 nouveaux tests, qui tournent sans Ollama grâce à un client scripté :</p>
+<ul>
+  <li><strong>Schéma</strong> : catégories fermées, destinataire imposé, 8 réponses invalides refusées.</li>
+  <li><strong>Routeur</strong> : modèle de chaque palier, configuration C2, délai dépassé.</li>
+  <li><strong>Graine</strong> : stable entre deux processus.</li>
+  <li><strong>Agent LLM</strong> : réponse valide, relance avec la raison du refus, repli après
+    deux échecs, délai dépassé puis succès, modèle injoignable.</li>
+  <li><strong>Règles</strong> : règle de repli, seuil borné et reproductible, porteur selon l'action.</li>
+  <li><strong>Prompts</strong> : marque lue dans la configuration, limite des messages montrés.</li>
+  <li><strong>Orchestrateur</strong> : publication des incidents et bilan des coûts.</li>
+</ul>
+<p>Trois tests d'intégration (<code>-m ollama</code>) font décider un agent par palier sur les vrais
+modèles.</p>
+<p>Résultat : <span class="ok">126 tests réussis</span>, aucun ignoré, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>La forme de la réponse est garantie par une contrainte de génération, puis revalidée :
+    le sens ne peut pas sortir des quatre catégories.</li>
+  <li>Un modèle qui échoue ne bloque jamais le monde : une relance, puis une règle. Chaque
+    incident est publié, compté et rattaché à sa décision.</li>
+  <li>Chaque décision connaît son coût, tentatives ratées comprises ; le bilan le donne par modèle.</li>
+  <li>Changer le modèle d'un palier est un simple paramètre : c'est ce qui rend les expériences
+    C2 et C3 possibles.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 7 — Tranche verticale : 3 agents LLM (un par palier) et 1 agent à règles sur 5 jours,
+de bout en bout par Kafka et Redis, lus en direct par un client console.</p>
 </section>
 
 </body>

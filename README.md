@@ -54,7 +54,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 3 | Mesure de la machine (benchmark Ollama) | ✅ terminée |
 | 4 | Contrat d'événements | ✅ terminée |
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | ✅ terminée |
-| 6 | Couche LLM (routeur par palier, replis, coûts) | à venir |
+| 6 | Couche LLM (routeur par palier, replis, coûts) | ✅ terminée |
 | 7 | Première tranche verticale | à venir |
 | 8 | Historique et rejeu sans LLM | à venir |
 | 9 | Pont FastAPI | à venir |
@@ -96,6 +96,8 @@ Définir ces variables d'environnement utilisateur, puis redémarrer Ollama :
 | `OLLAMA_CONTEXT_LENGTH` | `2048` | contexte suffisant pour un prompt d'agent (~650 tokens) |
 
 Pour mesurer une autre machine : `.venv\Scripts\python -m llm.benchmark` (quelques minutes).
+Pour mesurer la couche LLM (validité des réponses, relances, replis, coûts par modèle) :
+`.venv\Scripts\python -m llm.validation` (environ une minute).
 Les mesures de référence sont dans [`docs/mesures/`](docs/mesures/).
 
 ### Projet
@@ -115,16 +117,18 @@ docker compose up -d --wait
 .venv\Scripts\python -m pytest
 ```
 
-Les tests d'intégration (`tests/test_infra.py`) sont ignorés, avec un message, si Kafka ou Redis
-ne répondent pas. Pour arrêter l'infrastructure : `docker compose down`.
+Les tests d'intégration sont ignorés, avec un message, si les services ne répondent pas :
+`-m integration` pour Kafka et Redis, `-m ollama` pour les modèles. Sans aucun service :
+`pytest -m "not integration and not ollama"`. Pour arrêter l'infrastructure : `docker compose down`.
 
 Sous Linux ou macOS : `python3.12 -m venv .venv`, puis `.venv/bin/python` à la place de
 `.venv\Scripts\python`.
 
 ## Lancer un run
 
-À ce stade, seuls des agents **factices** (sans LLM) sont disponibles ; ils servent à vérifier
-l'orchestrateur. Kafka et Redis doivent être lancés.
+À ce stade, les runs utilisent des agents **factices** (sans LLM), qui servent à vérifier
+l'orchestrateur. Les agents LLM existent (étape 6) et seront branchés au run à l'étape 7.
+Kafka et Redis doivent être lancés.
 
 ```powershell
 .venv\Scripts\python -m sim.run --factice --jours 5               # instantané
@@ -140,8 +144,8 @@ versions, commit git) et `bilan.json` (compteurs du run).
 Les paramètres d'un run sont dans un fichier YAML de `configs/`, vérifié au chargement :
 une clé inconnue ou une valeur invalide bloque le lancement avec un message explicite.
 `configs/default.yaml` décrit la configuration principale : 120 agents, 90 jours simulés,
-mode synchrone, graine 42, délais de livraison des messages par canal et parallélisme par
-palier de modèle. Le nombre d'agents se règle rôle par rôle dans la section `population`, sans
+mode synchrone, graine 42, délais de livraison des messages par canal, modèle et parallélisme
+de chaque palier, réglages des appels LLM et loi des seuils d'adoption. Le nombre d'agents se règle rôle par rôle dans la section `population`, sans
 toucher au code.
 
 ## Structure du dépôt

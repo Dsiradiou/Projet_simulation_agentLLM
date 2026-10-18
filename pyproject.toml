@@ -38,4 +38,7 @@ select = ["E", "F", "W", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["integration: nécessite Kafka et Redis lancés (docker compose up -d)"]
+markers = [
+    "integration: nécessite Kafka et Redis lancés (docker compose up -d)",
+    "ollama: nécessite Ollama lancé avec les modèles Qwen3",
+]

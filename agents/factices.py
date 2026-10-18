@@ -3,7 +3,7 @@
 Ils respectent l'interface des vrais agents et imitent leur latence (mesurée à l'étape 3) sans
 appeler de modèle. Leur comportement est volontairement simpliste : ils ne servent qu'à faire
 circuler des décisions, des messages et des déplacements. Ils seront remplacés par les vrais
-agents LLM (étape 6) et à règles (étape 13).
+agents LLM (`agents.agent_llm`, branchés au run à l'étape 7) et à règles (étape 13).
 """
 
 import asyncio

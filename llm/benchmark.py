@@ -31,8 +31,8 @@ from sim.settings import load_settings
 
 SENS = ["efficace", "tendance", "banal", "depasse"]
 
-# Schéma provisoire de sortie, aligné sur la règle 5 de CLAUDE.md. Le schéma définitif sera écrit
-# à l'étape 6 ; pour mesurer, seule compte une forme de réponse comparable.
+# Schéma simplifié, aligné sur la règle 5 de CLAUDE.md, gardé tel quel pour que les mesures restent
+# comparables d'une machine à l'autre. Le schéma des agents est dans llm/sortie.py (étape 6).
 DECISION_SCHEMA = {
     "type": "object",
     "properties": {
