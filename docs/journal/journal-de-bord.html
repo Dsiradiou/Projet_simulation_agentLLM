@@ -65,7 +65,7 @@ exigences de l'énoncé.</p>
   <tr><td>3</td><td>Mesure de la machine</td><td>Réglages Ollama, benchmark par modèle en séquentiel puis en parallèle (E4)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 2 — Le cœur, sans contenu du monde</strong></td></tr>
   <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="ok">terminée</td></tr>
-  <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="todo">à venir</td></tr>
+  <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="ok">terminée</td></tr>
   <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="todo">à venir</td></tr>
   <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="todo">à venir</td></tr>
   <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="todo">à venir</td></tr>
@@ -686,6 +686,158 @@ tests/test_bus.py          test d'intégration de sim.dlq</pre>
 <p>Étape 5 — Horloge simulée et orchestrateur en mode synchrone : faire avancer le temps jour par
 jour, déclencher les agents, appliquer le délai de livraison des messages, identifier chaque run
 par un <code>run_id</code> et une graine.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 5 — Horloge simulée et orchestrateur (mode synchrone)</h2>
+<p class="meta">17 octobre 2026 · Exigences concernées : C2 (population fixée au lancement), C3
+(horloge simulée explicite), C4 (mode synchrone), C6 (pas d'information du futur), A4 (un agent
+en panne n'arrête pas le monde), E2 et E3 (reproductibilité), F3 (état courant dans Redis).</p>
+
+<h3>Objectif</h3>
+<p>Construire le moteur de la simulation : ce qui fait avancer le temps, décide quels agents
+réfléchissent, dans quel ordre, avec quelles informations, et publie le résultat sur Kafka. Les
+vrais agents LLM n'existent pas encore : on teste le moteur avec des <strong>agents
+factices</strong>, qui respectent la même interface et imitent la latence mesurée des modèles.</p>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>sim/horloge.py</code></td><td>Horloge simulée : elle n'avance que sur ordre de l'orchestrateur, jamais à reculons ; ordre de passage des paliers.</td></tr>
+  <tr><td><code>sim/livraison.py</code></td><td>Boîte aux lettres : un message n'est remis qu'une fois livré.</td></tr>
+  <tr><td><code>sim/orchestrateur.py</code></td><td>Le déroulé d'une journée, de l'horloge à la publication.</td></tr>
+  <tr><td><code>sim/etat.py</code></td><td>Écriture de l'état courant dans Redis à la fin de chaque jour.</td></tr>
+  <tr><td><code>sim/run.py</code></td><td>Identité du run (<code>run_id</code>, graine, manifeste) et commande de lancement.</td></tr>
+  <tr><td><code>agents/base.py</code></td><td>Interface commune des agents : perception, décision, déclencheur.</td></tr>
+  <tr><td><code>agents/factices.py</code></td><td>Agents et météo factices, sans LLM, pour tester le moteur.</td></tr>
+  <tr><td><code>agents/roles.py</code></td><td>Attribution du palier selon le rôle (tableau A5 de <code>CLAUDE.md</code>).</td></tr>
+</table>
+
+<h3>Le déroulé d'une journée</h3>
+<ol>
+  <li><strong>00:00</strong> : l'horloge publie le début du jour, puis les acteurs du monde
+    publient leurs événements (météo…).</li>
+  <li><strong>10:00</strong> : chaque agent reçoit sa <strong>perception</strong>, construite sur
+    l'état de <em>la veille</em> : sa zone, la météo, la part de porteurs autour de lui, les
+    messages qui lui ont été livrés, les perturbations survenues.</li>
+  <li>Seuls les agents <strong>déclenchés</strong> réfléchissent : premier jour, message reçu, ou
+    perturbation. Les autres gardent leur décision précédente, sans aucun appel (règle 10).</li>
+  <li>Les agents à règles décident d'abord, puis les agents LLM <strong>regroupés par
+    palier</strong>, avec le nombre de requêtes simultanées fixé par la configuration.</li>
+  <li>Publication, <strong>dans l'ordre des identifiants d'agents</strong> : décisions, puis
+    déplacements et messages qui en découlent.</li>
+  <li>Écriture de l'état courant dans Redis.</li>
+</ol>
+
+<div class="box">
+  <strong>La barrière synchrone.</strong> Le jour <em>d</em>, chaque agent ne voit que l'état du
+  jour <em>d-1</em>. L'ordre dans lequel les agents réfléchissent pendant la journée n'a donc
+  aucun effet sur leurs décisions. C'est ce qui permet de regrouper librement les appels par
+  modèle sans fausser le phénomène, et c'est ce qui distingue le mode synchrone du mode
+  asynchrone (étape 15), où les agents rapides agiront avant les lents.
+</div>
+
+<h3>Moins de bascules entre modèles</h3>
+<p>Le grand modèle ne tient pas en mémoire avec les deux autres : un aller-retour coûte environ
+13 s (étape 3). L'ordre des paliers <strong>alterne d'un jour à l'autre</strong> : petit → moyen
+→ grand les jours impairs, grand → moyen → petit les jours pairs. Deux jours consécutifs se
+touchent par le même modèle, déjà chargé.</p>
+<table>
+  <tr><th>Ordre</th><th>Bascules sur 6 jours (mesuré par un test)</th></tr>
+  <tr><td>Toujours petit → moyen → grand</td><td>11</td></tr>
+  <tr><td>Alterné</td><td><strong>6</strong>, soit une par jour</td></tr>
+</table>
+<p>Sur un run de 90 jours, cela représente environ 90 bascules évitées, soit une dizaine de
+minutes.</p>
+
+<h3>Le temps et les messages</h3>
+<p>Un message émis à 10:00 avec un délai de livraison <em>δ</em> est lisible à partir de
+10:00 + <em>δ</em>. Les délais sont des paramètres de la configuration :</p>
+<table>
+  <tr><th>Canal</th><th>Délai</th><th>Destinataires</th></tr>
+  <tr><td>Zone</td><td>immédiat</td><td>les agents présents dans la zone en fin de journée</td></tr>
+  <tr><td>Direct</td><td>2 h</td><td>les agents nommés</td></tr>
+  <tr><td>Réseaux sociaux</td><td>6 h</td><td>toute la population (provisoire, voir plus bas)</td></tr>
+</table>
+<p>En mode synchrone, avec la barrière, tout délai inférieur à 24 h donne une lecture le
+lendemain ; un délai de 30 h, le surlendemain. Les tests vérifient ces cas un par un.</p>
+
+<h3>Cohérence temporelle (C6) et pannes (A4)</h3>
+<ul>
+  <li><strong>Par construction</strong>, un agent ne reçoit que les messages déjà livrés.</li>
+  <li><strong>Par contrôle</strong>, si une décision cite (<code>caused_by</code>) une
+    information que l'agent n'avait pas reçue, l'orchestrateur publie un incident
+    <code>violation_temporelle</code>, et le compte. Un test utilise volontairement un agent
+    « tricheur » pour le prouver.</li>
+  <li>Un agent qui plante ou ne répond pas produit un incident <code>sans_reponse</code> et
+    garde sa décision précédente : la journée continue.</li>
+  <li>Une décision mal formée (message trop long…) produit un incident
+    <code>sortie_invalide</code> et rien d'autre : jamais une décision publiée à moitié.</li>
+</ul>
+
+<h3>Identité et reproductibilité d'un run</h3>
+<ul>
+  <li>Chaque run reçoit un identifiant lisible : <code>20261017-173539-default-s42</code> (date,
+    configuration, graine) et un dossier <code>runs/&lt;run_id&gt;/</code> avec un
+    <strong>manifeste</strong> (configuration complète, graine, versions, commit git) et un
+    <strong>bilan</strong> (compteurs).</li>
+  <li>Chaque agent a son propre générateur aléatoire, dérivé de la graine du run et de son
+    identifiant : ses tirages ne dépendent pas de l'ordre de passage des autres.</li>
+</ul>
+
+<h3>Deux défauts trouvés et corrigés grâce aux tests</h3>
+<table>
+  <tr><th>Défaut</th><th>Correction</th></tr>
+  <tr><td>Deux runs de même graine <strong>divergeaient dès le jour 2</strong> : les messages reçus
+    le même jour étaient départagés par leur identifiant, tiré au hasard à chaque run.</td>
+    <td>Tri par moment de livraison puis ordre de dépôt, qui est déterministe. Un test compare
+    maintenant deux runs lancés dans <strong>deux processus distincts</strong>, pour détecter aussi
+    les dépendances à l'ordre interne de Python.</td></tr>
+  <tr><td>La lecture de <code>.env</code> <strong>écrivait</strong> ses valeurs dans
+    l'environnement du processus : un test y laissait une fausse adresse Redis, et un test
+    d'intégration lancé après était ignoré sans échouer.</td><td>Le fichier est désormais lu sans
+    rien modifier. Un test le vérifie.</td></tr>
+</table>
+
+<h3>Ce que montrent les premiers runs</h3>
+<p>Run factice de 5 jours avec 119 agents (la météo est un acteur du monde, pas un agent) :
+595 décisions, 186 messages, 157 déplacements, 0 incident, 0 violation temporelle, en moins
+d'une seconde. Avec les latences mesurées divisées par 10 : 11,7 s pour 3 jours, conforme au
+calcul (environ 3,3 s par jour).</p>
+<div class="box">
+  <strong>Constat important pour le budget.</strong> Aucune décision n'est jamais
+  « conservée » : un message sur les réseaux sociaux est aujourd'hui livré à <em>toute</em> la
+  population, si bien que chaque agent reçoit un message chaque jour et réfléchit chaque jour.
+  Avec de vrais modèles, cela ferait 84 × 90 = <strong>7 560 appels</strong> par run (environ
+  50 min), au lieu des quelque 2 155 prévus. À l'étape 11, la diffusion sur les réseaux sera
+  limitée aux <strong>abonnés</strong> de l'émetteur.
+</div>
+
+<h3>Les tests</h3>
+<p>26 nouveaux tests : horloge, alternance des paliers et nombre de bascules, limite de
+parallélisme, ordre de publication indépendant des latences, délais de livraison (4 cas),
+barrière synchrone, déclencheurs, violation temporelle, citation autorisée d'un message reçu,
+agent en panne, décision mal formée, reproductibilité (même processus et deux processus),
+population factice, configuration invalide, et un run complet de 3 jours sur le vrai Kafka et
+le vrai Redis.</p>
+<p>Résultat : <span class="ok">87 tests réussis</span>, aucun ignoré, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le temps simulé est un objet explicite, piloté par l'orchestrateur : il ne dépend jamais de
+    la vitesse des modèles en mode synchrone.</li>
+  <li>La barrière synchrone rend l'ordre de passage sans effet, ce qui autorise le regroupement
+    par palier et divise par deux les bascules de modèle.</li>
+  <li>Un run est reproductible : même configuration et même graine donnent les mêmes décisions,
+    ce qui est vérifié automatiquement.</li>
+  <li>Les déclencheurs sont le premier levier de sobriété : sans eux, le coût d'un run triple.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 6 — Couche LLM : client Ollama avec sortie JSON imposée et réflexion désactivée,
+routage vers le bon modèle selon le palier, une relance puis repli sur une règle en cas de
+réponse invalide, incidents publiés, coût de chaque appel journalisé.</p>
 </section>
 
 </body>

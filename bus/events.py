@@ -31,7 +31,7 @@ from pydantic import (
 
 from agents.roles import Palier
 from bus.topics import Topic
-from sim.domaine import Action, Sens, SimMinute, Zone
+from sim.domaine import Action, Canal, Sens, SimMinute, Zone
 
 
 class _Strict(BaseModel):
@@ -166,12 +166,6 @@ class Disturbance(Envelope):
 
 
 # --- sim.agent.messages ---------------------------------------------------------------------
-
-
-class Canal(StrEnum):
-    DIRECT = "direct"  # à des destinataires nommés
-    ZONE = "zone"  # à toutes les personnes présentes dans la zone
-    RESEAUX = "reseaux"  # publication sur les réseaux sociaux
 
 
 class AgentMessagePayload(_Strict):

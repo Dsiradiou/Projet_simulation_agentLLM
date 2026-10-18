@@ -7,6 +7,19 @@ run:
 simulation:
   duree_jours: 90          # un pas = un jour simulé
   mode: synchrone          # synchrone | asynchrone
+  # Délai avant qu'un message soit lisible par son destinataire, en minutes simulées.
+  # En mode synchrone, tout délai inférieur à 24 h revient à une lecture le lendemain.
+  delais_livraison_min:
+    zone: 0                # même lieu : immédiat
+    direct: 120            # le temps qu'un proche lise : 2 h
+    reseaux: 360           # le temps qu'une publication remonte dans les fils : 6 h
+
+llm:
+  # Requêtes simultanées par palier, d'après le benchmark de l'étape 3 (docs/mesures/).
+  parallelisme:
+    grand: 4
+    moyen: 4
+    petit: 2               # instable au-delà de 2 sur le 1.7b
 
 monde:
   # Valeurs provisoires : le nom de marque sera choisi à l'étape 11, après un test de contamination.

@@ -1,0 +1,360 @@
+"""Orchestrateur, mode synchrone (C4) : fait avancer le temps jour par jour et déclenche les agents.
+
+Déroulé d'un jour d :
+1. début du jour (00:00) : `horloge.pas`, puis les événements des acteurs du monde (météo...) ;
+2. perception de chaque agent, construite sur l'état de la veille : c'est la barrière
+   synchrone, aucun agent ne voit ce que les autres décident le jour même ;
+3. décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
+   agents LLM regroupés par palier dans l'ordre de `ordre_paliers` ;
+4. publication, dans l'ordre des identifiants d'agents pour un run reproductible : décisions,
+   déplacements, messages (datés de leur livraison), incidents ;
+5. écriture de l'état courant dans Redis.
+"""
+
+import asyncio
+import time
+from collections import Counter
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Protocol
+from uuid import UUID
+
+from pydantic import ValidationError
+
+from agents.base import Agent, Decision, Perception, WorldActor
+from agents.roles import Palier
+from bus.events import (
+    AgentDecision,
+    AgentDecisionPayload,
+    AgentMessage,
+    AgentMessagePayload,
+    AgentMove,
+    AgentMovePayload,
+    ClockStep,
+    ClockStepPayload,
+    Disturbance,
+    Envelope,
+    Incident,
+    IncidentPayload,
+    Moteur,
+    NatureIncident,
+    Weather,
+    WeatherPayload,
+)
+from sim.config import Config
+from sim.domaine import Canal
+from sim.etat import EtatMonde
+from sim.horloge import SimClock, ordre_paliers
+from sim.livraison import Boite
+from sim.run import RunInfo
+
+
+class Publisher(Protocol):
+    async def publish(self, event: Envelope) -> None: ...
+
+
+@dataclass
+class Bilan:
+    """Compteurs d'un run, tenus pendant l'exécution (E4)."""
+
+    jours: int = 0
+    decisions: int = 0
+    appels_llm: int = 0
+    decisions_conservees: int = 0
+    messages: int = 0
+    deplacements: int = 0
+    incidents: int = 0
+    violations_temporelles: int = 0
+    bascules_palier: int = 0
+    tokens_entree: int = 0
+    tokens_sortie: int = 0
+    duree_reelle_s: float = 0.0
+    sequence_paliers: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ResumeJour:
+    jour: int
+    decisions: int
+    conservees: int
+    porteurs: int
+    population: int
+    sens: dict[str, int]
+
+
+class Orchestrateur:
+    def __init__(
+        self,
+        config: Config,
+        run: RunInfo,
+        agents: list[Agent],
+        acteurs_monde: list[WorldActor],
+        publisher: Publisher,
+        etat: EtatMonde | None = None,
+        on_jour: Callable[[ResumeJour], None] | None = None,
+    ) -> None:
+        self.config = config
+        self.run = run
+        self.agents = sorted(agents, key=lambda a: a.agent_id)
+        self._par_id = {a.agent_id: a for a in self.agents}
+        if len(self._par_id) != len(agents):
+            raise ValueError("deux agents portent le même identifiant")
+        self.acteurs_monde = acteurs_monde
+        self.publisher = publisher
+        self.etat = etat
+        self.on_jour = on_jour
+        self.horloge = SimClock(config.simulation.duree_jours)
+        self.boite = Boite()
+        self.bilan = Bilan()
+        self.meteo: WeatherPayload | None = None
+        self._perturbations: list[Envelope] = []  # survenues depuis la dernière perception
+        self._perturbations_vues: set[UUID] = set()
+        self._phase: str | None = None  # "A" (petit + moyen) ou "B" (grand) : modèles chargés
+
+    # --- boucle principale ------------------------------------------------------------------
+
+    async def executer(self, jours: int | None = None) -> Bilan:
+        debut = time.perf_counter()
+        for jour in range(1, (jours or self.config.simulation.duree_jours) + 1):
+            await self.jour(jour)
+        self.bilan.duree_reelle_s = time.perf_counter() - debut
+        return self.bilan
+
+    async def jour(self, jour: int) -> None:
+        minute0 = self.horloge.commencer_jour(jour)
+        await self._publier(
+            ClockStep(
+                **self._dates(minute0),
+                source_agent_id="horloge",
+                payload=ClockStepPayload(jour=jour),
+            )
+        )
+        for acteur in self.acteurs_monde:
+            for event in acteur.evenements_du_jour(jour, minute0, self.run.run_id):
+                await self._publier(event)
+                if isinstance(event, Weather):
+                    self.meteo = event.payload
+                elif isinstance(event, Disturbance):
+                    self._perturbations.append(event)
+                    self._perturbations_vues.add(event.event_id)
+
+        t = self.horloge.heure_decision()
+        perceptions = self._percevoir(jour, t, barriere=minute0)
+        self._perturbations.clear()
+        declenches = [a for a in self.agents if a.doit_decider(perceptions[a.agent_id])]
+        self.bilan.decisions_conservees += len(self.agents) - len(declenches)
+
+        resultats: dict[str, Decision | None] = {}
+        groupes: list[tuple[Palier | None, list[Agent]]] = [
+            (None, [a for a in declenches if a.palier is None])
+        ]
+        groupes += [(p, [a for a in declenches if a.palier is p]) for p in ordre_paliers(jour)]
+        for palier, groupe in groupes:
+            if groupe:
+                self._noter_palier(palier)
+                resultats |= await self._decider_groupe(groupe, palier, perceptions)
+
+        messages: list[AgentMessage] = []
+        for agent_id in sorted(resultats):
+            agent = self._par_id[agent_id]
+            messages += await self._appliquer(agent, resultats[agent_id], t)
+        for message in messages:  # zones résolues après les déplacements du jour
+            self.boite.deposer(message, self._destinataires(message))
+
+        self.bilan.jours = jour
+        if self.etat:
+            await self.etat.ecrire_jour(jour, t, self.agents, self.meteo)
+        if self.on_jour:
+            self.on_jour(self._resume(jour, len(resultats)))
+
+    # --- étapes du jour ---------------------------------------------------------------------
+
+    def _percevoir(self, jour: int, t: int, barriere: int) -> dict[str, Perception]:
+        presents, porteurs = Counter(), Counter()
+        for agent in self.agents:  # état de la veille : aucune décision du jour n'est appliquée
+            presents[agent.zone] += 1
+            porteurs[agent.zone] += int(agent.porteur)
+        return {
+            agent.agent_id: Perception(
+                jour=jour,
+                minute=t,
+                zone=agent.zone,
+                messages=self.boite.relever(agent.agent_id, t, barriere),
+                evenements=tuple(self._perturbations),
+                meteo=self.meteo,
+                part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone],
+            )
+            for agent in self.agents
+        }
+
+    def _noter_palier(self, palier: Palier | None) -> None:
+        if palier is None:
+            return
+        self.bilan.sequence_paliers.append(palier.value)
+        phase = "B" if palier is Palier.GRAND else "A"
+        if self._phase is not None and phase != self._phase:
+            self.bilan.bascules_palier += 1
+        self._phase = phase
+
+    async def _decider_groupe(
+        self, groupe: list[Agent], palier: Palier | None, perceptions: dict[str, Perception]
+    ) -> dict[str, Decision | None]:
+        limite = self.config.llm.parallelisme[palier] if palier else len(groupe)
+        semaphore = asyncio.Semaphore(limite)
+
+        async def decider(agent: Agent) -> Decision | None:
+            async with semaphore:
+                try:
+                    return await agent.decider(perceptions[agent.agent_id])
+                except Exception as exc:  # un agent en panne ne doit pas arrêter le monde (A4)
+                    await self._incident(
+                        NatureIncident.SANS_REPONSE, agent.agent_id, f"{type(exc).__name__}: {exc}"
+                    )
+                    return None
+
+        decisions = await asyncio.gather(*(decider(agent) for agent in groupe))
+        return {agent.agent_id: d for agent, d in zip(groupe, decisions, strict=True)}
+
+    async def _appliquer(
+        self, agent: Agent, decision: Decision | None, t: int
+    ) -> list[AgentMessage]:
+        if decision is None:  # l'agent garde sa décision précédente
+            return []
+        try:
+            event = AgentDecision(
+                **self._dates(t),
+                source_agent_id=agent.agent_id,
+                zone=agent.zone,
+                caused_by=decision.caused_by,
+                payload=AgentDecisionPayload(
+                    action=decision.action,
+                    sens=decision.sens,
+                    justification=decision.justification,
+                    porteur=decision.porteur,
+                    moteur=decision.moteur,
+                    palier=decision.palier,
+                    appel_llm=decision.appel_llm,
+                ),
+            )
+            suites = self._suites(agent, decision, event.event_id, t)
+        except ValidationError as exc:
+            await self._incident(NatureIncident.SORTIE_INVALIDE, agent.agent_id, str(exc))
+            return []
+
+        await self._controler_c6(agent, event, t)
+        await self._publier(event)
+        agent.derniere_decision = decision
+        self.bilan.decisions += 1
+        if decision.moteur is Moteur.LLM and decision.appel_llm:
+            self.bilan.appels_llm += decision.appel_llm.tentatives
+            self.bilan.tokens_entree += decision.appel_llm.tokens_entree
+            self.bilan.tokens_sortie += decision.appel_llm.tokens_sortie
+
+        messages = []
+        for suite in suites:
+            await self._publier(suite)
+            if isinstance(suite, AgentMove):
+                agent.zone = suite.payload.vers
+                self.bilan.deplacements += 1
+            else:
+                messages.append(suite)
+                self.bilan.messages += 1
+        return messages
+
+    def _suites(
+        self, agent: Agent, decision: Decision, decision_id: UUID, t: int
+    ) -> list[AgentMove | AgentMessage]:
+        """Déplacement et messages qui découlent d'une décision (construits avant publication,
+        pour qu'une décision mal formée n'en publie qu'une partie)."""
+        suites: list[AgentMove | AgentMessage] = []
+        zone = agent.zone
+        if decision.deplacement and decision.deplacement is not zone:
+            suites.append(
+                AgentMove(
+                    **self._dates(t),
+                    source_agent_id=agent.agent_id,
+                    zone=decision.deplacement,
+                    caused_by=(decision_id,),
+                    payload=AgentMovePayload(depuis=zone, vers=decision.deplacement),
+                )
+            )
+            zone = decision.deplacement
+        delais = self.config.simulation.delais_livraison_min
+        for intent in decision.messages:
+            suites.append(
+                AgentMessage(
+                    **self._dates(t),
+                    source_agent_id=agent.agent_id,
+                    zone=zone,
+                    caused_by=(decision_id,),
+                    payload=AgentMessagePayload(
+                        canal=intent.canal,
+                        destinataires=intent.destinataires,
+                        contenu=intent.contenu,
+                        livraison=t + delais[intent.canal],
+                    ),
+                )
+            )
+        return suites
+
+    async def _controler_c6(self, agent: Agent, event: AgentDecision, t: int) -> None:
+        """Une décision ne peut citer que ce que l'agent avait reçu à ce moment (C6) : un message
+        qui lui a été remis (aujourd'hui ou un jour précédent) ou une perturbation déjà survenue."""
+        for cause in event.caused_by:
+            recu = self.boite.remis_avant(agent.agent_id, cause, t)
+            if not recu and cause not in self._perturbations_vues:
+                self.bilan.violations_temporelles += 1
+                await self._incident(
+                    NatureIncident.VIOLATION_TEMPORELLE,
+                    agent.agent_id,
+                    f"la décision cite {cause}, que l'agent n'avait pas reçu à t={t}",
+                    caused_by=(event.event_id,),
+                )
+
+    def _destinataires(self, message: AgentMessage) -> list[str]:
+        canal = message.payload.canal
+        if canal is Canal.DIRECT:
+            return [a for a in message.payload.destinataires if a in self._par_id]
+        if canal is Canal.ZONE:
+            return [a.agent_id for a in self.agents if a.zone is message.zone]
+        return [a.agent_id for a in self.agents]  # réseaux : toute la population
+
+    # --- utilitaires ------------------------------------------------------------------------
+
+    def _dates(self, minute: int) -> dict:
+        # En mode synchrone, le temps est figé pendant le pas : traité au moment où il se produit.
+        return {
+            "run_id": self.run.run_id,
+            "sim_time_occurred": minute,
+            "sim_time_processed": minute,
+        }
+
+    async def _publier(self, event: Envelope) -> None:
+        await self.publisher.publish(event)
+
+    async def _incident(
+        self,
+        nature: NatureIncident,
+        agent_id: str | None,
+        detail: str,
+        caused_by: tuple[UUID, ...] = (),
+    ) -> None:
+        self.bilan.incidents += 1
+        await self._publier(
+            Incident(
+                **self._dates(self.horloge.maintenant()),
+                source_agent_id="orchestrateur",
+                caused_by=caused_by,
+                payload=IncidentPayload(nature=nature, agent_id=agent_id, detail=detail[:2000]),
+            )
+        )
+
+    def _resume(self, jour: int, decisions: int) -> ResumeJour:
+        return ResumeJour(
+            jour=jour,
+            decisions=decisions,
+            conservees=len(self.agents) - decisions,
+            porteurs=sum(a.porteur for a in self.agents),
+            population=len(self.agents),
+            sens=dict(Counter(a.sens.value for a in self.agents if a.sens)),
+        )

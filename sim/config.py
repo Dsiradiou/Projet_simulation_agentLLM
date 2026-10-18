@@ -8,9 +8,18 @@ from enum import StrEnum
 from pathlib import Path
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, NonNegativeInt, PositiveInt, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeInt,
+    PositiveInt,
+    ValidationError,
+    field_validator,
+)
 
-from agents.roles import Role
+from agents.roles import Palier, Role
+from sim.domaine import Canal
 
 
 class Mode(StrEnum):
@@ -32,6 +41,31 @@ class RunConfig(_Section):
 class SimulationConfig(_Section):
     duree_jours: PositiveInt = Field(description="Durée simulée, un pas = un jour.")
     mode: Mode
+    delais_livraison_min: dict[Canal, NonNegativeInt] = Field(
+        description="Délai, en minutes simulées, avant qu'un message soit lisible, par canal."
+    )
+
+    @field_validator("delais_livraison_min")
+    @classmethod
+    def _all_channels(cls, value: dict[Canal, int]) -> dict[Canal, int]:
+        missing = set(Canal) - set(value)
+        if missing:
+            raise ValueError(f"délai manquant pour : {', '.join(sorted(missing))}")
+        return value
+
+
+class LlmConfig(_Section):
+    parallelisme: dict[Palier, PositiveInt] = Field(
+        description="Requêtes simultanées par palier (mesuré à l'étape 3)."
+    )
+
+    @field_validator("parallelisme")
+    @classmethod
+    def _all_tiers(cls, value: dict[Palier, int]) -> dict[Palier, int]:
+        missing = set(Palier) - set(value)
+        if missing:
+            raise ValueError(f"parallélisme manquant pour : {', '.join(sorted(missing))}")
+        return value
 
 
 class MondeConfig(_Section):
@@ -45,6 +79,7 @@ class MondeConfig(_Section):
 class Config(_Section):
     run: RunConfig
     simulation: SimulationConfig
+    llm: LlmConfig
     monde: MondeConfig
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."

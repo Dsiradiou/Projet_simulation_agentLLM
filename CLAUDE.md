@@ -120,6 +120,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Installer | `.venv\Scripts\python -m pip install -r requirements.lock` puis `pip install -e . --no-deps` |
 | Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
 | Benchmark Ollama | `.venv\Scripts\python -m llm.benchmark` (résultats dans `docs/mesures/`) |
+| Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration"` sans Docker) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
@@ -143,6 +144,12 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   `bus.consumer` (qui envoie les messages non conformes dans `sim.dlq`). Changer la forme d'un
   payload impose d'incrémenter son `schema_version` et de régénérer `docs/evenements/`.
 - Temps simulé : minutes entières depuis le jour 1 à 00:00 (`sim.domaine`), jamais de flottant.
+- Reproductibilité : tout tirage aléatoire d'un agent passe par `sim.run.agent_rng(seed,
+  agent_id)` ; les publications d'un jour sont triées par identifiant d'agent ; ne jamais
+  départager ni ordonner par `event_id` (tiré au hasard) ni par l'ordre d'un `set`. Un test
+  compare deux runs de même graine dans deux processus distincts.
+- Un agent ne lit ni Kafka ni Redis : l'orchestrateur lui fournit une `Perception` et publie
+  sa `Decision` (`agents/base.py`).
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 

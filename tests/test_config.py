@@ -43,6 +43,10 @@ def test_agent_count_comes_from_config(tmp_path: Path) -> None:
         ("population", "astronaute", 3),
         ("population", "vendeur", -2),
         ("simulation", "duree_jour", 90),
+        ("simulation", "delais_livraison_min", {"zone": 0, "direct": 120}),  # réseaux manquant
+        ("simulation", "delais_livraison_min", {"zone": 0, "direct": -5, "reseaux": 360}),
+        ("llm", "parallelisme", {"grand": 4, "moyen": 4, "petit": 0}),
+        ("llm", "parallelisme", {"grand": 4, "moyen": 4}),
     ],
 )
 def test_invalid_values_are_rejected(tmp_path: Path, section: str, key: str, value) -> None:

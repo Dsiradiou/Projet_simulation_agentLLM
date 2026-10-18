@@ -311,6 +311,8 @@ dans un prompt ni une capture d'écran. En cas de fuite : révoquer immédiateme
 | 16 oct. | Kafka 4.3.1 et Redis 8.8.3 sous Docker. Une partition par topic (ordre total, rejeu), rétention 7 jours, création automatique des topics désactivée. Redis sans persistance. Client Kafka : aiokafka. |
 | 16 oct. | Ollama 0.40.4 réglé (3 modèles chargés, 4 requêtes parallèles, contexte 2048, cache q8_0). Benchmark : latences proches des hypothèses, sorties de ~110 tokens au lieu de ~70, JSON invalide uniquement par troncature à 160 tokens. |
 | 16 oct. | Contrat d'événements v1.0 : 12 types sur les 7 topics, JSON validé par Pydantic, documentation générée depuis le code. Temps simulé en minutes entières. 7 actions d'agent fermées. Un événement par fait observable. |
+| 17 oct. | Orchestrateur synchrone : barrière quotidienne (décisions à 10:00 sur l'état de la veille), ordre des paliers alterné d'un jour à l'autre (bascules divisées par deux), délais de livraison zone 0 / direct 2 h / réseaux 6 h, parallélisme petit 2 / moyen 4 / grand 4. |
+| 17 oct. | À traiter à l'étape 11 : un message « réseaux » touche aujourd'hui toute la population, ce qui redéclenche tous les agents chaque jour (7 560 appels par run au lieu de ~2 155). Limiter la diffusion aux abonnés. |
 
 ---
 

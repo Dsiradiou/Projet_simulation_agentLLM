@@ -53,7 +53,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 2 | Infrastructure Docker (Kafka, Redis) | ✅ terminée |
 | 3 | Mesure de la machine (benchmark Ollama) | ✅ terminée |
 | 4 | Contrat d'événements | ✅ terminée |
-| 5 | Horloge simulée et orchestrateur (mode synchrone) | à venir |
+| 5 | Horloge simulée et orchestrateur (mode synchrone) | ✅ terminée |
 | 6 | Couche LLM (routeur par palier, replis, coûts) | à venir |
 | 7 | Première tranche verticale | à venir |
 | 8 | Historique et rejeu sans LLM | à venir |
@@ -121,13 +121,28 @@ ne répondent pas. Pour arrêter l'infrastructure : `docker compose down`.
 Sous Linux ou macOS : `python3.12 -m venv .venv`, puis `.venv/bin/python` à la place de
 `.venv\Scripts\python`.
 
+## Lancer un run
+
+À ce stade, seuls des agents **factices** (sans LLM) sont disponibles ; ils servent à vérifier
+l'orchestrateur. Kafka et Redis doivent être lancés.
+
+```powershell
+.venv\Scripts\python -m sim.run --factice --jours 5               # instantané
+.venv\Scripts\python -m sim.run --factice --jours 3 --latence 0.1 # latences mesurées x 0,1
+```
+
+Chaque run reçoit un identifiant (`20261017-173539-default-s42` : date, configuration, graine)
+et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complète, graine,
+versions, commit git) et `bilan.json` (compteurs du run).
+
 ## Configuration
 
 Les paramètres d'un run sont dans un fichier YAML de `configs/`, vérifié au chargement :
 une clé inconnue ou une valeur invalide bloque le lancement avec un message explicite.
 `configs/default.yaml` décrit la configuration principale : 120 agents, 90 jours simulés,
-mode synchrone, graine 42. Le nombre d'agents se règle rôle par rôle dans la section
-`population`, sans toucher au code.
+mode synchrone, graine 42, délais de livraison des messages par canal et parallélisme par
+palier de modèle. Le nombre d'agents se règle rôle par rôle dans la section `population`, sans
+toucher au code.
 
 ## Structure du dépôt
 

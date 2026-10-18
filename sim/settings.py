@@ -7,7 +7,7 @@ tourne. Sans fichier `.env`, les valeurs par défaut sont celles de `.env.exampl
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from pydantic import BaseModel, ConfigDict
 
 
@@ -20,11 +20,14 @@ class Settings(BaseModel):
 
 
 def load_settings(env_file: str | Path = ".env") -> Settings:
-    """Lit `.env` puis les variables d'environnement, qui gardent la priorité."""
-    load_dotenv(env_file, override=False)
+    """Lit `.env` puis les variables d'environnement, qui gardent la priorité.
+
+    Le fichier est lu sans être chargé dans l'environnement du processus : lire une
+    configuration ne doit jamais modifier celle des autres composants.
+    """
+    fichier = {k: v for k, v in dotenv_values(env_file).items() if v is not None}
+    sources = {**fichier, **os.environ}
     values = {
-        name: os.environ[name.upper()]
-        for name in Settings.model_fields
-        if name.upper() in os.environ
+        name: sources[name.upper()] for name in Settings.model_fields if name.upper() in sources
     }
     return Settings(**values)

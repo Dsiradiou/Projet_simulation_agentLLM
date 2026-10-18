@@ -25,6 +25,14 @@ class Sens(StrEnum):
     DEPASSE = "depasse"
 
 
+class Canal(StrEnum):
+    """Canal d'un message entre agents ; chacun a son délai de livraison (configuration)."""
+
+    DIRECT = "direct"  # à des destinataires nommés
+    ZONE = "zone"  # à toutes les personnes présentes dans la zone
+    RESEAUX = "reseaux"  # publication sur les réseaux sociaux
+
+
 class Action(StrEnum):
     """Action concrète décidée par un agent pour la journée."""
 
@@ -43,6 +51,11 @@ class Action(StrEnum):
 MINUTES_PAR_JOUR = 24 * 60
 
 SimMinute = Annotated[int, Field(ge=0, description="Minutes simulées depuis le jour 1 à 00:00.")]
+
+# En mode synchrone, les agents décident tous au même moment de la journée, après les
+# événements du monde (publiés à 00:00). Un message émis un jour est donc lu au plus tôt le
+# lendemain à cette heure, dès lors que son délai de livraison est inférieur à 24 h.
+HEURE_DECISION = 10 * 60
 
 
 def jour(minute: int) -> int:

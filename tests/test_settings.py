@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -22,3 +23,4 @@ def test_env_file_and_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
 
     assert settings.redis_url == "redis://autre:6379/1"
     assert settings.kafka_bootstrap_servers == "environnement:9092"  # l'environnement prime
+    assert "REDIS_URL" not in os.environ  # lire .env ne modifie pas l'environnement

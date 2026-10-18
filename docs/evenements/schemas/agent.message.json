@@ -40,6 +40,7 @@
       "type": "object"
     },
     "Canal": {
+      "description": "Canal d'un message entre agents ; chacun a son délai de livraison (configuration).",
       "enum": [
         "direct",
         "zone",
