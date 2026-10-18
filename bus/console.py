@@ -16,6 +16,7 @@ import sys
 from aiokafka import AIOKafkaConsumer
 
 from bus import events as ev
+from bus.producer import ordre_record
 from bus.topics import Topic
 from sim.domaine import format_sim
 from sim.settings import load_settings
@@ -89,15 +90,16 @@ async def suivre(run_id: str | None, bootstrap: str) -> None:
     try:
         while True:
             lots = await consumer.getmany(timeout_ms=500)
-            # Chaque topic a sa propre partition : on remet les lots dans l'ordre simulé.
+            # Chaque topic a sa propre partition : on remet le lot dans l'ordre de publication,
+            # le même que celui du rejeu.
+            records = sorted((r for rs in lots.values() for r in rs), key=ordre_record)
             events: list[ev.Envelope] = []
-            for records in lots.values():
-                for record in records:
-                    try:
-                        events.append(ev.decode(record.value))
-                    except ev.EventValidationError as exc:
-                        print(f"(message non conforme ignoré : {exc})")
-            for event in sorted(events, key=lambda e: (e.sim_time_occurred, e.wall_time_emitted)):
+            for record in records:
+                try:
+                    events.append(ev.decode(record.value))
+                except ev.EventValidationError as exc:
+                    print(f"(message non conforme ignoré : {exc})")
+            for event in events:
                 if suivi is None and isinstance(event, ev.ClockStep):
                     suivi = event.run_id
                     print(f"Run {suivi}")

@@ -56,7 +56,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | ✅ terminée |
 | 6 | Couche LLM (routeur par palier, replis, coûts) | ✅ terminée |
 | 7 | Première tranche verticale | ✅ terminée |
-| 8 | Historique et rejeu sans LLM | à venir |
+| 8 | Historique et rejeu sans LLM | ✅ terminée |
 | 9 | Pont FastAPI | à venir |
 | 10 | Scène Godot 3D | à venir |
 | 11 | Le monde : marque, population | à venir |
@@ -147,7 +147,30 @@ est factice.
 
 Chaque run reçoit un identifiant (`20261017-173539-default-s42` : date, configuration, graine)
 et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complète, graine,
-versions, commit git) et `bilan.json` (compteurs du run).
+versions, commit git), `bilan.json` (compteurs du run, dont le nombre d'événements publiés et
+enregistrés) et `evenements/` (historique Parquet).
+
+## Historique et rejeu
+
+Chaque run est enregistré en Parquet dans `runs/<run_id>/evenements/` par un lecteur Kafka que le
+run démarre lui-même : on garde exactement ce qui a circulé sur le bus. Un run passé se rejoue
+**sans aucun appel LLM**, avec le même affichage que la console en direct :
+
+```powershell
+.venv\Scripts\python -m replay.rejeu <run_id>              # tout, sans attente
+.venv\Scripts\python -m replay.rejeu <run_id> --vitesse 2  # 2 jours simulés par seconde
+.venv\Scripts\python -m replay.rejeu <run_id> --verifier   # bilan recalculé = bilan.json ?
+.venv\Scripts\python -m replay.ecrivain --run <run_id>     # reconstruit l'historique depuis Kafka (7 jours)
+```
+
+L'historique de tous les runs s'interroge avec DuckDB, par des requêtes nommées ou en SQL libre
+sur les vues `evenements`, `runs`, `decisions`, `messages`, `incidents` :
+
+```powershell
+.venv\Scripts\python -m replay.historique                           # liste des runs
+.venv\Scripts\python -m replay.historique --requete cout_par_modele  # ou sens_par_jour, incidents_par_nature, messages_par_palier
+.venv\Scripts\python -m replay.historique --sql "SELECT palier, count(*) FROM decisions GROUP BY 1"
+```
 
 ## Configuration
 

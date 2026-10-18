@@ -13,8 +13,17 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib import metadata
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sim.config import Config
+
+if TYPE_CHECKING:  # imports de typage seulement : sim.run est importé par les agents
+    from collections.abc import Awaitable, Callable
+
+    from agents.base import Agent, WorldActor
+    from agents.roles import Palier
+    from sim.orchestrateur import ResumeJour
+    from sim.settings import Settings
 
 RUNS_DIR = Path("runs")
 _PAQUETS = ("pydantic", "aiokafka", "redis", "ollama")
@@ -133,18 +142,13 @@ async def _verifier_ollama(host: str, modeles: set[str]) -> None:
 async def _lancer(
     config_path: str, jours: int | None, factice: bool, facteur_latence: float
 ) -> None:
-    from redis.asyncio import Redis
-
     from agents.factices import population_factice
     from agents.population import construire_population
     from agents.roles import palier_du_role
-    from bus.producer import EventProducer
-    from bus.topics import ensure_topics
     from llm.client import ClientOllama
     from llm.routeur import Routeur, options_de
     from sim.config import load_config
-    from sim.etat import EtatMonde
-    from sim.orchestrateur import Orchestrateur, ResumeJour
+    from sim.orchestrateur import ResumeJour
     from sim.settings import load_settings
 
     config = load_config(config_path)
@@ -173,7 +177,50 @@ async def _lancer(
             flush=True,
         )
 
+    resume = await executer_run(
+        config, run, agents, acteurs, settings, jours, afficher=afficher, preparer=preparer
+    )
+    if resume["evenements_enregistres"] != resume["evenements_publies"]:
+        print(
+            f"ATTENTION : {resume['evenements_enregistres']} événements enregistrés "
+            f"sur {resume['evenements_publies']} publiés"
+        )
+    print("Bilan :")
+    for cle, valeur in resume.items():
+        if isinstance(valeur, float):
+            valeur = round(valeur, 2)
+        print(f"  {cle} : {valeur}")
+
+
+async def executer_run(
+    config: Config,
+    run: RunInfo,
+    agents: list["Agent"],
+    acteurs: list["WorldActor"],
+    settings: "Settings",
+    jours: int | None = None,
+    *,
+    afficher: "Callable[[ResumeJour], None] | None" = None,
+    preparer: "Callable[[Palier], Awaitable[float]] | None" = None,
+    runs_dir: Path = RUNS_DIR,
+) -> dict:
+    """Exécute un run de bout en bout : Kafka, Redis, historique Parquet, `bilan.json`.
+    Renvoie le bilan écrit. Utilisé par la commande et par les tests d'intégration."""
+    import asyncio
+
+    from redis.asyncio import Redis
+
+    from bus.producer import EventProducer
+    from bus.topics import ensure_topics
+    from replay.ecrivain import EcrivainHistorique
+    from sim.etat import EtatMonde
+    from sim.orchestrateur import Orchestrateur
+
     await ensure_topics(settings.kafka_bootstrap_servers)
+    # L'écrivain d'historique se place en fin de topic avant le premier événement du run (E3).
+    ecrivain = EcrivainHistorique(settings.kafka_bootstrap_servers, run.run_id, runs_dir)
+    await ecrivain.demarrer()
+    ecriture = asyncio.create_task(ecrivain.boucle())
     redis = Redis.from_url(settings.redis_url)
     etat = EtatMonde(redis, run.run_id)
     await etat.reinitialiser()
@@ -183,18 +230,20 @@ async def _lancer(
                 config, run, agents, acteurs, producer, etat, afficher, preparer
             )
             bilan = await orchestrateur.executer(jours)
+        enregistres = await ecrivain.terminer(producer.published)
+        await ecriture
     finally:
         await redis.aclose()
+        if not ecriture.done():
+            ecriture.cancel()
 
     resume = {k: v for k, v in vars(bilan).items() if k != "sequence_paliers"}
-    (RUNS_DIR / run.run_id / "bilan.json").write_text(
+    resume["evenements_publies"] = producer.published
+    resume["evenements_enregistres"] = enregistres
+    (runs_dir / run.run_id / "bilan.json").write_text(
         json.dumps(resume, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print("Bilan :")
-    for cle, valeur in resume.items():
-        if isinstance(valeur, float):
-            valeur = round(valeur, 2)
-        print(f"  {cle} : {valeur}")
+    return resume
 
 
 if __name__ == "__main__":

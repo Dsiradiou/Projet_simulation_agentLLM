@@ -68,7 +68,7 @@ exigences de l'énoncé.</p>
   <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="ok">terminée</td></tr>
   <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="ok">terminée</td></tr>
   <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="ok">terminée</td></tr>
-  <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="todo">à venir</td></tr>
+  <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
   <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="todo">à venir</td></tr>
   <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="todo">à venir</td></tr>
@@ -1120,6 +1120,152 @@ dépendance.</p>
 <h3>Prochaine étape</h3>
 <p>Étape 8 — Historique et rejeu : écrire chaque run en Parquet, puis le relire à l'identique sans
 aucun appel LLM, avec les mêmes événements (E3, F5).</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 8 — Historique et rejeu sans LLM</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : E3 (rejeu à l'identique, sans appel LLM),
+F5 (historique interrogeable par des requêtes reproductibles), F3 (où vit chaque donnée), F6
+(traçabilité).</p>
+
+<h3>Objectif</h3>
+<p>Garder chaque run en entier, pouvoir le <strong>rejouer à l'identique sans aucun appel LLM</strong>
+(même affichage, mêmes indicateurs) et interroger l'historique de tous les runs pour comparer des
+scénarios. C'est aussi le filet de la soutenance : si les modèles ne répondent pas le jour J, on
+rejoue un run enregistré.</p>
+
+<h3>Décisions prises à cette étape</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th><th>Raison</th></tr>
+  <tr><td>Qui écrit l'historique</td><td>Un <strong>lecteur Kafka</strong> lancé automatiquement par le
+    run</td><td>On enregistre exactement ce qui a circulé sur le bus, pas ce que l'orchestrateur
+    croit avoir publié. Une commande à part reconstruit l'historique depuis Kafka (rétention de
+    7 jours).</td></tr>
+  <tr><td>Par où passe le rejeu</td><td><strong>Directement depuis Parquet</strong> vers un afficheur
+    (console aujourd'hui, pont vers Godot à l'étape 9)</td><td>Les événements sont rendus à l'octet
+    près et ne se mélangent jamais avec un run en direct.</td></tr>
+  <tr><td>Format</td><td>Parquet par lots (<code>runs/&lt;run_id&gt;/evenements/part-NNNNN.parquet</code>),
+    lus avec DuckDB</td><td>Un arrêt brutal ne perd que le lot en cours. DuckDB lit tous les
+    fichiers de tous les runs d'un coup, sans base à alimenter.</td></tr>
+  <tr><td>Ordre exact entre topics</td><td>Deux en-têtes Kafka posés par le producteur :
+    <code>producteur</code> et <code>seq</code> (numéro de publication)</td><td>Chaque topic garde son
+    ordre, mais pas l'ordre entre topics. L'horodatage est en millisecondes et ne départage pas des
+    événements publiés dans la même milliseconde. Ces en-têtes ne changent pas le contrat
+    d'événements.</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>replay/ecrivain.py</code></td><td>Écrivain d'historique : lit les 7 topics et écrit les événements du run en Parquet.</td></tr>
+  <tr><td><code>replay/rejeu.py</code></td><td>Relit un run dans l'ordre de publication, à la vitesse choisie, et vérifie son bilan.</td></tr>
+  <tr><td><code>replay/bilan.py</code></td><td>Recalcule le bilan d'un run à partir de ses seuls événements.</td></tr>
+  <tr><td><code>replay/historique.py</code></td><td>Vues DuckDB sur tous les runs et requêtes nommées.</td></tr>
+  <tr><td><code>bus/producer.py</code></td><td>En-têtes d'ordre de publication, et clé de tri partagée par la console et le rejeu.</td></tr>
+  <tr><td><code>sim/run.py</code></td><td>Démarre l'écrivain avant le premier événement et attend qu'il ait tout reçu.</td></tr>
+</table>
+
+<h3>Ce que contient l'historique</h3>
+<p>Une ligne par événement. La colonne <code>brut</code> garde l'événement exactement tel qu'il a
+circulé, et c'est elle qui sert au rejeu. Les autres colonnes reprennent l'enveloppe (type, dates
+simulées, jour, agent, zone, <code>caused_by</code>) et la position Kafka (topic, offset,
+horodatage, producteur, numéro de publication), pour les requêtes. En fin de run, le bilan indique
+combien d'événements ont été publiés et combien ont été enregistrés : les deux nombres doivent être
+égaux.</p>
+
+<h3>Le rejeu (E3)</h3>
+<pre>.venv\Scripts\python -m replay.rejeu &lt;run_id&gt;              # tout, sans attente
+.venv\Scripts\python -m replay.rejeu &lt;run_id&gt; --vitesse 2  # 2 jours simulés par seconde
+.venv\Scripts\python -m replay.rejeu &lt;run_id&gt; --verifier  # bilan recalculé = bilan.json ?</pre>
+<p>Le rejeu affiche les événements avec la même fonction que la console en direct. Pour le contrôle
+<code>--verifier</code>, le bilan est recalculé avec la même classe <code>Bilan</code> que
+l'orchestrateur et dans le même ordre, si bien que même les sommes de durées tombent juste au
+millième près. Seuls les temps de la machine (durée totale, chargements, bascules) ne sont pas
+comparés : ils décrivent l'ordinateur, pas le monde simulé.</p>
+
+<h3>La preuve sur un vrai run LLM</h3>
+<p>Tranche verticale relancée (<code>20261018-121942-tranche-s42</code>), avec la console ouverte
+pendant le run, puis rejouée :</p>
+<table>
+  <tr><th>Vérification</th><th>Résultat</th></tr>
+  <tr><td>Événements publiés / enregistrés</td><td>18 / 18</td></tr>
+  <tr><td>Affichage en direct et affichage du rejeu</td><td><strong>30 lignes identiques</strong></td></tr>
+  <tr><td>Bilan recalculé depuis l'historique</td><td><strong>identique</strong> à <code>bilan.json</code></td></tr>
+  <tr><td>Appels LLM pendant le rejeu</td><td>0</td></tr>
+</table>
+<div class="box">
+  <strong>Pourquoi le rejeu doit passer par le journal.</strong> Ce run a la même graine que celui
+  de l'étape 7, et il est pourtant différent : 7 décisions et 1 message, contre 16 et 6. Le
+  pharmacien (8b) a donné mot pour mot la même réponse le jour 1, mais pas le baigneur ni le
+  créateur. C'est ce que l'étape 6 annonçait : une graine ne rend pas un run LLM rejouable. On le
+  rejoue donc depuis son enregistrement, jamais en rappelant les modèles. Ce constat est réglé et
+  retiré de la table.
+</div>
+
+<h3>Deux défauts trouvés en vérifiant</h3>
+<ul>
+  <li><strong>Une course à la fin du run</strong> : quand l'écrivain avait déjà tout reçu, la fin
+    de run rendait la main avant l'écriture du dernier lot, et le bilan annonçait 0 événement
+    enregistré. La fin de run attend maintenant que le dernier fichier soit écrit.</li>
+  <li><strong>La console en direct n'affichait pas tout à fait l'ordre réel.</strong> En
+    reconstruisant l'historique de la tranche de l'étape 7 depuis Kafka, une ligne du rejeu
+    n'était pas au même endroit qu'à l'écran. C'est la console qui avait tort : elle triait par
+    heure de création des événements, et non par ordre de publication. Elle utilise désormais la
+    même clé de tri que le rejeu.</li>
+</ul>
+
+<h3>L'historique interrogeable (F5)</h3>
+<p>Les vues <code>evenements</code>, <code>runs</code>, <code>decisions</code>, <code>messages</code>
+et <code>incidents</code> lisent directement les fichiers. Les champs des décisions (sens, action,
+modèle, tokens…) sont extraits du JSON brut, donc exactement de ce qui a circulé. Cinq requêtes
+nommées servent au rapport : <code>runs</code>, <code>sens_par_jour</code>,
+<code>cout_par_modele</code>, <code>incidents_par_nature</code>, <code>messages_par_palier</code>.</p>
+<pre>.venv\Scripts\python -m replay.historique --requete cout_par_modele
+.venv\Scripts\python -m replay.historique --sql "SELECT palier, count(*) FROM decisions GROUP BY 1"</pre>
+<p>La requête <code>messages_par_palier</code> servira à mesurer le constat de l'étape 6 (propension
+à parler selon la taille du modèle).</p>
+
+<h3>Nouveau constat</h3>
+<div class="box">
+  <strong>Le monde se fige faute de déclencheur.</strong> Dans ce run, à partir du jour 3, plus
+  aucun agent ne décide : sans message reçu ni perturbation, chacun garde sa décision (règle 10),
+  même quand la météo change. Le tableau des acteurs prévoit d'autres déclencheurs (exposition à
+  un porteur, tendance perçue, publication planifiée, bilan hebdomadaire). À traiter aux étapes 11
+  et 13, puis à surveiller dans les bilans (part de décisions conservées).
+</div>
+
+<h3>Les tests</h3>
+<p>9 nouveaux tests :</p>
+<ul>
+  <li>le bilan reconstruit depuis les seuls événements est égal au bilan tenu en direct, sur un run
+    qui comporte relances, replis, un agent en panne et une décision mal formée ;</li>
+  <li>l'historique Parquet redonne les événements à l'octet près et dans l'ordre de publication,
+    même quand ils arrivent topic par topic dans la même milliseconde ;</li>
+  <li>un bilan altéré est détecté, et un historique absent est signalé ;</li>
+  <li>la vitesse du rejeu est respectée, et l'ordre de publication est bien départagé ;</li>
+  <li>les requêtes DuckDB sur deux runs donnent les bons totaux, sont reproductibles, et aucun
+    incident ne cite une décision absente (F6) ; elles fonctionnent aussi sans aucun historique ;</li>
+  <li>de bout en bout sur Kafka : tout ce qui est publié est enregistré, et le rejeu redonne les
+    mêmes événements et le même bilan.</li>
+</ul>
+<p>Résultat : <span class="ok">139 tests réussis</span>, aucun ignoré, aucune remarque de ruff.
+Dépendances ajoutées : <code>pyarrow 26.0.0</code> et <code>duckdb 1.5.6</code>.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Un run se rejoue à l'identique sans appel LLM : même affichage ligne à ligne, même bilan,
+    vérifiés automatiquement.</li>
+  <li>Ce qui est enregistré, c'est ce qui a circulé sur le bus : l'écrivain est un consommateur
+    Kafka comme les autres.</li>
+  <li>Une graine ne suffit pas à reproduire un run LLM : la preuve est dans deux runs de même
+    graine. Le journal est la seule source de vérité.</li>
+  <li>Tous les runs s'interrogent ensemble en SQL, avec des requêtes nommées pour le rapport.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 9 — Pont FastAPI : diffuser les événements vers Godot par WebSocket, en direct ou en
+rejeu, inspecter un agent (D2), injecter un événement (D3), mettre en pause ou arrêter un run.</p>
 </section>
 
 </body>

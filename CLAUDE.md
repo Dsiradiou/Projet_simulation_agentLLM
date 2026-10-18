@@ -124,6 +124,8 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Run LLM (tranche) | `.venv\Scripts\python -m sim.run --config configs/tranche.yaml` |
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
 | Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
+| Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
+| Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
@@ -156,6 +158,11 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
 - Couche LLM : schéma de sortie dans `llm/sortie.py`, appels via `llm.routeur.Routeur` (modèle
   du palier lu dans `llm.modeles`), prompts dans `agents/prompts.py` (marque toujours lue dans
   `config.monde`). Toute tentative, même ratée, compte dans le coût de la décision.
+- Historique : un run est enregistré par `replay.ecrivain` (lecteur Kafka lancé par
+  `sim.run.executer_run`) et rejoué par `replay.rejeu` depuis Parquet, jamais en rappelant un
+  modèle. L'ordre exact entre topics vient des en-têtes Kafka `producteur`/`seq` posés par
+  `EventProducer` ; trier avec `bus.producer.ordre_publication`. Tout nouveau compteur de
+  `Bilan` doit pouvoir être recalculé par `replay.bilan.bilan_depuis` (sinon le rejeu diverge).
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 
