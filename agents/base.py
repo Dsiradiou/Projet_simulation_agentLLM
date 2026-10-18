@@ -10,7 +10,16 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 from agents.roles import Palier, Role, palier_du_role
-from bus.events import AgentMessage, Envelope, LlmCall, Moteur, NatureIncident, WeatherPayload
+from bus.events import (
+    AgentMessage,
+    Envelope,
+    LlmCall,
+    Moteur,
+    Motif,
+    NatureIncident,
+    WeatherPayload,
+)
+from sim.config import DeclencheursConfig
 from sim.domaine import Action, Canal, Sens, Zone
 
 
@@ -80,6 +89,15 @@ class Agent(ABC):
         self.zone = zone
         self.rng = rng
         self.derniere_decision: Decision | None = None
+        # Comptes suivis sur les réseaux ; None : reçoit toutes les publications (agents de test).
+        self.abonnements: tuple[str, ...] | None = None
+        # Déclencheurs supplémentaires (configuration) ; None : seulement messages et perturbations.
+        self.declencheurs: DeclencheursConfig | None = None
+        self.motif: Motif | None = None  # motif du jour, fixé par `doit_decider`
+        self._part_vue = 0.0  # part de porteurs autour de lui lors de sa dernière décision
+        self._jour_decision = 0
+        self._delai = 0  # délai de réflexion tiré après la dernière décision
+        self._meteo_forte_veille = False
 
     @property
     def porteur(self) -> bool:
@@ -91,12 +109,44 @@ class Agent(ABC):
 
     def doit_decider(self, perception: Perception) -> bool:
         """Déclencheur (règle 10 de CLAUDE.md) : sans changement de situation, l'agent garde sa
-        décision précédente et ne coûte aucun appel. Les sous-classes peuvent l'enrichir."""
-        return (
-            self.derniere_decision is None
-            or bool(perception.messages)
-            or bool(perception.evenements)
-        )
+        décision précédente et ne coûte aucun appel. Appelé une fois par jour pour chaque agent ;
+        le motif retenu est gardé dans `motif` et publié avec la décision (F6)."""
+        self.motif = self._motif(perception)
+        return self.motif is not None
+
+    def _motif(self, p: Perception) -> Motif | None:
+        d = self.declencheurs
+        m = p.meteo
+        forte = bool(d and m and (m.conditions == "canicule" or m.indice_uv >= d.meteo_uv_fort))
+        meteo_nouvelle, self._meteo_forte_veille = forte and not self._meteo_forte_veille, forte
+        if self.derniere_decision is None:
+            return Motif.PREMIERE_DECISION
+        if p.evenements:
+            return Motif.PERTURBATION
+        if d is not None and p.jour - self._jour_decision < self._delai:
+            return None  # délai de réflexion : les messages attendent la prochaine décision
+        if p.messages:
+            return Motif.MESSAGE
+        if d is None:
+            return None
+        if meteo_nouvelle:
+            return Motif.METEO
+        if abs(p.part_porteurs_zone - self._part_vue) >= d.exposition_ecart:
+            return Motif.EXPOSITION
+        if p.jour - self._jour_decision >= d.lassitude_jours:
+            return Motif.LASSITUDE
+        return None
+
+    def noter_decision(self, decision: Decision, perception: Perception) -> None:
+        """Appelé par l'orchestrateur quand la décision est publiée : point de départ des
+        déclencheurs d'exposition et de lassitude."""
+        self.derniere_decision = decision
+        self._part_vue = perception.part_porteurs_zone
+        self._jour_decision = perception.jour
+        if self.declencheurs:  # tiré avec le générateur de l'agent : reproductible, désynchronisé
+            d = self.declencheurs
+            ecart = d.delai_reflexion_ecart
+            self._delai = d.delai_reflexion_jours + self.rng.randint(-ecart, ecart)
 
     @abstractmethod
     async def decider(self, perception: Perception) -> Decision: ...

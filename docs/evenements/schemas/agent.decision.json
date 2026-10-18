@@ -58,6 +58,18 @@
             }
           ],
           "default": null
+        },
+        "motif": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Motif"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Déclencheur de la décision (version 1.1 et suivantes)."
         }
       },
       "required": [
@@ -119,6 +131,19 @@
       "title": "Moteur",
       "type": "string"
     },
+    "Motif": {
+      "description": "Pourquoi un agent reconsidère sa décision ce jour-là (règle 10 de CLAUDE.md).",
+      "enum": [
+        "premiere_decision",
+        "message",
+        "perturbation",
+        "exposition",
+        "meteo",
+        "lassitude"
+      ],
+      "title": "Motif",
+      "type": "string"
+    },
     "Palier": {
       "description": "Taille du modèle LLM attribuée à un rôle (A5). Les agents à règles n'ont pas de palier.",
       "enum": [
@@ -163,8 +188,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

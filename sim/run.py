@@ -216,6 +216,7 @@ async def executer_run(
     from sim.controle import LecteurControle
     from sim.etat import EtatMonde
     from sim.orchestrateur import Orchestrateur
+    from sim.routines import Routines
 
     await ensure_topics(settings.kafka_bootstrap_servers)
     # L'écrivain d'historique se place en fin de topic avant le premier événement du run (E3).
@@ -232,8 +233,9 @@ async def executer_run(
             await controle.start()
             try:
                 orchestrateur = Orchestrateur(
-                    config, run, agents, acteurs, producer, etat, afficher, preparer, controle
-                )
+                    config, run, agents, acteurs, producer, etat, afficher, preparer, controle,
+                    Routines(config.routines, config.run.seed),
+                )  # fmt: skip
                 bilan = await orchestrateur.executer(jours)
             finally:
                 await controle.stop()

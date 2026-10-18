@@ -50,11 +50,12 @@ class SortieAgent(_Strict):
     message: MessageSortie | None = None
 
 
-def schema_sortie(contacts: Sequence[str]) -> dict:
+def schema_sortie(contacts: Sequence[str], message_possible: bool = True) -> dict:
     """Schéma JSON propre à un agent : un message direct ne peut viser qu'un de ses contacts.
 
     `message` vaut null (rien dit), une diffusion (zone ou réseaux) ou un message direct. Les
-    deux formes de message sont distinctes pour que le destinataire soit imposé en direct.
+    deux formes de message sont distinctes pour que le destinataire soit imposé en direct. Quand
+    l'agent a épuisé son budget de messages de la semaine, seul null est possible.
     """
     diffusion = {
         "type": "object",
@@ -64,8 +65,10 @@ def schema_sortie(contacts: Sequence[str]) -> dict:
         },
         "required": ["canal", "contenu"],
     }
-    formes: list[dict] = [{"type": "null"}, diffusion]
-    if contacts:
+    formes: list[dict] = [{"type": "null"}]
+    if message_possible:
+        formes.append(diffusion)
+    if contacts and message_possible:
         formes.append(
             {
                 "type": "object",
@@ -89,7 +92,7 @@ def schema_sortie(contacts: Sequence[str]) -> dict:
     }
 
 
-def lire_sortie(texte: str, contacts: Sequence[str]) -> SortieAgent:
+def lire_sortie(texte: str, contacts: Sequence[str], message_possible: bool = True) -> SortieAgent:
     """Valide la réponse brute du modèle. Lève `SortieInvalide` avec la raison, réutilisée
     dans le prompt de relance et dans l'incident publié."""
     try:
@@ -101,6 +104,8 @@ def lire_sortie(texte: str, contacts: Sequence[str]) -> SortieAgent:
             f"{'.'.join(map(str, e['loc'])) or 'réponse'} : {e['msg']}" for e in exc.errors()
         )
         raise SortieInvalide(erreurs) from exc
+    if sortie.message and not message_possible:
+        raise SortieInvalide("budget de messages épuisé : message doit valoir null")
     if sortie.message and sortie.message.destinataire not in (None, *contacts):
         raise SortieInvalide(f"destinataire inconnu : {sortie.message.destinataire}")
     return sortie

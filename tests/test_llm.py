@@ -49,7 +49,13 @@ class ClientScripte:
 
     async def generer(self, modele, systeme, prompt, schema, graine) -> Reponse:
         self.appels.append(
-            {"modele": modele, "systeme": systeme, "prompt": prompt, "graine": graine}
+            {
+                "modele": modele,
+                "systeme": systeme,
+                "prompt": prompt,
+                "graine": graine,
+                "schema": schema,
+            }
         )
         reponse = self.reponses.pop(0)
         if isinstance(reponse, float):

@@ -100,11 +100,21 @@ class Produit(StrEnum):
 
 
 class Perturbation(StrEnum):
-    """Événements que l'observateur peut injecter en direct (D3)."""
+    """Événements que l'observateur peut injecter en direct (D3). Les quatre dernières natures
+    arrivent avec la version 1.1 des schémas `monde.perturbation` et `controle.injection`."""
 
     RUPTURE_STOCK = "rupture_stock"
     POLEMIQUE = "polemique"
     VAGUE_CHALEUR = "vague_chaleur"
+    PROMOTION_CONCURRENTE = "promotion_concurrente"
+    ARTICLE_PRESSE = "article_presse"
+    PUBLICATION_VIRALE = "publication_virale"
+    ORAGE = "orage"
+
+
+# Versions de schéma : un type évolue en ajoutant une version, et les historiques déjà enregistrés
+# dans une version antérieure restent lisibles (rejeu, E3). Une version n'est jamais retirée.
+VERSIONS_1_1 = Literal["1.0", "1.1"]
 
 
 class ClockStepPayload(_Strict):
@@ -161,7 +171,7 @@ class Disturbance(Envelope):
     TOPIC = Topic.WORLD_EVENTS
     DESCRIPTION = "Perturbation effective dans le monde, conséquence d'une injection (D3)."
     type: Literal["monde.perturbation"] = "monde.perturbation"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : nouvelles natures de perturbation
     payload: DisturbancePayload
 
 
@@ -206,6 +216,17 @@ class Moteur(StrEnum):
     REPLI = "repli"  # agent LLM retombé sur sa règle après échec (A4)
 
 
+class Motif(StrEnum):
+    """Pourquoi un agent reconsidère sa décision ce jour-là (règle 10 de CLAUDE.md)."""
+
+    PREMIERE_DECISION = "premiere_decision"
+    MESSAGE = "message"  # message reçu
+    PERTURBATION = "perturbation"  # perturbation dans sa zone
+    EXPOSITION = "exposition"  # la part de porteurs autour de lui a nettement changé
+    METEO = "meteo"  # début d'une journée de canicule ou d'UV fort
+    LASSITUDE = "lassitude"  # pas reconsidéré depuis longtemps
+
+
 class LlmCall(_Strict):
     """Coût d'une décision LLM (E4), tentatives échouées comprises."""
 
@@ -224,13 +245,16 @@ class AgentDecisionPayload(_Strict):
     moteur: Moteur
     palier: Palier | None = None
     appel_llm: LlmCall | None = None
+    motif: Motif | None = Field(
+        default=None, description="Déclencheur de la décision (version 1.1 et suivantes)."
+    )
 
 
 class AgentDecision(Envelope):
     TOPIC = Topic.AGENT_DECISIONS
     DESCRIPTION = "Décision d'un agent : action, sens attribué au produit, justification (D2)."
     type: Literal["agent.decision"] = "agent.decision"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : ajoute le motif de la décision
     payload: AgentDecisionPayload
 
     @model_validator(mode="after")
@@ -303,7 +327,7 @@ class Injection(Envelope):
     TOPIC = Topic.CONTROL
     DESCRIPTION = "Demande d'injection d'une perturbation depuis l'interface (D3)."
     type: Literal["controle.injection"] = "controle.injection"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : nouvelles natures de perturbation
     payload: InjectionPayload
 
 

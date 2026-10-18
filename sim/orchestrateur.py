@@ -5,7 +5,8 @@ pause et reprise, arrêt propre, perturbations à appliquer ce jour-là.
 
 Déroulé d'un jour d :
 1. début du jour (00:00) : `horloge.pas`, les événements des acteurs du monde (météo...), puis
-   les perturbations injectées depuis la veille, éventuellement limitées à une zone ;
+   les perturbations injectées depuis la veille, éventuellement limitées à une zone ; à 08:00,
+   les déplacements de routine (règles, selon le rôle et le temps) ;
 2. perception de chaque agent, construite sur l'état de la veille : c'est la barrière
    synchrone, aucun agent ne voit ce que les autres décident le jour même ;
 3. décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
@@ -55,6 +56,7 @@ from sim.domaine import Canal
 from sim.etat import EtatMonde
 from sim.horloge import SimClock, ordre_paliers
 from sim.livraison import Boite
+from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import RunInfo
 
 
@@ -78,6 +80,7 @@ class Bilan:
     injections: int = 0  # perturbations appliquées à la demande de l'interface (D3)
     relances: int = 0  # tentatives au-delà de la première
     replis: int = 0  # décisions d'agents LLM prises par la règle de repli
+    declenchements: dict[str, int] = field(default_factory=dict)  # décisions par motif
     bascules_palier: int = 0
     tokens_entree: int = 0
     tokens_sortie: int = 0
@@ -124,6 +127,7 @@ class Orchestrateur:
         on_jour: Callable[[ResumeJour], None] | None = None,
         preparer: Callable[[Palier], Awaitable[float]] | None = None,
         controle: SourceControle | None = None,
+        routines: Routines | None = None,
     ) -> None:
         self.config = config
         self.run = run
@@ -137,6 +141,16 @@ class Orchestrateur:
         self.on_jour = on_jour
         self.preparer = preparer
         self.controle = controle
+        self.routines = routines
+        # Abonnés de chaque compte : destinataires de ses publications « réseaux ».
+        self._abonnes = {
+            emetteur: [
+                a.agent_id
+                for a in self.agents
+                if a.abonnements is None or emetteur in a.abonnements
+            ]
+            for emetteur in self._par_id
+        }
         self._injections: list[Injection] = []  # reçues, appliquées au début du jour suivant
         self._en_pause = False
         self._arret = False
@@ -146,6 +160,8 @@ class Orchestrateur:
         self.meteo: WeatherPayload | None = None
         self._perturbations: list[Envelope] = []  # survenues depuis la dernière perception
         self._perturbations_vues: set[UUID] = set()
+        self._meteo_event: Weather | None = None
+        self._non_lus: dict[str, tuple[AgentMessage, ...]] = {}  # reçus, pas encore lus
         self._phase: str | None = None  # "A" (petit + moyen) ou "B" (grand) : modèles chargés
 
     # --- boucle principale ------------------------------------------------------------------
@@ -177,16 +193,21 @@ class Orchestrateur:
                 await self._publier(event)
                 if isinstance(event, Weather):
                     self.meteo = event.payload
+                    self._meteo_event = event
                 elif isinstance(event, Disturbance):
                     self._perturbations.append(event)
                     self._perturbations_vues.add(event.event_id)
         await self._appliquer_injections(minute0)
+        await self._deplacements_du_matin(minute0)
         await self._statut("en_cours")  # heure simulée courante, lue par le pont (C3)
 
         t = self.horloge.heure_decision()
         perceptions = self._percevoir(jour, t, barriere=minute0)
         self._perturbations.clear()
         declenches = [a for a in self.agents if a.doit_decider(perceptions[a.agent_id])]
+        for agent in self.agents:  # sans décision aujourd'hui, ses messages attendent la suivante
+            if agent not in declenches and perceptions[agent.agent_id].messages:
+                self._non_lus[agent.agent_id] = perceptions[agent.agent_id].messages
         self.bilan.decisions_conservees += len(self.agents) - len(declenches)
 
         resultats: dict[str, Decision | None] = {}
@@ -204,7 +225,7 @@ class Orchestrateur:
         messages: list[AgentMessage] = []
         for agent_id in sorted(resultats):
             agent = self._par_id[agent_id]
-            messages += await self._appliquer(agent, resultats[agent_id], t)
+            messages += await self._appliquer(agent, resultats[agent_id], t, perceptions[agent_id])
         for message in messages:  # zones résolues après les déplacements du jour
             self.boite.deposer(message, self._destinataires(message))
 
@@ -274,7 +295,8 @@ class Orchestrateur:
                 jour=jour,
                 minute=t,
                 zone=agent.zone,
-                messages=self.boite.relever(agent.agent_id, t, barriere),
+                messages=self._non_lus.pop(agent.agent_id, ())
+                + self.boite.relever(agent.agent_id, t, barriere),
                 evenements=tuple(
                     e for e in self._perturbations if e.zone is None or e.zone is agent.zone
                 ),
@@ -312,8 +334,31 @@ class Orchestrateur:
         decisions = await asyncio.gather(*(decider(agent) for agent in groupe))
         return {agent.agent_id: d for agent, d in zip(groupe, decisions, strict=True)}
 
+    async def _deplacements_du_matin(self, minute0: int) -> None:
+        """Routines (règles) : chacun gagne la zone du jour avant de décider. La décision du
+        déplacement dépend du temps qu'il fait : il cite la météo du jour (F6)."""
+        if self.routines is None:
+            return
+        cause = (self._meteo_event.event_id,) if self._meteo_event else ()
+        heure = minute0 + HEURE_DEPLACEMENT
+        for agent_id, zone in self.routines.deplacements(self.agents, self.meteo).items():
+            agent = self._par_id[agent_id]
+            await self._publier(
+                AgentMove(
+                    run_id=self.run.run_id,
+                    sim_time_occurred=heure,
+                    sim_time_processed=heure,
+                    source_agent_id=agent_id,
+                    zone=zone,
+                    caused_by=cause,
+                    payload=AgentMovePayload(depuis=agent.zone, vers=zone),
+                )
+            )
+            agent.zone = zone
+            self.bilan.deplacements += 1
+
     async def _appliquer(
-        self, agent: Agent, decision: Decision | None, t: int
+        self, agent: Agent, decision: Decision | None, t: int, perception: Perception
     ) -> list[AgentMessage]:
         if decision is None:  # l'agent garde sa décision précédente
             return []
@@ -331,6 +376,7 @@ class Orchestrateur:
                     moteur=decision.moteur,
                     palier=decision.palier,
                     appel_llm=decision.appel_llm,
+                    motif=agent.motif,
                 ),
             )
             suites = self._suites(agent, decision, event.event_id, t)
@@ -342,8 +388,11 @@ class Orchestrateur:
         await self._controler_c6(agent, event, t)
         await self._publier(event)
         await self._incidents_agent(agent, decision, caused_by=(event.event_id,))
-        agent.derniere_decision = decision
+        agent.noter_decision(decision, perception)
         self.bilan.decisions += 1
+        if agent.motif is not None:
+            par_motif = self.bilan.declenchements
+            par_motif[agent.motif.value] = par_motif.get(agent.motif.value, 0) + 1
         if decision.appel_llm:  # y compris un repli : ses tentatives échouées ont coûté
             self.bilan.compter_appel(decision.appel_llm)
         if decision.moteur is Moteur.REPLI:
@@ -416,7 +465,7 @@ class Orchestrateur:
             return [a for a in message.payload.destinataires if a in self._par_id]
         if canal is Canal.ZONE:
             return [a.agent_id for a in self.agents if a.zone is message.zone]
-        return [a.agent_id for a in self.agents]  # réseaux : toute la population
+        return self._abonnes.get(message.source_agent_id, [])  # réseaux : ses abonnés
 
     # --- utilitaires ------------------------------------------------------------------------
 

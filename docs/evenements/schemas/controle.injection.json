@@ -21,11 +21,15 @@
       "type": "object"
     },
     "Perturbation": {
-      "description": "Événements que l'observateur peut injecter en direct (D3).",
+      "description": "Événements que l'observateur peut injecter en direct (D3). Les quatre dernières natures\narrivent avec la version 1.1 des schémas `monde.perturbation` et `controle.injection`.",
       "enum": [
         "rupture_stock",
         "polemique",
-        "vague_chaleur"
+        "vague_chaleur",
+        "promotion_concurrente",
+        "article_presse",
+        "publication_virale",
+        "orage"
       ],
       "title": "Perturbation",
       "type": "string"
@@ -53,8 +57,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

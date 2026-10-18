@@ -1,53 +1,10 @@
 # Tranche verticale (étape 7) : un agent LLM par palier et un agent à règles, sur 5 jours.
-# Mêmes réglages que default.yaml, seules la durée et la population changent.
-# Validée au chargement par sim/config.py : une clé inconnue ou une valeur invalide bloque le lancement.
-
-run:
-  seed: 42
+# Hérite de default.yaml : seules la durée et la population changent.
+herite_de: default.yaml
 
 simulation:
-  duree_jours: 5           # un pas = un jour simulé
-  mode: synchrone          # synchrone | asynchrone
-  # Délai avant qu'un message soit lisible par son destinataire, en minutes simulées.
-  # En mode synchrone, tout délai inférieur à 24 h revient à une lecture le lendemain.
-  delais_livraison_min:
-    zone: 0                # même lieu : immédiat
-    direct: 120            # le temps qu'un proche lise : 2 h
-    reseaux: 360           # le temps qu'une publication remonte dans les fils : 6 h
+  duree_jours: 5
 
-llm:
-  # Modèle attribué à chaque palier (A5). Les configurations C2 et C3 du plan d'expériences
-  # mettent tous les paliers sur un même modèle.
-  modeles:
-    grand: qwen3:8b
-    moyen: qwen3:4b
-    petit: qwen3:1.7b
-  # Requêtes simultanées par palier, d'après le benchmark de l'étape 3 (docs/mesures/).
-  parallelisme:
-    grand: 4
-    moyen: 4
-    petit: 2               # instable au-delà de 2 sur le 1.7b
-  delai_max_s: 60          # au-delà, l'appel compte comme sans réponse (A4)
-  tokens_sortie_max: 320   # plafond de la réponse ; à 160, l'étape 3 voyait des JSON tronqués
-  contexte_tokens: 2048    # identique à OLLAMA_CONTEXT_LENGTH, sinon Ollama recharge le modèle
-  temperature: 0.8
-
-agents:
-  # Seuil d'adoption individuel (Granovetter) : part de porteurs dans sa zone à partir de
-  # laquelle un agent adopte. Tiré pour chaque agent dans une loi normale bornée à [0, 1],
-  # avec sa propre graine. Sert au repli des agents LLM (A4) et aux agents à règles.
-  seuil_adoption:
-    moyenne: 0.35
-    ecart_type: 0.15
-
-monde:
-  # Valeurs provisoires : le nom de marque sera choisi à l'étape 11, après un test de contamination.
-  # Toujours fictives, sans parenté avec une marque ou un ingrédient réels.
-  brand_name: MARQUE_PROVISOIRE
-  ingredient: INGREDIENT_PROVISOIRE
-  indice_protection: INDICE_PROVISOIRE
-
-# Nombre d'agents par rôle (exigence C2 : fixé au lancement, sans modifier le code).
 population:
   pharmacien: 1               # palier grand (qwen3:8b)
   createur_contenu: 1         # palier moyen (qwen3:4b)

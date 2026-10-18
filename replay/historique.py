@@ -68,6 +68,15 @@ REQUETES = {
     "incidents_par_nature": """
         SELECT run_id, nature, count(*) AS incidents
         FROM incidents GROUP BY ALL ORDER BY run_id, nature""",
+    "messages_par_role": """
+        SELECT run_id, regexp_extract(agent_id, '^(.*)_[0-9]+$', 1) AS role, canal,
+               count(*) AS messages
+        FROM messages GROUP BY ALL ORDER BY run_id, role, canal""",
+    "decisions_par_motif": """
+        SELECT run_id, jour, brut_motif AS motif, count(*) AS decisions
+        FROM (SELECT run_id, jour, brut->>'$.payload.motif' AS brut_motif FROM evenements
+              WHERE type = 'agent.decision')
+        GROUP BY ALL ORDER BY run_id, jour, motif""",
     "messages_par_palier": """
         SELECT m.run_id, d.palier, m.canal, count(*) AS messages
         FROM messages m JOIN decisions d ON d.event_id = m.caused_by[1]

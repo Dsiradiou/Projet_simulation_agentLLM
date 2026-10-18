@@ -17,10 +17,11 @@ from pydantic import (
     PositiveInt,
     ValidationError,
     field_validator,
+    model_validator,
 )
 
 from agents.roles import Palier, Role
-from sim.domaine import Canal
+from sim.domaine import Canal, Zone
 
 
 class Mode(StrEnum):
@@ -83,6 +84,50 @@ class AgentsConfig(_Section):
     seuil_adoption: SeuilConfig = Field(
         description="Loi du seuil d'adoption individuel (Granovetter), bornée à [0, 1]."
     )
+    messages_par_semaine: dict[Role, NonNegativeInt] = Field(
+        description="Messages qu'un agent LLM peut envoyer par semaine simulée, par rôle."
+    )
+
+
+class DeclencheursConfig(_Section):
+    delai_reflexion_jours: PositiveInt
+    delai_reflexion_ecart: NonNegativeInt = 0
+
+    @model_validator(mode="after")
+    def _ecart_inferieur_au_delai(self) -> "DeclencheursConfig":
+        if self.delai_reflexion_ecart >= self.delai_reflexion_jours:
+            raise ValueError("l'écart du délai de réflexion doit rester sous le délai")
+        return self
+
+    exposition_ecart: float = Field(gt=0, le=1)
+    meteo_uv_fort: int = Field(ge=0, le=15)
+    lassitude_jours: PositiveInt
+
+
+class ReseauConfig(_Section):
+    abonnements_par_agent: NonNegativeInt
+    contacts_directs: NonNegativeInt
+    audience: dict[Role, PositiveFloat] = Field(default_factory=dict)
+
+
+class Temps(StrEnum):
+    BEAU = "beau"
+    MAUVAIS = "mauvais"
+
+
+class RoutinesConfig(_Section):
+    stabilite: float = Field(ge=0, le=1)
+    roles: dict[Role, dict[Temps, dict[Zone, PositiveFloat]]]
+
+    @field_validator("roles")
+    @classmethod
+    def _deux_temps(cls, value: dict) -> dict:
+        for role, temps in value.items():
+            if set(temps) != set(Temps):
+                raise ValueError(f"{role} : préciser les poids par beau et par mauvais temps")
+            if any(not poids for poids in temps.values()):
+                raise ValueError(f"{role} : au moins une zone par temps")
+        return value
 
 
 class MondeConfig(_Section):
@@ -98,6 +143,9 @@ class Config(_Section):
     simulation: SimulationConfig
     llm: LlmConfig
     agents: AgentsConfig
+    declencheurs: DeclencheursConfig
+    reseau: ReseauConfig
+    routines: RoutinesConfig
     monde: MondeConfig
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."
@@ -112,13 +160,36 @@ class ConfigError(Exception):
     """Configuration illisible ou invalide."""
 
 
-def load_config(path: str | Path) -> Config:
-    """Lit et valide un fichier de configuration YAML."""
-    path = Path(path)
+def _fusionner(base: dict, ajouts: dict) -> dict:
+    """Fusion récursive : les sections se complètent, une valeur simple remplace celle de la base.
+    La population est toujours remplacée en entier : une variante dit qui est là, pas qui part."""
+    resultat = dict(base)
+    for cle, valeur in ajouts.items():
+        if isinstance(valeur, dict) and isinstance(base.get(cle), dict) and cle != "population":
+            resultat[cle] = _fusionner(base[cle], valeur)
+        else:
+            resultat[cle] = valeur
+    return resultat
+
+
+def _lire(path: Path, deja: tuple[Path, ...] = ()) -> dict:
     try:
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as exc:
         raise ConfigError(f"{path} : lecture impossible ({exc})") from exc
+    if not isinstance(raw, dict) or "herite_de" not in raw:
+        return raw
+    base = (path.parent / raw.pop("herite_de")).resolve()
+    if base in deja:
+        raise ConfigError(f"{path} : héritage circulaire ({base.name})")
+    return _fusionner(_lire(base, (*deja, path.resolve())), raw)
+
+
+def load_config(path: str | Path) -> Config:
+    """Lit et valide un fichier de configuration YAML. Une configuration peut déclarer
+    `herite_de: autre.yaml` et ne préciser que ce qui change (voir `configs/dev.yaml`)."""
+    path = Path(path)
+    raw = _lire(path)
 
     try:
         config = Config.model_validate(raw)

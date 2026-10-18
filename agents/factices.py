@@ -112,10 +112,12 @@ def population_factice(
     config: Config, facteur_latence: float = 0.0
 ) -> tuple[list[Agent], list[WorldActor]]:
     """Construit la population décrite par la configuration avec des agents factices."""
-    from agents.population import acteurs_monde, identites  # import local : évite un cycle
+    from agents.population import acteurs_monde, equiper, identites  # import local : cycle
 
     agents: list[Agent] = [
-        AgentFactice(x.agent_id, x.role, x.zone, x.rng, x.contacts, facteur_latence)
+        equiper(
+            AgentFactice(x.agent_id, x.role, x.zone, x.rng, x.contacts, facteur_latence), x, config
+        )
         for x in identites(config)
     ]
     return agents, acteurs_monde(config)

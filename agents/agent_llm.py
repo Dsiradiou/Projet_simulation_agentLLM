@@ -39,6 +39,7 @@ class AgentLLM(Agent):
         seed: int,
         contacts: list[str],
         seuil: float,
+        messages_par_semaine: int | None = None,
     ) -> None:
         super().__init__(agent_id, role, zone, rng)
         if self.palier is None:
@@ -49,11 +50,24 @@ class AgentLLM(Agent):
         self.contacts = contacts
         self.seuil = seuil
         self.systeme = prompt_systeme(role, monde)
-        self.schema = schema_sortie(contacts)
+        # Budget de messages par semaine simulée (None : sans limite, pour les tests).
+        self.messages_par_semaine = messages_par_semaine
+        self._jours_messages: list[int] = []  # jours où l'agent a envoyé un message
+
+    def messages_restants(self, jour: int) -> int | None:
+        if self.messages_par_semaine is None:
+            return None
+        recents = sum(1 for j in self._jours_messages if jour - j < 7)
+        return max(0, self.messages_par_semaine - recents)
 
     async def decider(self, perception: Perception) -> Decision:
         assert self.palier is not None
-        prompt, montres = prompt_jour(perception, self.derniere_decision, self.contacts, self.monde)
+        restants = self.messages_restants(perception.jour)
+        peut_parler = restants is None or restants > 0
+        schema = schema_sortie(self.contacts, peut_parler)
+        prompt, montres = prompt_jour(
+            perception, self.derniere_decision, self.contacts, self.monde, self.motif, restants
+        )
         caused_by = tuple(m.event_id for m in montres) + tuple(
             e.event_id for e in perception.evenements
         )
@@ -66,7 +80,7 @@ class AgentLLM(Agent):
             debut = time.perf_counter()
             try:
                 reponse = await self.routeur.generer(
-                    self.palier, self.systeme, prompt + relance, self.schema, graine
+                    self.palier, self.systeme, prompt + relance, schema, graine
                 )
             except Exception as exc:  # délai dépassé, Ollama injoignable... (A4)
                 duree_s += time.perf_counter() - debut
@@ -79,7 +93,7 @@ class AgentLLM(Agent):
             duree_s += reponse.duree_s
             reponses.append(reponse)
             try:
-                sortie = lire_sortie(reponse.texte, self.contacts)
+                sortie = lire_sortie(reponse.texte, self.contacts, peut_parler)
             except SortieInvalide as exc:
                 incidents.append(
                     IncidentAgent(
@@ -93,6 +107,8 @@ class AgentLLM(Agent):
                     "Réponds de nouveau, uniquement avec le JSON demandé."
                 )
                 continue
+            if sortie.message:
+                self._jours_messages.append(perception.jour)
             return self._depuis_sortie(
                 sortie, self._cout(reponses, duree_s, tentative), caused_by, incidents
             )

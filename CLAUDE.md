@@ -21,11 +21,13 @@ Le projet avance **étape par étape**, selon le plan de `docs/journal/journal-d
 ## Le monde
 
 Un été simulé (90 jours, 1 pas = 1 jour) autour du lancement d'une **crème solaire** identique pour
-tous, par une **marque fictive** dont le nom reste à définir.
+tous, par une **marque fictive** : **Vaelys**, à l'ingrédient **nacrelle**, indice **Halo 4** (sur
+une échelle inventée de 1 à 5), choisis le 18 oct. après un test de contamination
+(`python -m llm.contamination`).
 
-- **Nom de marque** : jamais en dur dans le code ni dans les prompts. Toujours le paramètre
-  `BRAND_NAME` lu depuis la configuration. Idem pour l'ingrédient phare et l'indice de protection,
-  qui sont **fictifs**. Objectif : empêcher les agents de s'appuyer sur des marques réelles.
+- **Nom de marque** : jamais en dur dans le code ni dans les prompts. Toujours `config.monde`
+  (`brand_name`, `ingredient`, `indice_protection`). Objectif : empêcher les agents de s'appuyer
+  sur des marques réelles. Tout nouveau nom fictif passe d'abord le test de contamination.
 - **7 zones** : `pharmacie`, `plage`, `piscine`, `reseaux_sociaux`, `centre_commercial`,
   `terrain_sport`, `domicile`.
 - **Sens partagé (exigence B1)** : catégories **fermées**, jamais de texte libre pour ce champ.
@@ -182,12 +184,30 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
 Les défauts constatés et pas encore réglés sont listés, avec l'étape prévue pour les régler, dans
 `docs/contexte-projet.md` (section 9, « Constats ouverts »). Les relire au début de chaque étape.
 
+## Population et configurations (décidé le 18 oct.)
+
+- `configs/default.yaml` : la référence, 120 agents sur 90 jours.
+- `configs/dev.yaml` : 60 agents sur 60 jours, mêmes proportions, pour les essais de développement.
+- `configs/tranche.yaml` : la tranche verticale (4 agents, 5 jours).
+- Une population réduite de soutenance sera ajoutée à l'étape 18 (C8).
+- Une variante déclare `herite_de: default.yaml` et ne précise que ce qui change ; la population
+  est alors remplacée en entier.
+
+## Le monde vivant (étape 11)
+
+- Réseau social (`reseau`) : une publication « réseaux » ne touche que les abonnés de son auteur ;
+  les messages directs visent les proches (`contacts`). Graphe tiré avec la graine du run.
+- Routines (`routines`) : déplacements du matin par règles, selon le rôle et le temps
+  (`sim/routines.py`), publiés à 08:00 avec la météo pour cause.
+- Déclencheurs (`declencheurs`) : en plus des messages et perturbations, exposition aux porteurs,
+  météo marquée et lassitude. Chaque décision publie son `motif` ; le bilan les compte.
+- Budget de parole (`agents.messages_par_semaine`) : c'est le rôle qui décide de parler ; budget
+  épuisé, le schéma JSON n'autorise plus que `message: null`.
+
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- Le nom de la marque fictive, à valider par un test de contamination du modèle.
 - La formule exacte de l'indicateur de sens partagé : accord modal, entropie normalisée, ou
   information mutuelle entre groupe et sens.
-- Le nombre définitif d'agents et la durée simulée.
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

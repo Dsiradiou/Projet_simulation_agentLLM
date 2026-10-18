@@ -36,12 +36,12 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | [`horloge.pas`](#horlogepas) | `sim.world.events` | 1.0 | Début d'un pas de simulation (un jour). Synchronise les consommateurs. |
 | [`monde.meteo`](#mondemeteo) | `sim.world.events` | 1.0 | Météo du jour, produite par l'agent à règles météo. |
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
-| [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.0 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
+| [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
-| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.0 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
+| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.1 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
 | [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.0 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
 | [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.0 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
-| [`controle.injection`](#controleinjection) | `sim.control` | 1.0 | Demande d'injection d'une perturbation depuis l'interface (D3). |
+| [`controle.injection`](#controleinjection) | `sim.control` | 1.1 | Demande d'injection d'une perturbation depuis l'interface (D3). |
 | [`controle.commande`](#controlecommande) | `sim.control` | 1.0 | Commande de pilotage du run depuis l'interface. |
 | [`incident`](#incident) | `sim.incidents` | 1.0 | Incident d'agent ou de cohérence temporelle, tracé et compté (A4, C6). |
 | [`dlq.rejet`](#dlqrejet) | `sim.dlq` | 1.0 | Message reçu non conforme à un schéma, isolé sans arrêter la simulation (F4). |
@@ -83,13 +83,13 @@ Payload :
 
 ### monde.perturbation
 
-Perturbation effective dans le monde, conséquence d'une injection (D3). Version 1.0.
+Perturbation effective dans le monde, conséquence d'une injection (D3). Version 1.1.
 
 Payload :
 
 | Champ | Type | Obligatoire | Contraintes | Description |
 | --- | --- | --- | --- | --- |
-| `nature` | `rupture_stock` \| `polemique` \| `vague_chaleur` | oui |  |  |
+| `nature` | `rupture_stock` \| `polemique` \| `vague_chaleur` \| `promotion_concurrente` \| `article_presse` \| `publication_virale` \| `orage` | oui |  |  |
 | `description` | string | oui | longueur ≥ 1, longueur ≤ 500 |  |
 
 ## Topic `sim.agent.messages`
@@ -111,7 +111,7 @@ Payload :
 
 ### agent.decision
 
-Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.0.
+Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.1.
 
 Payload :
 
@@ -124,6 +124,7 @@ Payload :
 | `moteur` | `llm` \| `regle` \| `repli` | oui |  |  |
 | `palier` | `grand` \| `moyen` \| `petit` ou null | non |  |  |
 | `appel_llm` | LlmCall ou null | non |  |  |
+| `motif` | `premiere_decision` \| `message` \| `perturbation` \| `exposition` \| `meteo` \| `lassitude` ou null | non |  | Déclencheur de la décision (version 1.1 et suivantes). |
 
 ### agent.deplacement
 
@@ -156,13 +157,13 @@ Payload :
 
 ### controle.injection
 
-Demande d'injection d'une perturbation depuis l'interface (D3). Version 1.0.
+Demande d'injection d'une perturbation depuis l'interface (D3). Version 1.1.
 
 Payload :
 
 | Champ | Type | Obligatoire | Contraintes | Description |
 | --- | --- | --- | --- | --- |
-| `nature` | `rupture_stock` \| `polemique` \| `vague_chaleur` | oui |  |  |
+| `nature` | `rupture_stock` \| `polemique` \| `vague_chaleur` \| `promotion_concurrente` \| `article_presse` \| `publication_virale` \| `orage` | oui |  |  |
 | `description` | string | oui | longueur ≥ 1, longueur ≤ 500 |  |
 
 ### controle.commande

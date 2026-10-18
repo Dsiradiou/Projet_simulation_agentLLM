@@ -38,13 +38,88 @@ agents:
   seuil_adoption:
     moyenne: 0.35
     ecart_type: 0.15
+  # Messages qu'un agent LLM peut envoyer par semaine simulée, selon son rôle : c'est le rôle,
+  # et non la taille du modèle, qui décide de la propension à parler (constat de l'étape 6).
+  messages_par_semaine:
+    pharmacien: 3
+    createur_contenu: 5
+    journaliste: 2
+    responsable_marque: 4
+    habitue_soin: 2
+    baigneur_occasionnel: 1
+    sceptique: 1
+
+# Ce qui fait reconsidérer sa décision à un agent, en plus d'un message reçu ou d'une
+# perturbation dans sa zone (règle 10 : sans déclencheur, aucun appel).
+declencheurs:
+  # Délai de réflexion : un agent ne reconsidère pas plus d'une fois tous les 3 jours à cause
+  # d'un message, de l'exposition, de la météo ou de la lassitude (décidé le 18 oct. : borne le
+  # coût, environ 2 500 appels au plus pour 120 agents sur 90 jours). Les messages reçus entre-
+  # temps s'accumulent et sont lus à la décision suivante. Une perturbation reste immédiate.
+  delai_reflexion_jours: 3
+  # Le délai de chaque agent est tiré après chaque décision entre 3 - 1 et 3 + 1 jours : sans cela,
+  # tous les agents, partis le jour 1, décident ensemble tous les 3 jours (mesuré le 18 oct.).
+  delai_reflexion_ecart: 1
+  exposition_ecart: 0.15     # la part de porteurs autour de lui a changé d'au moins 15 points
+  meteo_uv_fort: 9           # début d'une journée de canicule ou d'indice UV >= 9
+  lassitude_jours: 10        # pas reconsidéré depuis 10 jours
+
+# Réseau social : qui suit qui (publications « réseaux ») et cercle de proches (messages directs).
+reseau:
+  abonnements_par_agent: 6   # comptes suivis par chaque agent
+  contacts_directs: 4        # proches de chaque agent, en partie réciproques
+  # Attractivité d'un compte (poids dans le tirage des abonnements) : les créateurs de contenu
+  # et les médias ont une large audience. Rôle absent : poids 1.
+  audience:
+    createur_contenu: 10
+    journaliste: 6
+    responsable_marque: 6
+    pharmacien: 3
+
+# Routines de déplacement (règles) : chaque matin, un agent reste dans sa zone avec la
+# probabilité `stabilite`, sinon il tire sa zone selon les poids de son rôle et du temps qu'il fait
+# (beau : ensoleillé ou canicule ; mauvais : nuageux ou pluie). Rôle absent : il ne bouge pas.
+routines:
+  stabilite: 0.4
+  roles:
+    pharmacien:
+      beau: {pharmacie: 9, plage: 1}
+      mauvais: {pharmacie: 9, domicile: 1}
+    createur_contenu:
+      beau: {plage: 4, reseaux_sociaux: 3, piscine: 2, centre_commercial: 1}
+      mauvais: {reseaux_sociaux: 6, centre_commercial: 2, domicile: 2}
+    journaliste:
+      beau: {reseaux_sociaux: 3, centre_commercial: 3, plage: 2, pharmacie: 2}
+      mauvais: {reseaux_sociaux: 5, domicile: 3, centre_commercial: 2}
+    responsable_marque:
+      beau: {centre_commercial: 4, reseaux_sociaux: 4, pharmacie: 2}
+      mauvais: {reseaux_sociaux: 6, centre_commercial: 4}
+    habitue_soin:
+      beau: {plage: 4, piscine: 3, pharmacie: 2, domicile: 1}
+      mauvais: {domicile: 4, pharmacie: 3, centre_commercial: 3}
+    baigneur_occasionnel:
+      beau: {plage: 6, piscine: 2, terrain_sport: 1, domicile: 1}
+      mauvais: {domicile: 5, centre_commercial: 3, reseaux_sociaux: 2}
+    sceptique:
+      beau: {terrain_sport: 3, plage: 3, domicile: 3, centre_commercial: 1}
+      mauvais: {domicile: 6, centre_commercial: 2, reseaux_sociaux: 2}
+    fidele_autre_marque:
+      beau: {plage: 4, piscine: 2, terrain_sport: 2, domicile: 2}
+      mauvais: {domicile: 6, centre_commercial: 4}
+    vendeur:
+      beau: {centre_commercial: 8, pharmacie: 2}
+      mauvais: {centre_commercial: 8, pharmacie: 2}
+    marque_concurrente:
+      beau: {centre_commercial: 1}
+      mauvais: {centre_commercial: 1}
 
 monde:
-  # Valeurs provisoires : le nom de marque sera choisi à l'étape 11, après un test de contamination.
-  # Toujours fictives, sans parenté avec une marque ou un ingrédient réels.
-  brand_name: MARQUE_PROVISOIRE
-  ingredient: INGREDIENT_PROVISOIRE
-  indice_protection: INDICE_PROVISOIRE
+  # Choisis à l'étape 11 après le test de contamination (docs/mesures/contamination_*.md) :
+  # aucun modèle ne prétend les connaître et aucune marque réelle ne porte ces noms.
+  # L'indice suit une échelle inventée, pour que les modèles ne raisonnent pas en SPF réels.
+  brand_name: Vaelys
+  ingredient: nacrelle
+  indice_protection: Halo 4 (sur une échelle de 1 à 5)
 
 # Nombre d'agents par rôle (exigence C2 : fixé au lancement, sans modifier le code).
 population:

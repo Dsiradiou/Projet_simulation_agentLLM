@@ -11,7 +11,15 @@ signal rejeu_demande(run_id: String, vitesse: float)
 signal direct_demande
 signal fiche_fermee
 
-const NATURES := {"polemique": "Polémique", "rupture_stock": "Rupture de stock", "vague_chaleur": "Vague de chaleur"}
+const NATURES := {
+	"polemique": "Polémique",
+	"publication_virale": "Publication virale",
+	"article_presse": "Article de presse",
+	"promotion_concurrente": "Promotion concurrente",
+	"rupture_stock": "Rupture de stock",
+	"vague_chaleur": "Vague de chaleur",
+	"orage": "Orage",
+}
 const FIL_MAX := 9
 
 var _titre: Label

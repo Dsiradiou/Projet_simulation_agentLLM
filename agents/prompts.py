@@ -1,48 +1,72 @@
-"""Prompts des agents LLM, construits à partir de la configuration et de la perception.
+"""Prompts des agents LLM, construits à partir de la configuration et de la perception (étape 11).
 
 Le nom de la marque, l'ingrédient et l'indice viennent toujours de `config.monde` : aucun nom
-de produit n'est écrit ici. Les profils de rôle sont provisoires ; ils seront retravaillés à
-l'étape 11 (population) et complétés par la mémoire et le RAG à l'étape 12.
+de produit n'est écrit ici. Chaque rôle a son profil (expertise, ton) et ses habitudes de parole :
+c'est le rôle, et non la taille du modèle, qui doit décider de la propension à parler (constat de
+l'étape 6). Le prompt rappelle aussi de ne citer que ce qui y figure (constat de l'étape 7 :
+observations inventées). La mémoire et le RAG compléteront ces prompts à l'étape 12.
 """
 
 from agents.base import Decision, Perception
 from agents.roles import Role
-from bus.events import AgentMessage, Disturbance
+from bus.events import AgentMessage, Disturbance, Motif
 from sim.config import MondeConfig
 from sim.domaine import Zone
 
 # Au-delà, les plus anciens messages sont résumés par leur nombre : le contexte est de 2048
-# tokens et un message de réseaux peut toucher beaucoup d'agents.
+# tokens et une publication peut toucher beaucoup d'abonnés.
 MESSAGES_MAX = 8
 
-PROFILS: dict[Role, str] = {
-    Role.PHARMACIEN: (
-        "pharmacien d'officine expérimenté. Tu conseilles tes clients sur la protection "
-        "solaire, tu te fies aux fiches produit et tu te méfies des effets de mode."
+
+class Profil:
+    def __init__(self, qui: str, parole: str) -> None:
+        self.qui = qui  # identité, expertise, rapport au produit
+        self.parole = parole  # habitudes de parole : canal, fréquence, ton
+
+
+PROFILS: dict[Role, Profil] = {
+    Role.PHARMACIEN: Profil(
+        "pharmacien d'officine, quinze ans de métier. Tu conseilles tes clients sur la protection "
+        "solaire avec précision et un vocabulaire professionnel ; tu te fies à la composition et "
+        "à la tenue d'un produit, pas à la publicité ni aux modes.",
+        "Tu parles surtout au comptoir (canal zone) ou à un proche qui te demande conseil "
+        "(direct) ; tu publies rarement. Ton posé, factuel, jamais familier.",
     ),
-    Role.CREATEUR_CONTENU: (
-        "créateur de contenu beauté suivi sur les réseaux sociaux. Tu repères ce qui devient "
-        "tendance et tu aimes en parler le premier ; ton audience compte pour toi."
+    Role.CREATEUR_CONTENU: Profil(
+        "créateur de contenu beauté et lifestyle, suivi par des milliers d'abonnés. Tu repères ce "
+        "qui devient tendance et tu aimes en parler le premier ; ton image compte.",
+        "Tu publies volontiers sur les réseaux (canal reseaux), avec enthousiasme ou une pointe "
+        "de provocation ; tu parles plus de ressenti et d'image que de composition.",
     ),
-    Role.JOURNALISTE: (
-        "journaliste beauté. Tu écris sur les nouveautés de la saison, tu cherches un angle et "
-        "tu vérifies ce qu'on te dit avant de le reprendre."
+    Role.JOURNALISTE: Profil(
+        "journaliste beauté pour un magazine régional. Tu cherches un angle, tu vérifies ce qu'on "
+        "te dit et tu te méfies des emballements.",
+        "Tu publies peu, mais quand tu le fais c'est sur les réseaux (canal reseaux), sur le ton "
+        "d'un article : un constat et une nuance.",
     ),
-    Role.RESPONSABLE_MARQUE: (
-        "responsable de la marque {marque}. Tu veux que le lancement réussisse et tu suis ce "
-        "que les gens en disent pour réagir."
+    Role.RESPONSABLE_MARQUE: Profil(
+        "responsable de la marque {marque}. Tu veux que le lancement réussisse ; tu suis ce que "
+        "les gens en disent et tu réagis aux critiques sans les nier.",
+        "Tu communiques sur les réseaux (canal reseaux) ou en boutique (zone), sur un ton "
+        "professionnel et positif ; jamais d'affirmation médicale.",
     ),
-    Role.HABITUE_SOIN: (
-        "habitué du soin solaire. Tu te protèges tous les jours d'été, tu compares les "
-        "textures et tu écoutes l'avis de tes proches."
+    Role.HABITUE_SOIN: Profil(
+        "habitué du soin solaire : tu te protèges tous les jours d'été, tu compares les textures "
+        "et les odeurs et tu as tes préférences.",
+        "Tu partages ton avis avec tes proches (direct) ou les personnes autour de toi (zone), "
+        "de façon concrète : texture, tenue, sensation.",
     ),
-    Role.BAIGNEUR_OCCASIONNEL: (
+    Role.BAIGNEUR_OCCASIONNEL: Profil(
         "baigneur occasionnel. Tu ne réfléchis pas beaucoup à la crème solaire et tu prends "
-        "souvent ce que tu vois autour de toi."
+        "souvent ce que tu vois autour de toi.",
+        "Tu parles peu du produit ; si tu dis quelque chose, c'est une remarque simple aux "
+        "personnes autour de toi (zone), dans un langage courant.",
     ),
-    Role.SCEPTIQUE: (
-        "sceptique pragmatique. Tu te méfies de la publicité et des modes ; il te faut de "
-        "bonnes raisons pour changer d'habitude."
+    Role.SCEPTIQUE: Profil(
+        "sceptique pragmatique. Tu te méfies de la publicité et des modes ; il te faut de bonnes "
+        "raisons concrètes pour changer d'habitude.",
+        "Tu parles rarement ; quand tu le fais, c'est pour mettre en doute, en peu de mots, "
+        "à un proche (direct) ou autour de toi (zone).",
     ),
 }
 
@@ -56,8 +80,18 @@ ZONES_LISIBLES: dict[Zone, str] = {
     Zone.DOMICILE: "chez toi",
 }
 
+MOTIFS_LISIBLES: dict[Motif, str] = {
+    Motif.PREMIERE_DECISION: "tu découvres le produit",
+    Motif.MESSAGE: "tu as reçu des messages",
+    Motif.PERTURBATION: "il s'est passé quelque chose",
+    Motif.EXPOSITION: "autour de toi, la part de gens qui l'utilisent a nettement changé",
+    Motif.METEO: "le soleil tape fort aujourd'hui",
+    Motif.LASSITUDE: "cela fait longtemps que tu n'y as pas repensé",
+}
+
 _SYSTEME = """\
-Tu incarnes une personne d'une ville balnéaire fictive pendant un été. Tu es {profil}
+Tu incarnes une personne d'une ville balnéaire fictive pendant un été. Tu es {qui}
+{parole}
 Tu n'es pas un assistant et tu ne parles jamais d'intelligence artificielle : tu réagis comme \
 cette personne, avec ses habitudes et ses préjugés, sans chercher à être prudent ou consensuel.
 
@@ -65,23 +99,28 @@ Le produit : la crème solaire {marque}, nouvelle cet été, à l'ingrédient {i
 {indice}. Le monde est fictif : n'utilise aucune connaissance sur des marques ou des produits \
 réels, seulement ce qu'on te dit. C'est un cosmétique : aucune affirmation médicale.
 
+Règle essentielle : ne mentionne que ce qui figure dans la situation du jour (lieu, météo, \
+messages reçus, événements). N'invente ni message, ni personne, ni chiffre, ni souvenir. Les \
+identifiants comme pharmacien_02 désignent des habitants ; ne cite que ceux qui t'ont écrit.
+
 Chaque jour, tu réponds en JSON :
-- justification : une ou deux phrases courtes, à la première personne, appuyées sur ce que tu \
-as vu, entendu ou lu ;
+- justification : une ou deux phrases courtes, à la première personne ;
 - sens : ce que le produit représente pour toi, exactement une valeur parmi efficace (il remplit \
 sa fonction), tendance (on le porte pour être dans le coup), banal (un produit comme un autre), \
 depasse (sa mode est passée) ;
 - action : ce que tu fais aujourd'hui, parmi acheter, appliquer, recommander, critiquer, \
-en_parler, ignorer, abandonner ;
-- message : null la plupart du temps. Si tu veux vraiment dire quelque chose, une phrase courte, \
-avec le canal zone (les personnes autour de toi), reseaux (une publication) ou direct (un de tes \
-contacts, avec son identifiant)."""
+en_parler, ignorer, abandonner ; elle doit être cohérente avec le sens choisi ;
+- message : null si tu n'as rien d'utile à dire. Sinon une seule phrase de moins de 200 \
+caractères, avec le canal zone (les personnes autour de toi), reseaux (une publication) ou \
+direct (un de tes contacts, avec son identifiant)."""
 
 
 def prompt_systeme(role: Role, monde: MondeConfig) -> str:
     marque = monde.brand_name
+    profil = PROFILS[role]
     return _SYSTEME.format(
-        profil=PROFILS[role].format(marque=marque),
+        qui=profil.qui.format(marque=marque),
+        parole=profil.parole,
         marque=marque,
         ingredient=monde.ingredient,
         indice=monde.indice_protection,
@@ -93,17 +132,21 @@ def prompt_jour(
     precedente: Decision | None,
     contacts: list[str],
     monde: MondeConfig,
+    motif: Motif | None = None,
+    messages_restants: int | None = None,
 ) -> tuple[str, tuple[AgentMessage, ...]]:
     """Prompt du jour et messages effectivement montrés au modèle : seuls ceux-là sont cités
     dans `caused_by` de la décision (F6)."""
     marque = monde.brand_name
-    lignes = [f"Jour {perception.jour} de l'été. Tu es {ZONES_LISIBLES[perception.zone]}."]
+    lignes = [
+        f"Situation du jour {perception.jour} de l'été. Tu es {ZONES_LISIBLES[perception.zone]}."
+    ]
     if perception.meteo:
         m = perception.meteo
         lignes.append(f"Météo : {m.conditions}, {m.temperature_c:g} °C, indice UV {m.indice_uv}.")
     lignes.append(
-        f"Hier, {perception.part_porteurs_zone:.0%} des personnes présentes ici "
-        f"utilisaient {marque}."
+        f"Autour de toi, {perception.part_porteurs_zone:.0%} des personnes présentes utilisent "
+        f"{marque}."
     )
     if precedente is None:
         lignes.append(f"Tu n'as pas encore d'avis sur {marque}.")
@@ -113,6 +156,8 @@ def prompt_jour(
             f"Jusqu'ici, {marque} te semblait « {precedente.sens.value} » "
             f"(dernière action : {precedente.action.value}) ; {usage}."
         )
+    if motif is not None:
+        lignes.append(f"Tu y repenses aujourd'hui parce que {MOTIFS_LISIBLES[motif]}.")
 
     montres = perception.messages[-MESSAGES_MAX:]
     if montres:
@@ -124,11 +169,21 @@ def prompt_jour(
             f"- [{m.payload.canal.value}] {m.source_agent_id} : « {m.payload.contenu} »"
             for m in montres
         ]
+    else:
+        lignes.append("Tu n'as reçu aucun message.")
     evenements = [e for e in perception.evenements if isinstance(e, Disturbance)]
     if evenements:
         lignes.append("Ce qui s'est passé :")
         lignes += [f"- {e.payload.description}" for e in evenements]
     if contacts:
         lignes.append(f"Tes contacts : {', '.join(contacts)}.")
+    if messages_restants is not None:
+        if messages_restants > 0:
+            lignes.append(
+                f"Tu peux encore envoyer {messages_restants} message(s) cette semaine : "
+                "ne le fais que si c'est utile."
+            )
+        else:
+            lignes.append("Tu as assez parlé cette semaine : message vaut null.")
     lignes.append(f"Que fais-tu aujourd'hui, et que représente {marque} pour toi ?")
     return "\n".join(lignes), montres

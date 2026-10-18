@@ -9,13 +9,17 @@ soutenance avec démonstration en direct.
 ## Le monde simulé
 
 Un été de 90 jours simulés (un pas = un jour) autour du lancement d'une **crème solaire** identique
-pour tous, par une **marque fictive**. Le nom de la marque, l'ingrédient phare et l'indice de
-protection sont des paramètres de configuration inventés, pour que les agents ne s'appuient jamais
+pour tous, par une **marque fictive** : **Vaelys**, à l'ingrédient **nacrelle**, indice **Halo 4**
+(échelle inventée de 1 à 5). Ces noms sont des paramètres de configuration, choisis après un test
+de contamination (aucun modèle ne prétend les connaître) pour que les agents ne s'appuient jamais
 sur des marques réelles.
 
 - **7 zones** : pharmacie, plage, piscine, réseaux sociaux, centre commercial, terrain de sport,
   domicile.
 - **4 sens possibles**, en catégories fermées : `efficace`, `tendance`, `banal`, `depasse`.
+- **Un monde qui vit** : réseau social (abonnés, proches), déplacements quotidiens selon le rôle et
+  la météo, et des agents qui ne reconsidèrent leur avis que lorsqu'il se passe quelque chose
+  (message, perturbation, porteurs autour d'eux, forte chaleur, lassitude).
 - **Population hybride** : agents LLM de trois tailles (Qwen3 1.7b, 4b, 8b), attribuées selon le
   rôle et l'expérience, plus des agents à règles (météo, vendeurs, marque concurrente, fidèles).
 
@@ -59,7 +63,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 8 | Historique et rejeu sans LLM | ✅ terminée |
 | 9 | Pont FastAPI | ✅ terminée |
 | 10 | Scène Godot 3D | ✅ terminée |
-| 11 | Le monde : marque, population | à venir |
+| 11 | Le monde : marque, population | ✅ terminée |
 | 12 | Corpus fictif et RAG | à venir |
 | 13 | Agents à règles et baseline | à venir |
 | 14 | Indicateurs d'émergence | à venir |
@@ -213,8 +217,13 @@ Les paramètres d'un run sont dans un fichier YAML de `configs/`, vérifié au c
 une clé inconnue ou une valeur invalide bloque le lancement avec un message explicite.
 `configs/default.yaml` décrit la configuration principale : 120 agents, 90 jours simulés,
 mode synchrone, graine 42, délais de livraison des messages par canal, modèle et parallélisme
-de chaque palier, réglages des appels LLM et loi des seuils d'adoption. Le nombre d'agents se règle rôle par rôle dans la section `population`, sans
-toucher au code.
+de chaque palier, réglages des appels LLM, loi des seuils d'adoption, budget de messages par rôle,
+déclencheurs, réseau social, routines de déplacement et noms fictifs du monde. Le nombre d'agents
+se règle rôle par rôle dans la section `population`, sans toucher au code.
+
+Une variante hérite de la configuration principale et ne précise que ce qui change
+(`herite_de: default.yaml`) : `configs/dev.yaml` (60 agents, 60 jours, pour le développement) et
+`configs/tranche.yaml` (4 agents, 5 jours).
 
 ## Structure du dépôt
 

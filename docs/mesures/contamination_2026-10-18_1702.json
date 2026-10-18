@@ -1,0 +1,3220 @@
+{
+  "resume": [
+    {
+      "nom": "Vaelys",
+      "reponses": 24,
+      "pretend_connaitre": 0.0,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.0,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.25,
+      "exemple": ""
+    },
+    {
+      "nom": "nacrelle",
+      "reponses": 24,
+      "pretend_connaitre": 0.0,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.0,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.25,
+      "exemple": ""
+    },
+    {
+      "nom": "Nérilia",
+      "reponses": 24,
+      "pretend_connaitre": 0.04,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.12,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.29,
+      "exemple": "de quoi s'agit-il exactement, et qui le fabrique ou le commercialise ?"
+    },
+    {
+      "nom": "Zelvane",
+      "reponses": 24,
+      "pretend_connaitre": 0.08,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.25,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.17,
+      "exemple": "Zelvane est un produit commercialisé par la société Zelvane, qui est une entreprise française spécialisée dans la fabrication de produits de santé et de bien-être. Le produit Zelvane est un complément alimentaire qui contient des extraits de plantes et des substances naturelles, principalement pour促"
+    },
+    {
+      "nom": "Tessaly",
+      "reponses": 24,
+      "pretend_connaitre": 0.12,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.38,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.08,
+      "exemple": "Tessaly est un produit de la société Tessaly, qui est une entreprise française spécialisée dans la production de textiles éco-responsables et de vêtements durables. Leur objectif est de produire des vêtements avec des matériaux durables et respectueux de l'environnement, en utilisant des procédés de"
+    },
+    {
+      "nom": "Brizéa",
+      "reponses": 24,
+      "pretend_connaitre": 0.12,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.38,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [
+        "l'oréal"
+      ],
+      "solaire_evoque": 0.21,
+      "exemple": "brizéa est un produit connu et vendu en france, mais il existe plusieurs produits qui partagent ce nom. il est important de préciser que brizéa n'est pas un produit courant mais un produit artisanal ou semi-industriel utilisé dans l'industrie alimentaire ou la fabrication de produits de consommation"
+    },
+    {
+      "nom": "Corvalie",
+      "reponses": 24,
+      "pretend_connaitre": 0.17,
+      "par_modele": {
+        "qwen3:1.7b": 0.12,
+        "qwen3:4b": 0.38,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.12,
+      "exemple": "Corvalie est une entreprise de distribution de produits de santé et de cosmétiques, basée en Italie. Elle est spécialisée dans la production et la commercialisation de produits de santé, notamment des produits à base de plantes, des suppléments et des cosmétiques. Elle est connue pour son catalogue "
+    },
+    {
+      "nom": "tessiflore",
+      "reponses": 24,
+      "pretend_connaitre": 0.17,
+      "par_modele": {
+        "qwen3:1.7b": 0.0,
+        "qwen3:4b": 0.5,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.04,
+      "exemple": "1. Le terme \"tessiflore\" n'est pas un terme couramment utilisé dans le domaine technologique ou scientifique. Il est possible que ce soit une erreur de frappe ou une référence à un concept moins connu. \n2. En français, \"tessiflore\" n'est pas un mot standard. Le mot \"tessera\" (en anglais \"tessera\") a"
+    },
+    {
+      "nom": "Halyss",
+      "reponses": 24,
+      "pretend_connaitre": 0.17,
+      "par_modele": {
+        "qwen3:1.7b": 0.25,
+        "qwen3:4b": 0.25,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [
+        "l'oréal"
+      ],
+      "solaire_evoque": 0.38,
+      "exemple": "Halyss est un marque de vêtements, fabriquée et commercialisée par la société Halyss, qui a été l'une des principales entreprises de la mode en France avant son dissolution en 2012."
+    },
+    {
+      "nom": "Kaliré",
+      "reponses": 24,
+      "pretend_connaitre": 0.17,
+      "par_modele": {
+        "qwen3:1.7b": 0.12,
+        "qwen3:4b": 0.38,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [
+        "l'oréal"
+      ],
+      "solaire_evoque": 0.21,
+      "exemple": "fabricant et commercialisateur de produits de beauté et de soins personnels, notamment de la marque Kaliré, qui est une marque de produits de beauté, de soins de la peau et de cosmétiques. La marque est fondée en 2007 par un groupe de producteurs de cosmétiques, et elle commercialise ses produits àl"
+    },
+    {
+      "nom": "kalmérine",
+      "reponses": 24,
+      "pretend_connaitre": 0.21,
+      "par_modele": {
+        "qwen3:1.7b": 0.12,
+        "qwen3:4b": 0.5,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.08,
+      "exemple": "produit de la marque Kalmérine, fabriqué en France, commercialisé par la société Kalmérine en tant que marque dépendante de la marque France Telecom. Il s'agit d'un produit électronique de type portable, conçu pour les utilisateurs de téléphonie mobile. La marque Kalmérine est une marque de France,涎"
+    },
+    {
+      "nom": "Aubelys",
+      "reponses": 24,
+      "pretend_connaitre": 0.29,
+      "par_modele": {
+        "qwen3:1.7b": 0.5,
+        "qwen3:4b": 0.38,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [
+        "l'oréal"
+      ],
+      "solaire_evoque": 0.17,
+      "exemple": "entreprise de démonstration et de fabrication de produits de décoration et d'art électronique, spécialisée dans les produits de design et d'art électronique, dont la marque est « Aubelys »."
+    },
+    {
+      "nom": "Ostrane",
+      "reponses": 24,
+      "pretend_connaitre": 0.33,
+      "par_modele": {
+        "qwen3:1.7b": 0.5,
+        "qwen3:4b": 0.5,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.21,
+      "exemple": "film de science fiction de 1963, réalisé par George Méliès, avec des effets visuels très innovants pour l'époque, et il est le premier film à utiliser des effets visuels en 3D. Il est réalisé en collaboration avec le magnat de la télévision américain Fred Flintersmith, et il est commercialisé par la"
+    },
+    {
+      "nom": "orvaline",
+      "reponses": 24,
+      "pretend_connaitre": 0.33,
+      "par_modele": {
+        "qwen3:1.7b": 0.5,
+        "qwen3:4b": 0.5,
+        "qwen3:8b": 0.0
+      },
+      "marques_reelles": [],
+      "solaire_evoque": 0.25,
+      "exemple": "« orvaline » est une marque de produits de décoration et de fournitures pour l'industrie du bâtiment, conçue et fabriquée par la société **Orvaline**. Cette marque est spécialisée dans la vente de produits de décoration, de peintures, de peintures à l'huile, de peintures à l'huile, de peintures à l'"
+    }
+  ],
+  "reponses": [
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de personnage",
+      "precisions": "Zelvane est un personnage de fantasy qui apparaît dans plusieurs œuvres de fantasy, notamment dans l'univers de *The Stormlight Fantasy* par Brandon Sanderson. Il est un personnage de haut niveau, souvent présent dans des récits de grande envergure, et est connu pour son rôle dans les récits de *The",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de personne",
+      "precisions": "Zelvane est un nom de personne qui apparaît dans les universités et les établissements d'enseignement en ligne en France, notamment dans le domaine de la santé. Il est également un nom de jeune fille qui peut être utilisé dans des contextes variés, comme des jeux ou des récits. Il est associé à des ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "informatique",
+      "precisions": "Zelvane est un terme utilisé dans le monde de la technologie et de l'innovation, notamment en lien avec les établissements de recherche et les entreprises de l'industrie de la technologie. Il s'agit d'un nom de société ou d'une entreprise qui a établi un laboratoire de recherche et de développement,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "question",
+      "precisions": "moyenne",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "informatique",
+      "precisions": "30%",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de personne",
+      "precisions": "Halyss est une personne qui a eu un rôle important dans l'histoire de la mythologie grecque, notamment dans le conte de l'écrivain grec Pseudo-Apollodrome, qui est un fragment du *Hippolyte et la Lune*. Elle est une figure mythique qui représente la déesse de la lumière, de la révélation et de la sè",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss est un personnage de fiction, principalement connu dans la série télévisée *Frasque* (ou *Frasque et la Reine*), créée par Michel Gondry. Il est le mari de la reine Élise et le père de la petite fille Léa. Halyss est un personnage très charmant, bien qu'un peu idéaliste et peu réaliste, et il",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss est un personnage de fantasy et de science-fiction, souvent représenté comme une créature féminine dotée d'une intelligence extra-terrestre. Elle est connue pour ses traits particuliers, notamment son regard et son comportement, qui la distinguent des autres personnages de la série 'Star Trek",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss est un personnage de fiction, principalement connu dans le cadre des jeux vidéo et des œuvres de fantasy. Il est souvent associé à des récits où il est un personnage maléfique ou un antagoniste. Il peut être un démon, un fantôme, ou un être de l'ombre, et il est souvent utilisé pour créer une",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "Halyss est un marque de vêtements, fabriquée et commercialisée par la société Halyss, qui a été l'une des principales entreprises de la mode en France avant son dissolution en 2012.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "Halyss est une marque de produits de beauté et de soins de la peau, fabriquée et commercialisée par la société Halyss, qui est une entreprise de cosmétique et de produits de soin. Elle est basée en France et est spécialisée dans la production de produits cosmétiques, notamment des produits pour les髮",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss est un personnage fictif du roman de Victor Hugo, *Les Misérables*. Il est un personnage secondaire, un ancien prêtre qui a vécu une vie de贱民 (les infâmes) et a été condamné à mort. Il est ensuite libéré par Jean Valjean, le personnage principal, et devient son serviteur. Halyss n'est pas un ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "géographie",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "histoire",
+      "precisions": "1",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "geographie",
+      "precisions": "1",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "geographie",
+      "precisions": "Corvalie est un petit village italien située dans le comté de Vercelli, dans la région du Piémont. Elle est située à environ 30 km de Turin. Le village est connu pour sa beauté naturelle, ses forêts, et son environnement préservé. La Corvalie est également réputée pour sa culture et sa gastronomie, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "histoire",
+      "precisions": "Corvalie est une région du sud-ouest de l'Italie, située dans la région de la Vallee d'Aosta. Elle est connue pour son climat tempéré et ses montagnes. La région est également célèbre pour sa production de vin et de fromages. La région est administrativement en tant que région italienne, mais elle n",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "Corvalie est une entreprise de distribution de produits de santé et de cosmétiques, basée en Italie. Elle est spécialisée dans la production et la commercialisation de produits de santé, notamment des produits à base de plantes, des suppléments et des cosmétiques. Elle est connue pour son catalogue ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "incertain",
+      "categorie": "entreprise",
+      "precisions": "Corvalie est une marque de produits cosmétiques, spécifiquement des produits pour la peau. Cela peut inclure des crèmes, des serums, des gels et des produits de soin. La marque est fabriquée et commercialisée par la société Corvalie, qui est une entreprise de santé et de cosmétiques basée en Italie.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de personne",
+      "precisions": "Brizéa est une personne féminine, née en 1979, française, et membre de l'Union européenne. Elle est connue pour avoir été la première femme à avoir été nommée ambassadrice de la République française en Turquie. Elle a également été nommée ambassadrice de la République française en Albanie en 2016. A",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Brizéa est un personnage de fiction, créée par la série de jeux de rôle *Le Bureau de l'Énigmatiste* (ou *Le Bureau des Énigmatistes*), qui est une série de jeux de rôle et de récits de fantasy. Elle est une femme de 25 ans, qui vit dans un village de montagne, et elle est l'une des cinq ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Brizéa est une personnage de fiction, qui apparaît dans la série de romans de l'auteur français Pascal Colline, notamment dans *Les Étapes* et *Les Cinq Cœurs*. Elle est le personnage principal de la série, et est l'objet d'une relation complexe avec le protagoniste, Étienne, qui l'admire et l'adore",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de personne",
+      "precisions": "Brizéa est une personne, une femme, née en 1982, française, demeure à Paris, travaille en tant que journaliste. Elle a été nommée députée de la 11e circonscription de Paris en 2017, puis a été élu à l'Assemblée nationale en 2020. Elle a également été licenciée en 2023 suite à une dénonciation contre",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "entreprise de confection et de fabrication de tissus textiles, spécialisée dans les tissus de soie, de soie de baleine et de soie de mer. Elle est basée à Brizéa, en Bretagne, en France. La marque est connue pour sa qualité et son artisanat, avec des tissus réputés pour leur douceur, leur légèreté, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "une entreprise de fabrication et de commercialisation de produits de beauté et de soins personnels, spécialisée dans les produits à base de brizéa, une fleur native de la France. Elle fabrique et commercialise des produits cosmétiques, des crèmes, des lotions, des produits de soin et des cosmétiques",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "Brizéa est un nom de produit qui fait référence à une **cantine** (ou une **bâtisse**), située dans le **Val-d'Ors** (province de **Québec**, Canada). Elle est **fabriquée et commercialisée par la société **Brizéa** (ou **Brizéa Inc.**), une entreprise canadienne spécialisée dans la **fabrication de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "localite",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Aubelys est un personnage de fiction qui apparaît dans plusieurs œuvres de fantasy, notamment dans la série de fantasy *Le Mysterious Journey* de l'auteur *Terry Pratchett*. Il est un personnage de fantasy qui apparaît dans plusieurs œuvres de fantasy, notamment dans la série de fantasy *Le Ménage à",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Aubelys est un personnage fictif de la série de jeux vidéo **« **The Legend of Zelda: Ocarina of Time** »**. Il est un personnage de la **histoire de la série** et est le **fils de Luma**, un des personnages principaux de la série. Aubelys est un personnage de **type « fantôme »** et est le **prem i",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Aubelys est un personnage de fiction qui apparaît dans la série de bande-annonce de la série télévisée *Le Coup de grâce* (2013-2016). Il est un personnage de fiction, un homme de science et de technologie, et il est souvent utilisé comme une figure de réflexion sur l'avenir de la science et des écr",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "entreprise de démonstration et de fabrication de produits de décoration et d'art électronique, spécialisée dans les produits de design et d'art électronique, dont la marque est « Aubelys ».",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "non précises",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "Aubelys est une entreprise suisse fondée en 1997 par des ingénieurs et techniciens de l'industrie de l'information. Elle est spécialisée dans la conception, la fabrication et la commercialisation de produits électroniques et de périphériques informatiques. Ses principaux produits incluent des compos",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "lieux",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de lieu",
+      "precisions": "0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "personnage de fantasy, inventé par un auteur ou une communauté en ligne, souvent lié à une mythologie ou une histoire fantastique",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Vaelys est un personnage de fantasy qui figure dans la série de livres de l'auteur anglais Patrick Rothfuss, connue sous le nom de *Le Trésor des Temps Inconnus* ( *The Wheel of Time* ). Il est un des sept chefs des Cie (les sept princes de l'Empire des Temps Inconnus). Vaelys est le chef de l'Empir",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "informatique",
+      "precisions": "non précises",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "entreprise de fabrication et commercialisation de vêtements de sport et de mode, basée à Vaelys, en France.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "non précises",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de plante",
+      "precisions": "Nérilia est une plante annuelle, originaire des régions tropicales du sud du continent américain, notamment du Mexique et de l'Amérique du Sud. Elle est souvent cultivée en pots, notamment en été, pour ses fleurs colorées et parfumées. Le nom « Nérilia » vient du nom latin « Nerilus », qui désignait",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "Nérilia est un nom propre français, désignant une espèce de plantes à fleurs de la famille des Acanthacees. Elle est également connue sous le nom de 'nérile' ou 'nérile'. C'est une plante gréco-romaine, originaire de la Grèce et de la Macédoine, et elle a été cultivée par les Romains. Elle est réput",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "botanique",
+      "precisions": "Nérilia est un genre de plantes à fleurs appartenant à la famille des Acanthaceae. Ces plantes sont souvent appelées « fleurs de l'été » ou « fleurs de printemps » en fonction de leur période de flowering. Elles sont originaire de l'Afrique et de l'Afrique de l'ouest. Les espèces de Nérilia sont par",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "botanique",
+      "precisions": "moyenne ou faible",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "non précises",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autres",
+      "precisions": "pas de précision suffisante",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "film",
+      "precisions": "film de 1964, réalisateur : Robert Bresson, scénariste : Robert Bresson, réalisateur et scénariste, stars : Jean-Pierre Cassel, Édith Piaf, Jean Gaultier, réalisateur et scénariste, film de drama, réalisé par Robert Bresson, scénario par Robert Bresson, film de 1964, réalisé par Robert Bresson, scén",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "question",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Ostrane est un personnage de fiction qui apparaît dans la série de BD *Le Petit Prince* de Saint-Exupéry. Elle est la sœur de Prince et la plus jeune de la famille. Elle est souvent représentée en tant que personnage mignon, doux et bienveillant, avec un regard de curiosité et de fascination.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Ostrane est un personnage de fantasy et de légende populaire, connu dans les récits et les histoires de fantasy, notamment dans les contes et récits de légende. Il est souvent présenté comme un personnage malfaisant, vengeur ou un gardien de la mémoire des anciens. Il est fréquemment décrit comme un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Ostrane est un personnage de fiction, principalement connu dans le univers de la série télévisée *Tous les grands vilains* (French version: *Tous les grands vilains*), produite par la société France 3. Il est un personnage de fantasy, créé par Jean-François Doyon, et il est le chef du groupe des ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "film",
+      "precisions": "film de science fiction de 1963, réalisé par George Méliès, avec des effets visuels très innovants pour l'époque, et il est le premier film à utiliser des effets visuels en 3D. Il est réalisé en collaboration avec le magnat de la télévision américain Fred Flintersmith, et il est commercialisé par la",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "film",
+      "precisions": "1995, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeunet, réalisateur: Jean-Pierre Jeuné",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "film",
+      "precisions": "oustrane est un film de fiction français sorti en 2013. Il est produit par le studio de cinéma francophone « La Manufacture » et distribué par « Lions Gate » (Canada) et « Sony Pictures Releasing » (États-Unis). Le film est réalisé par Pierre Bonnaud et scénarisé par Jean-Pierre Jeunet, inspiré du *",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "culture",
+      "precisions": "Ostrane est un film réalisé par le réalisateur francophone Jean-Pierre Jeunet, sorti en 1995. Il est un des plus beaux films de fiction français du XXe siècle. Le film est produit par la société de production de Jean-Pierre Jeunet, qui est également le réalisateur, et est distribué par la société de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Kaliré est un personnage de fiction, principalement connu dans la série télévisée *Harcœur* (ou *Harcœur* en français). Il est un personnage de fiction créé par le réalisateur et producteur du show, Hervé Villemin. Il est un personnage de fiction et n'est pas un personnage réel. Il est un personnage",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Kaliré est un personnage de fantasy et de légende, souvent associé à la mythologie africaine, notamment au contexte de la légende du Père Noël. Il est un dieu des forêts et des rivières, représentant l'harmonie entre la nature et les forces de la nature. Il est souvent lié à l'eau et à la croissance",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Kaliré est un personnage de fiction, principalement connu dans le univers de la bande-annonce de la série télévisée *Dora the Explorer*. Il est un personnage de type « moutarde » (un type de mammifère), créé par les animateurs de *Dora the Explorer*, et il est souvent utilisé dans les bande-annonces",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Le terme « Kaliré » est un nom d'homme, un personnage fictif, qui figure dans les récits de l'écrivain algérien et écrivain de fiction **Zine El-Abidine Benni**. Il est un personnage de fantasy et de science-fiction, souvent utilisé dans ses œuvres comme un personnage de fiction. Il n'est pas un réd",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "fabricant et commercialisateur de produits de beauté et de soins personnels, notamment de la marque Kaliré, qui est une marque de produits de beauté, de soins de la peau et de cosmétiques. La marque est fondée en 2007 par un groupe de producteurs de cosmétiques, et elle commercialise ses produits àl",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "pas_de_preavis",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "question de savoir",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "2",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Tessaly est un personnage de fiction, principalement connu dans le monde des jeux vidéo et de la culture populaire. Il est le personnage principal de la série de jeux vidéo « Tessaly » créée par le développeur français **Yannick Lévy**. La série se déroule dans un monde fantastique où Tessaly, un gé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "intermédiaires",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Tessaly est une personnage de fiction, joué par l'acteur français Pierre Bernac. Il est le narrateur principal de la série télévisée 'Tessaly', créée par l'acteur lui-même. La série se déroule dans le monde de la musique et de la culture en France, et explore les thèmes de la création, de l'art et d",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "question_de_savoir",
+      "precisions": "Tessaly est un terme qui peut avoir plusieurs significations selon le contexte. En tant que nom de produit, Tessaly est une marque de parfum qui a été commercialisée par la société **Tessaly**. Cette marque a été fondée en 2002 par **Pierre Guillaume**, un homme de commerce. Tessaly est connue pour其",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "0.01",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "question de savoir",
+      "precisions": "exacte",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Orvaline est une marque de produits de beauté et de soin. Elle propose des produits pour la peau, le corps et le cheveux, tels que les crèmes, les serums, les shampoins, etc. La marque est connue pour sa recherche de produits naturels et sans additifs. Orvaline est une marque de la société French Bi",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "autres",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "incertain",
+      "categorie": "",
+      "precisions": "(prediction aborted, token repeat limit reached (status code: 500))",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de produit",
+      "precisions": "100% sure, il s'agit d'une marque de savon bio et naturel, spécialisée dans les produits à base de plantes et de l'huile de soja. Les produits Orvaline sont certifiés bio, sans additifs ni parfums synthétiques, et ils sont conçus pour être doux, naturel et bien faits. Elles sont populaires pour leur",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "marque",
+      "precisions": "« orvaline » est une marque de produits de décoration et de fournitures pour l'industrie du bâtiment, conçue et fabriquée par la société **Orvaline**. Cette marque est spécialisée dans la vente de produits de décoration, de peintures, de peintures à l'huile, de peintures à l'huile, de peintures à l'",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "marque",
+      "precisions": "« Orvaline » est une marque de produits de détection et de sécurité, spécifiquement conçue pour la détection de substances dangereuses, comme le méthane, le gaz naturel, le propane, etc. Elle est fabricée et commercialisée par la société **Orvaline**, une entreprise américaine fondée en 1991. Cette熾",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "marque de débile",
+      "precisions": "non précises",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "marque",
+      "precisions": "« orvaline » est une marque de production et de distribution de produits de la santé et de la beauté, spécialement conçus pour les hommes et les hommes de sexe. La marque est fondée en 1988 par des entrepreneurs américains, et elle est actuellement commercialisée par la société « Orvaline Inc. », un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot en tortue",
+      "precisions": "kalmérine est un mot en tortue, qui est un mot composé de deux mots : 'kalm' et 'érine'. Le mot 'kalm' est une variation de 'kalm' (un type de peau de chameau en Égypte), et 'érine' est une forme de 'érine' (un type de légume en Egypte). Le mot 'kalmérine' est donc un mot en tortue qui se compose de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de domaine",
+      "precisions": "kalmérine est un nom de domaine qui n'est pas régulièrement utilisé ou référencé dans la plupart des sources officielles. Il peut être associé à des sites web ou contenus en ligne, mais il n'est pas très connu ou utilisé de manière générale. Il pourrait être un nom de domaine personnalisé ou un site",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "0%, 0%",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "0.0",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom de produit",
+      "precisions": "Le terme « kalmérine » est en réalité une dérivation du mot « kalmar », qui est le nom d'une ville de Suède. Cela signifie que « kalmérine » est une dénomination historique ou géographique, utilisée dans certains contextes, notamment dans l'histoire de la Scandinavie. Il n'y a pas de produit ou de v",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom de produit",
+      "precisions": "une marque de brosses à dents, créée en 1955 par le fabricant suisse de brosses à dents, **Dentrix**. La marque **Kalmérine** est une marque de brosses à dents produite par **Dentrix**. Elle est connue pour sa formulation spéciale et son design élégant, idéal pour les personnes qui recherchent un ém",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "produit de la marque Kalmérine, fabriqué en France, commercialisé par la société Kalmérine en tant que marque dépendante de la marque France Telecom. Il s'agit d'un produit électronique de type portable, conçu pour les utilisateurs de téléphonie mobile. La marque Kalmérine est une marque de France,涎",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "n/a",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de domaine",
+      "precisions": "Le terme « tessiflore » est un nom de domaine qui n’est pas très connu dans le monde entier. Il ne correspond pas à une entreprise, une organisation ou une institution reconnue. Il peut être utilisé comme nom de domaine par des particuliers ou des entreprises qui veulent créer un site web personnali",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de domaine",
+      "precisions": "tessiflore est un domaine web qui propose des informations et des ressources sur la tessification, c'est-à-dire la transformation des sols et des terrains pour l'agriculture ou l'urbanisme.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de domaine",
+      "precisions": "ne pas comprendre",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom de domaine",
+      "precisions": "le mot 'tessiflore' n'est pas un mot courant ou un mot de domaine standard. Il peut être une combinaison de mots qui n'ont pas de sens courant. Il pourrait s'agir d'une création personnelle, d'un site web, d'une entreprise, ou d'un terme spécifique dans un contexte particulier.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "entreprise de production de textiles et de tissus, basée à Béziers (France), fondée en 1938 par Jean-Pierre Léon. Elle produit des tissus de qualité, notamment des drapets, des tapis, des vêtements, et des accessoires. Elle est membre de la Fédération Française des Industries Textiles (FFIT) et du G",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "entreprise",
+      "precisions": "souvent associé à des produits de beauté et de décoration, notamment des paillettes en verre, des accessoires de décoration, et des produits de soins de la peau. La marque est connue pour sa qualité et sa design, et elle est basée en France.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "Il est possible que « tessiflore » soit une erreur de transcription ou une déformation de l'expression « tessiflore » (une variante de « tessiflore » ou « tessiflore »). Cependant, sans plus de contexte, il est difficile de déterminer précisément ce que cela désigne. Il est possible qu'il s'agisse d",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "« tessiflore » est un nom de produit qui pourrait être associé à des textiles ou des accessoires en tissu, mais il n'y a pas de données précises sur sa fabrication ou son commercialisation. Il est possible qu'il soit un nom de marque ou d'une collection de tissus, mais sans plus de contexte, il est難",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "nacrelle est un nom propre français, nom d'une femme, inventée par le romancier Émile Zola dans son roman 'La Bête à mi-chemin' (1877). Elle est une personnage de fiction, représentant une femme parfaite, parfaite dans ses qualités, mais malheureuse, car elle est isolée et ne trouve pas de compris. ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "100%",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "nacrelle est une personnage féminin dans le roman de Guy de Maupassant, « Le Méridional ». Elle est l'amante du comte de Bovigné et une figure centrale du roman. Elle est célèbre pour sa noblesse, sa beauté et sa nature émotionnelle. Elle est souvent présentée comme une personnage complexe, avec des",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "nacrelle est un personnage de fiction, créée par le romancier Émile Zola, dans son roman 'L'Education sentimentale' (1875). Elle est l'amante du personnage principal, Étienne Pontmerle, et est souvent décrite comme une femme de caractère, évolutive et complexe. Elle est également connue pour son énû",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "La phrase « nacrelle » ne désigne pas un personnage réel. Elle est probablement une erreur de typographie ou une confusion avec un autre nom. « Nacrelle » pourrait être une variante ou une erreur de nom, et ne correspond pas à un personnage célèbre dans la culture populaire. Il n'y a pas de personne",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "nom propre d'une personne ou d'une entité, peut être une marque ou un personnage fictif.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom de personne",
+      "precisions": "nacrelle est un nom de personne, d'origine latine, et signifie « qui se repose » ou « qui se reposes » en français. Elle est devenue une forme féminine de « nacrèle », une forme de la lettre « n » qui signifie « ne » en français. La « nacrelle » est donc une femme, et elle est devenue un nom de rôde",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:1.7b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "nacrelle est une marque de produits cosmétiques et de cosmétiques, fabriqués par la société Nacrelle, une entreprise basée en France. Celle-ci est spécialisée dans la production de produits pour la beauté, notamment des produits de soin et des cosmétiques. Nacrelle est connue pour sa gamme de cosmét",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personne",
+      "precisions": "Zelvane n'est pas une personne connue dans le domaine public ou historique. Il pourrait s'agir d'un nom propre peu connu, d'un personnage fictif, ou d'une référence spécifique à un domaine restreint (ex : un personnage de fiction, un personnage d'un jeu vidéo, un personnage d'une œuvre littéraire, d",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage de fiction",
+      "precisions": "Zelvane n'est pas un personnage de fiction connu dans le domaine littéraire, cinématographique ou même dans les jeux vidéo. Il est possible que ce soit un nom utilisé dans un contexte spécifique, un jeu vidéo non répandu ou un personnage d'un projet en cours de développement. Cependant, sans plus de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "Aucune information spécifique sur Zelvane n'est disponible dans mes données. Cela pourrait être un nom propre, une personne, un lieu, un produit, etc., mais sans plus de contexte, je ne peux pas fournir d'informations précises.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personne",
+      "precisions": "Zelvane n'est pas une personne connue dans les sources historiques, culturelles ou scientifiques courantes. Il est possible que ce soit un nom d'usage privé, un pseudonyme, ou un nom d'une entité spécifique dans un contexte très restreint. Si vous avez un contexte spécifique en tête, je peux essayer",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "D'après les informations disponibles, le terme « Zelvane » n'est pas couramment utilisé dans le contexte technique ou commercial. Il est possible que ce soit un nom propre ou un terme spécifique à un domaine très restreint. Sans plus de contexte, il est difficile de préciser exactement de quoi s'agı",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Zelvane est un produit commercialisé par la société Zelvane, qui est une entreprise française spécialisée dans la fabrication de produits de santé et de bien-être. Le produit Zelvane est un complément alimentaire qui contient des extraits de plantes et des substances naturelles, principalement pour促",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "biologie",
+      "precisions": "Zelvane est un produit chimique utilisé dans la fabrication de médicaments, principalement pour la production de certains antibiotiques. Il est fabriqué par des entreprises spécialisées en chimie pharmaceutique. Le nom « Zelvane » n'est pas couramment utilisé dans le domaine médical, ce qui suggère,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "non",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss n'est pas un personnage connu dans la littérature, le cinéma, la musique ou d'autres domaines culturels courants. Il se pourrait que ce soit un pseudonyme, un nom d'usage dans un contexte spécifique, ou une erreur de frappe. Si vous avez une source ou un contexte particulier où Haly: s'est én",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss n'est pas un personnage connu dans la littérature, les œuvres scientifiques, les traditions culturelles ou les domaines historiques courants. Il est possible que ce soit un personnage d'une œuvre littéraire ou fictive peu connue, ou un pseudonyme utilisé dans un contexte spécifique, mais sans",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "Halyss n'est pas un terme courant ou un nom connu dans les domaines des langues, des sciences, des technologies, de l'histoire, des arts ou des sciences sociales. Il est possible que ce soit un nom personnel ou un pseudo utilisé par une personne spécifique, ou un nom d'un projet, d'une marque, d'unJ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Halyss n'est pas un personnage connu dans l'ensemble des œuvres littéraires, scientifiques ou historiques. Il est possible qu'il s'agisse d'un personnage d'une œuvre littéraire, d'un jeu vidéo, d'un jeu de rôle, ou d'un personnage fictif d'un projet personnel ou peu connu. Sans plus de contexte, il'",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "détails sur la nature du produit, ses usages, et son fabricant ou commercialisateur spécifiques (si applicable). Si l'objet est un terme technique ou un code, on doit préciser ce que cela représente dans ce contexte (ex. : si c'est un modèle de voiture, le modèle spécifique). Si l'objet est une œuvr",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "technologie",
+      "precisions": "Halyss est un terme qui n'est pas couramment utilisé ou reconnu dans le domaine technologique. Il est possible que ce soit une erreur de frappe ou un terme spécifique dans un contexte particulier. Sans plus de contexte, il est difficile de préciser ce que cela signifie ou qui le fabrique. Dans le ci",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "biologie",
+      "precisions": "Halyss est un genre de moustique (insecte), appartenant à la famille des Culicidae. Il existe plusieurs espèces de Halyss, dont la plus connue est Halyss latreilli. Les moustiques du genre Halyss sont généralement des vecteurs de maladies, mais ils ne sont pas les vecteurs principaux de la malaria,毋",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Halyss est un terme utilisé dans le contexte de la santé mentale et de la gestion des émotions. Il s'agit d'un outil numérique conçu pour aider les personnes à gérer leur stress, leur anxiété et d'autres troubles émotionnels. Il est principalement utilisé par des applications mobiles ou des platefms",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commun",
+      "precisions": "Corvalie est un nom de famille et peut désigner plusieurs personnes, mais il n'existe pas de personnes célèbres ou de personnages majeurs associés à ce nom. Il est possible que ce soit un nom rare ou utilisé dans un contexte local. Si vous cherchez une personne spécifique, vous devrez peut-être préc",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "Corvalie est un nom propre français qui peut désigner une personne ou un lieu. Cependant, il n'existe pas d'information spécifique et significative sur ce nom dans les bases de données publiques ou les sources connues. Il pourrait s'agir d'un nom d'usage courant, d'un nom d'entreprise, ou d'un nom d",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom",
+      "precisions": "Corvalie est un nom de famille ou un prénom français. Il n'existe pas de personnage connu ou de lieu célèbre portant ce nom. Cependant, ce nom pourrait être utilisé dans un contexte personnel ou fictionnel.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_de_personne",
+      "precisions": "Corvalie n'est pas un nom courant en français. Il est possible que ce soit un nom de personne ou un nom de lieu, mais il n'est pas connu comme un nom commun ou un lieu célèbre. Dans le contexte français, les noms de personnes peuvent être unis ou composés, mais Corvalie n'apparaît pas dans les bases",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit alimentaire",
+      "precisions": "Corvalie est un produit alimentaire qui contient du jus de citron et de la moutarde, utilisé pour le traitement des troubles digestifs. Il est fabriqué par la société « Corvalie », qui est une entreprise française spécialisée dans la production de médicaments et de produits alimentaires. Le produit ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le nom « Corvalie » n'est pas un produit connu dans le domaine des cosmétiques ou des produits de santé. Il est possible que ce soit un nom propre ou un produit moins connu, ou une marque spécifique. Cependant, il n'y a pas de référence claire à un produit ou une marque appelé « Corvalie » dans les域",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "nom d'un produit",
+      "precisions": "Corvalie est une marque de produits médicaux en poudre destinés à la prévention et le traitement de certaines maladies. Il est fabriqué par la société française de pharmacie AstraZeneca, mais cette information est incorrecte. La société française qui fabrique et commercialise Corvalie est en réalité",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit alimentaire",
+      "precisions": "Corvalie est un produit alimentaire qui se présente sous forme de barres de céréales ou de bâtonnets de céréales. Il est fabricé par la société Belco, qui est une entreprise belge spécialisée dans la production de céréales et de produits alimentaires. Le produit est commercialisé en Europe, principa",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "localite",
+      "precisions": "Brizéa est un quartier de la ville de Saint-Étienne en France. Il est situé dans le département de l'Rhône, à environ 10 km de Lyon. Il est connu pour son histoire rurale et ses caractéristiques géographiques spécifiques, comme la présence de champs et de petites rivières. Il est également un centre",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commune",
+      "precisions": "Brizéa est un nom propre qui pourrait correspondre à plusieurs entités, mais je ne connais pas précisément de lieu, personne ou objet nommé 'Brizéa'. Il est possible que ce soit un nom d'usage local ou une référence spécifique dans un contexte très restreint. Je ne peux pas fournir d'informations dé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "lieu",
+      "precisions": "Brizéa est une commune française située dans le département du Gard, en région Languedoc-Roussillon. Il s'agit d'une petite localité en France, probablement peu connue du grand public. Il est possible que ce soit un nom propre ou un nom d'endroit local.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "noms de lieux",
+      "precisions": "Brizéa est un lieu géographique qui peut correspondre à plusieurs localités en France. Cependant, il est important de préciser que « Brizéa » n'est pas un nom de lieu courant et peut être confondu avec d'autres noms similaires comme « Brizé » (un quartier de Lille) ou « Brize » (un village en France",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "brizéa est un produit connu et vendu en france, mais il existe plusieurs produits qui partagent ce nom. il est important de préciser que brizéa n'est pas un produit courant mais un produit artisanal ou semi-industriel utilisé dans l'industrie alimentaire ou la fabrication de produits de consommation",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "brizéa est un produit alimentaire fabriqué en france, il s'agit d'un pain ou d'un biscuit qui est spécifiquement conçu pour être consommé avec du lait et des fruits. il est traditionnellement produit dans les régions de la france, notamment dans les pays de la haute normandie et du centre-ouest. il ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "entreprise",
+      "precisions": "Brizéa est un modèle de drone de surveillance ou de surveillance, utilisé principalement dans les domaines de la sécurité, de l'industrie ou de la gestion des infrastructures. Il est fabriqué par une entreprise spécialisée dans la fabrication de drones de surveillance. Selon les informations, il s'«",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "dans le domaine des technologies de l'information et de la communication, le terme 'Brizéa' n'est pas un produit ou un système connu. Il pourrait s'agir d'un nom propre ou d'un terme utilisé dans un contexte spécifique mais peu courant. Il est possible que ce soit une erreur de frappe ou un terme ab",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "noms de personnes",
+      "precisions": "Aubelys est un nom de personne utilisé dans le domaine des noms d'hommes en français. Il s'agit d'un nom relativement rare et peut être associé à des noms similaires comme Aubrey, Aube, ou Aubin. Cependant, il n'est pas courant dans l'usage quotidien et ne correspond à aucun personnage historique ou",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom commun",
+      "precisions": "Aubelys n'est pas un terme courant en français. Il est possible que ce soit une erreur ou une variante peu courante. En français, les noms de personnes ou de lieux peuvent être similaires mais il n'y a pas de lieu ou de personne connu sous ce nom. Si vous cherchez à parler de 'Aubélys' (un mot en hé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commun",
+      "precisions": "Aubelys",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_proper",
+      "precisions": "Aubelys n'est pas un nom propre connu dans les langues courantes. Il pourrait s'agir d'un nom personnel, d'un lieu rares, ou d'un terme technique spécifique. Si c'est un nom d'une personne, il est possible que ce soit un nom de famille ou un prénom, mais il n'est pas répandu. Il pourrait également s",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "dans le contexte de la question, c'est un produit commercialisé par des entreprises spécialisées en alimentation ou en produits naturels. La marque 'Aubelys' n'est pas très courante, mais il existe plusieurs entreprises qui utilisent ce nom ou des variations similaires. Il est possible que 'Aubelys'",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "nouvelle_ou_produit",
+      "precisions": "Aubelys est un produit de la marque « Aubelys » qui est un médicament utilisé pour traiter les troubles de l'attention et de l'hyperactivité (TDAH) chez les enfants. Il est fabriqué par le laboratoire français « Aubelys » (souvent appelé « Aubelys Pharma » ou « Aubelys Laboratories »). Le médicament",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Aubelys est un système de gestion de données pour les utilisateurs de l'industrie des biens immobiliers et de la construction. Il permet de gérer les données des clients, les transactions, les contrats, etc. Le système est développé par l'entreprise AUBELYS, qui est une entreprise française spéciali",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "autre",
+      "precisions": "Aubelys est une marque de produits de santé et de bien-être qui propose des solutions pour améliorer la qualité de vie, en se concentrant sur la santé mentale, le bien-être émotionnel et la résilience. Le fabricant est une entreprise belge appelée Aubelys, qui est une société de santé mentale et de.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage_fictif",
+      "precisions": "Je n'ai pas d'information spécifique sur un personnage ou concept appelé « Vaelys ». Il est possible que ce soit un personnage fictif de quelque univers fictif, un pseudo, ou un terme utilisé dans un contexte particulier que je n'ai pas d'informations. Si vous avez plus de détails, je pourrais essuy",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commercial",
+      "precisions": "Je ne connais pas de marque ou produit nommé 'Vaelys'. Cependant, il est possible que ce soit un nom propre ou un terme utilisé dans un contexte spécifique (comme un jeu vidéo, une entreprise, un projet artistique, etc.) que je n'ai pas dans mes données d'entraînement. Si vous avez un contexte suppl",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage_fantastique",
+      "precisions": "Je ne connais pas le terme « Vaelys ». Cependant, il est possible que ce soit un nom propre utilisé dans un contexte spécifique, comme un personnage fictif dans un livre, un jeu vidéo, ou une autre œuvre d'art. Sans plus de contexte, je ne peux pas fournir d'informations précises sur ce terme.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_jeu",
+      "precisions": "Je ne connais pas spécifiquement « Vaelys » en tant que nom propre ou personnage dans un jeu. Cependant, il est possible que ce soit un nom utilisé dans un jeu ou une œuvre fictif que je ne dispose pas de l'information. Si vous cherchez un personnage ou un jeu spécifique, vous pourriez vouloir précé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "technologie",
+      "precisions": "Valeur de la réponse pour 'connu' est 'non' (pas de données connues sur ce sujet). Il est possible que 'Vaelys' soit un nom de domaine, un produit ou un projet spécifique. Sans plus d'informations, il est difficile de préciser ce que c'est ou qui le fabrique. Il est recommandé de vérifier les résems",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "information",
+      "precisions": "1. Le nom « Vaelys » n'est pas un terme courant ou un produit connu dans le domaine des technologies, des biotechnologies ou des produits pharmaceutiques. \n2. Il est possible que « Vaelys » soit un nom propre ou un terme spécifique utilisé dans un contexte particulier (par exemple, un nom d'entité, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "technologie",
+      "precisions": "n/a",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "technologie",
+      "precisions": "nouvelle technologie de communication, communication à longue distance, énergie renouvelable, technologie de communication quantique, dispositif photonique, portail temporel, réseau de communication quantique, technologie de communication par photons, énergie solaire, énergie éolienne, énergie hybrï",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Nérilia n'est pas un personnage connu dans la littérature ou les sciences. Il se pourrait que ce soit un personnage fictif ou une référence à un personnage peu connu. Cependant, après avoir vérifié plusieurs sources, il n'y a pas de personnage célèbre ou historique nommé Nérilia. Il pourrait s'agir,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_propre",
+      "precisions": "je ne connais pas ce nom, il n'est pas dans mes données ou il pourrait s'agir d'un nom d'usage courant ou d'un personnage fictif que je ne connais pas",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commun",
+      "precisions": "Nérilia n'est pas un nom commun en français. Il s'agit probablement d'une personne ou d'un nom propre moins courant. Si vous faites référence à un personnage, un lieu, ou une autre entité, veuillez préciser.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Nérilia n'est pas un personnage connu dans les œuvres littéraires ou historiques importantes. Il se pourrait que ce soit un nom propre utilisé dans un contexte restreint, comme un personnage d'une œuvre littéraire récente, un personnage fictif dans une série de jeux vidéo, ou un nom utilisé dans un斡",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Nérilia est un produit connu de manière générale, mais il est important de vérifier les sources et les informations précises. Il est possible que ce soit un produit de marque ou un produit générique avec des noms variés. Cependant, sans plus d'informations, il est difficile de préciser exactement ce",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "de quoi s'agit-il exactement, et qui le fabrique ou le commercialise ?",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "falses informations",
+      "precisions": "La marque « Nérilia » n'est pas un produit connu dans le domaine des produits alimentaires ou des cosmétiques. Il est possible que ce soit une marque d'entreprise ou un produit spécifique dans un domaine plus restreint (comme la technologie, les services, etc.), mais sans plus de contexte, il est im",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "nérilia - de quoi s'agit-il exactement, et qui le fabrique ou le commercialise ?",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom d'une langue",
+      "precisions": "Ostrane est une langue inventée par le groupe de recherche 'Ostrane' (Ostrane Project) en 2000, mais il n'existe pas d'information précise sur cette langue. Il pourrait s'agir d'une langue fictive ou d'un projet de langues inventées (univers de langues)",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "langue ou culture",
+      "precisions": "Ostrane est un terme qui n'est pas couramment utilisé dans le domaine linguistique ou culturel actuel. Il pourrait s'agir d'un mot étranger, d'un terme technique spécifique, ou même d'un terme utilisé dans un contexte littéraire ou artistique. Sans plus de contexte, il est difficile de préciser ce à",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "langue",
+      "precisions": "Ostrane est un langage créatif et inventé qui n'existe pas dans la réalité. Il est souvent utilisé dans des jeux de langues, des créations littéraires ou des projets d'art numérique. Le terme 'Ostrane' peut également être une référence à des projets spécifiques ou à des œuvres artisanales, mais dans",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "langue",
+      "precisions": "Ostrane n'est pas une langue que je connais. Il se pourrait que ce soit une langue créée pour un projet spécifique, ou peut-être une erreur de frappe. Par exemple, il y a une langue créée appelée 'Ostran' (en anglais 'Ostran' ou 'Ostrane' selon la transcription), mais j'ai besoin de vérifier.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Ostrane est un terme utilisé dans le domaine des produits cosmétiques et de la biologie pour désigner un type de produit ou d'ingrédient spécifique. Cependant, le terme « Ostrane » n'est pas un terme officiel ou standardisé dans les réglementations internationales. Il pourrait s'agir d'un terme génè",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "environnement",
+      "precisions": "Ostrane est un produit chimique utilisé principalement dans l'industrie de la pétrochimie. Il est un composé organique contenant du carbone, de l'hydrogène et de l'oxygène, souvent utilisé comme solvant ou pour la production de matériaux. Il est fabriqué par des entreprises spécialisées dans la chim",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "« Ostrane » est une marque de produits cosmétiques pour les mains et les pieds, vendue par la société française « Ostrane » (société de fabrication et de commercialisation). Leur produit principal est une crème pour les mains qui permet de réduire les rides et les rides, ainsi que des produits pour濯",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "technologie",
+      "precisions": "1. Ostrane est un terme utilisé dans le domaine de la technologie et de l'analyse de données pour désigner un type de données ou une information non conventionnelle ou peu structurée.\n2. Il n'existe pas de produit ou de marque spécifique appelé « Ostrane » dans le marché commercial.\n3. Le terme « O锶",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_geographique",
+      "precisions": "Kaliré n'est pas un terme familier ou courant en français. Il est possible que cela soit une erreur de frappe ou une localisation peu connue. Il pourrait s'agir de Kalahari (sahel) ou de Kalé (en France), mais ces termes sont différents. Il est également possible que ce soit une localisation de la G",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_commun",
+      "precisions": "Kaliré n'est pas un terme couramment utilisé en français ou dans des contextes culturels connus. Il pourrait s'agir d'un nom propre (personnage, lieu, etc.) ou d'un terme spécifique dans un domaine restreint (ex. : un nom de personnage dans une œuvre littéraire, un nom de lieu dans une langue étrang",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom propre",
+      "precisions": "Kaliré est une localité en République Démocratique du Congo. Il est situé dans la province de Kasai-Oliver. Kaliré est une commune rurale avec une population d'environ 500 habitants.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_propre",
+      "precisions": "Kaliré est un nom propre qui pourrait désigner plusieurs choses : - Un lieu géographique (par exemple, un village ou une région en Afrique) - Un personnage fictif - Un nom d'entreprise ou d'organisation - Un terme technique ou un concept spécifique dans un domaine précis. Sans plus de contexte, il n",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "de quoi s'agit-il exactement, et qui le fabrique ou le commercialise ?",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "oui",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "technologie",
+      "precisions": "Calibration de l'oxygène dans l'air pour les personnes souffrant de troubles du rythme cardiaque ou d'insuffisance cardiaque, pour les personnes qui utilisent des dispositifs médicaux comme les pompes à sang ou les implants cardiaques. Les dispositifs médicaux comme les pompes à sang ou les implants",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "oui",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "littérature",
+      "precisions": "Tessaly est une ville de la Grèce antique, mais il n'est pas clair si l'on s'attache à cette réponse, car le terme 'Tessaly' peut aussi être utilisé dans d'autres contextes (par exemple, un autre pays ou un concept lié à la géographie). Il est également possible que l'utilisateur désigne un autre él",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "geographie",
+      "precisions": "Tessaly (en grec : Θεσσαλία) est une ancienne région grecque qui s'étendait dans l'actuelle Thessalie (Grèce). Elle a été une région importante dans l'histoire grecque, notamment pour son rôle dans la culture et la politique antique. En grec, elle est connue sous le nom de Thessalie, et elle a été l",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "nom_geographique",
+      "precisions": "pas_de_soin",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "geographie",
+      "precisions": "Tessaly (en grec : Τεσσαλία) était une ancienne région grecque située dans la partie orientale de la Grèce. Elle a été une région importante dans l'histoire grecque, avec des villes comme Thessalonique (Thessalonique) et des cultures propres. En tant que région historique, elle a influencé l'écrit l",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Tessaly est un produit de la société Tessaly, qui est une entreprise française spécialisée dans la production de textiles éco-responsables et de vêtements durables. Leur objectif est de produire des vêtements avec des matériaux durables et respectueux de l'environnement, en utilisant des procédés de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Tessaly est un produit chimique utilisé dans l'industrie textile pour le traitement des fibres. Il est principalement utilisé pour le traitement des fibres de coton, de soie et de laine. Il est produit par l'entreprise française Tessaly SA, qui est une société spécialisée dans la production de réact",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "medecine",
+      "precisions": "Tessaly est un terme qui n'est pas couramment utilisé dans le domaine médical ou scientifique. Il est possible que ce soit une confusion avec un autre terme. Par exemple, en pharmacie, il existe des produits comme \"Tessalon\" (ou TESSALON) qui est un médicament utilisé pour la gestion de la crise de淋",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Tessaly est une marque de produits de soins personnels, principalement en produits de beauté et de santé. Elle est fabricée et commercialisée par la société Tessaly, qui est une entreprise française. La société Tessaly a été fondée en 2014 et est spécialisée dans la production de produits naturels, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "produit chimique",
+      "precisions": "Orvaline est un produit chimique utilisé dans la fabrication de certains types de peintures et de vernis. Cependant, il est important de noter que l'usage et les propriétés exactes peuvent varier selon les applications spécifiques. Si vous avez besoin d'informations plus précises ou si vous avez dûu",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mots sans signification",
+      "precisions": "Orvaline est un terme qui n'est pas couramment utilisé ou connu dans le contexte linguistique standard. Il peut s'agir d'un terme propre (comme un nom de personne, lieu, ou marque) ou d'un mot inventé. Il n'est pas inclus dans les dictionnaires français ou anglais courants.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "produit chimique",
+      "precisions": "Orvaline n'est pas un terme courant en chimie ou en biologie. Il est possible que ce soit une erreur d'orthographe ou un terme spécifique dans un domaine plus restreint (ex: un produit commercial, un nom commun d'un composé). En revanche, le terme « orvaline » n'est pas reconnu dans la chimie comme,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "météorologie",
+      "precisions": "Orvaline est un terme utilisé en météorologie pour désigner une précipitation très légère, souvent associée à des conditions météorologiques spécifiques. Cependant, cette définition peut varier selon les sources et les contextes d'utilisation. Il est possible que cette termine soit moins couramment,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Le terme « orvaline » n'est pas couramment utilisé en français pour désigner un produit spécifique. Il est possible que ce soit une confusion avec le terme « orvaline » en anglais, qui pourrait correspondre à \"orvaline\" (un médicament ou un produit de santé). Ou bien, il s'agit d'un terme utilisé en",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "orvaline est un produit de santé qui permet de réduire la tension artérielle et d'améliorer la circulation sanguine. il est fabriqué par un laboratoire pharmaceutique appelé « orvaline » (en anglais : orvaline pharma) et commercialisé en france sous la forme de comprimés ou de solutions pour la cons",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "pharmacie",
+      "precisions": "Orvaline est un complément alimentaire en vente libre, souvent utilisé pour soutenir la santé digestive et améliorer l'absorption des nutriments. Il est fabriqué par des entreprises spécialisées en compléments alimentaires, notamment en France par l'entreprise « Sodexo » (qui commercialise des marqu",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit pharmaceutique",
+      "precisions": "Orvaline est un produit pharmaceutique qui contient des extraits de plantes et est utilisé comme un complément alimentaire pour améliorer l'absorption de l'acide acétique et le métabolisme des glucides. Il est principalement utilisé pour aider à contrôler le poids et à améliorer la santé digestive. ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "médicaments",
+      "precisions": "kalmérine est un médicament utilisé pour traiter les troubles du sommeil, notamment les troubles du sommeil chez les enfants. Il est en réalité un produit commercialisé par la société pharmaceutique allemande Merck. Il contient de l'acétate de mécénite (mécénite est un composé chimique qui sert à ég",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "medecine",
+      "precisions": "kalmérine est un medicament qui contient du codeine. il est utilisé pour soulager la douleur et les symptômes de la toux. cependant, il est important de noter que le codeine est une drogue controlee et que l'utilisation de ce medicament doit etre sous surveillance medecin. en outre, il existe des al",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "medicament",
+      "precisions": "J'ai été appris que 'kalmérine' n'est pas un nom médical reconnu ou un produit pharmacologique standard. Il est possible que ce soit une erreur d'écriture ou un nom générique pour un autre produit. En français, les termes courants pour des médicaments similaires incluent : \n- Kalmé (un médicament en",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "drogue",
+      "precisions": "kalmérine est un médicament qui contient de la kalmérie (ou kalime) qui est une substance issue de la plante de la kalmérie (Cannabis indica). Elle est utilisée pour ses propriétés relaxantes et pour aider à la sommeil. Il est important de noter que kalmérine est souvent associée à des substances il",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit pharmaceutique",
+      "precisions": "kalmérine est un médicament utilisé principalement pour traiter les troubles de l'apnée du sommeil, notamment les apnées du sommeil chez les personnes âgées ou en situation de santé fragile. Il est composé de différents médicaments (comme le morphine, le codeine, etc.) et est disponible en plusieurs",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "medecine",
+      "precisions": "kalmérine est un médicament utilisé pour traiter les maux de tête (migraines) et les tensions head. Il est composé de plusieurs ingrédients actifs, notamment la paracétamol (ou acetaminophen), le caféine, et d'autres composants. Il est fabriqué par plusieurs entreprises, mais l'une des principales à",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "pharmacie",
+      "precisions": "kalmérine est un médicament dont le nom générique est parfois appelé « kalmérine » (parfois écrit « kalméline »), il s'agit d'un médicament utilisé principalement pour la gestion des troubles du sommeil. Il est souvent utilisé en cas de difficultés à s'endormir ou pour améliorer la qualité du sommei",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit pharmacique",
+      "precisions": "kalmérine est un produit pharmacique utilisé principalement pour traiter les troubles de l'hydratation et les troubles de l'équilibre électrolytique, comme les maladies de la gorge, les maux de tête, les troubles de l'hydratation et les troubles de l'équilibre électrolytique. Il est composé d'antalg",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "botanique",
+      "precisions": "tessiflore n'est pas un terme scientifique reconnu dans la botanique. il est possible que ce soit une erreur de frappe ou un terme utilisé dans un contexte spécifique mais pas dans la science botanique officielle. les termes botaniques courants incluent des noms scientifiques, des classifications ou",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot français",
+      "precisions": "Tessiflore est un mot français qui n'existe pas ou n'est pas couramment utilisé. Il pourrait être un terme technique ou une créature de fiction, mais il n'est pas un mot standard dans le français courant. Il est possible que ce soit une erreur de frappe ou un terme spécifiques à un domaine particulî",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot",
+      "precisions": "Tessiflore n'est pas un mot français courant. Il est possible qu'il s'agisse d'un terme technique ou d'un mot propre. Si c'est un terme technique, je ne le connais pas. Si c'est un mot propre, il pourrait être un nom de personne ou de lieu. Mais en général, ce n'est pas un mot courant en français. ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot",
+      "precisions": "Tessiflore est un mot français qui n'existe pas ou qui est très rare. Il pourrait s'agir d'une erreur de frappe ou d'un mot inventé. Le mot 'tessiflore' n'est pas utilisé dans le langage courant ou dans la langue française. Il est possible que le mot recherché soit 'tessellé' ou 'tesselin', mais 't'",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "technologie",
+      "precisions": "1. Le terme \"tessiflore\" n'est pas un terme couramment utilisé dans le domaine technologique ou scientifique. Il est possible que ce soit une erreur de frappe ou une référence à un concept moins connu. \n2. En français, \"tessiflore\" n'est pas un mot standard. Le mot \"tessera\" (en anglais \"tessera\") a",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "culture",
+      "precisions": "tessiflore est un terme français qui peut désigner un objet ou un concept spécifique. Il est possible que ce soit une erreur de frappe ou un terme peu courant. En français, le terme « tessera » (ou « tessera ») est utilisé pour désigner un petit carré de pierre, de verre, ou de bois utilisé dans l'«",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "produit",
+      "precisions": "Tessiflore est un produit de la société Tessiflore, qui est une entreprise spécialisée dans la fabrication et la commercialisation de produits de santé et de bien-être. Le produit Tessiflore est principalement utilisé dans le domaine de la santé et du bien-être, notamment en tant que supplémental de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "oui",
+      "categorie": "technologie",
+      "precisions": "tessiflore est un terme technique qui fait référence à un type de textile ou de matériau qui est utilisé dans les applications de haute technologie. Cependant, ce terme n'est pas couramment utilisé dans le domaine technique ou industriel. Il est possible que ce soit une confusion avec un autre terme",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot",
+      "precisions": "nacrelle",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot francais",
+      "precisions": "nacrelle n'est pas un mot francais courant. il est possible que ce soit un mot ou une expression que l'on utilise dans une langue spécifique ou un contexte particulier. dans le domaine des langues, il pourrait s'agir d'un terme technique ou d'une expression locale. en outre, il est possible que ce f",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot",
+      "precisions": "nacrelle",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "mot francais",
+      "precisions": "Je ne connais pas ce terme \"nacrelle\" en français. Il est possible que ce soit un mot étranger, un terme technique spécifique, une erreur de frappe, ou un terme utilisé dans un contexte très spécial. Sans plus de contexte, je ne peux pas fournir d'informations précises.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "nom de famille",
+      "precisions": "nacrelle n'est pas un terme courant en français. il pourrait s'agir d'une erreur de frappe ou d'un terme spécifique. les termes similaires en anglais sont 'nacre' (un matériau naturel) ou 'nacelle' (une structure de soutien). en français, 'nacre' est un matériau utilisé pour les bijoux et l'industre",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "technologie",
+      "precisions": "nacrelle est un terme qui n'existe pas dans le domaine technologique ou industriel courant. Il est possible que ce soit une erreur de frappe ou un terme spécifique dans un contexte très restreint. En recherchant, il semble que ce terme pourrait être lié à un produit ou concept très spécialisé, ou un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "medecine",
+      "precisions": "nacrelle est un terme qui n'est pas couramment utilisé ou pourrait être une confusion avec un autre terme. Il est possible que cela puisse s'agir d'un terme de marche, mais dans le domaine médical, il n'est pas connu. Il est possible que le terme soit mal orthographié ou que ce soit un terme utilisé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:4b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "nacrelle n'est pas un terme courant en français. Il pourrait s'agir d'une erreur de frappe ou d'un terme utilisé dans un contexte spécifique. Si on suppose que c'est 'nacre', alors c'est un matériau naturel utilisé pour fabriquer des bijoux, des coquillages, etc. Mais si c'est 'nacrelle', ce n'est é",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Zelvane n'est pas un terme ou un concept connu dans les domaines des sciences, de l'histoire, de la littérature, de la mythologie ou de la culture populaire courante. Il est possible que ce soit un nom propre, un nom de marque, un pseudonyme, ou un terme spécifique à un contexte particulier ou à une",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Zelvane' ne correspond à aucun concept, personnage, lieu ou entreprise bien connu dans le domaine des technologies, des sciences, de la culture populaire ou des affaires mondiales. Il est possible qu'il s'agisse d'un nom propre, d'un terme technique ou d'une référence locale peu connue. Si",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Zelvane n'est pas un nom que je reconnais dans mes données. Il ne correspond à aucun personnage, lieu, concept ou entité célèbre ou bien connue. Si vous avez une information spécifique ou un contexte lié à Zelvane, je serais ravi de l'explorer avec vous.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Zelvane n'est pas un terme ou un nom connu dans le domaine des sciences, de la technologie, de la culture populaire, ou des études historiques. Il n'y a pas de référence connue à une personne, un lieu, un concept ou un objet portant ce nom dans les bases de données ou les sources vérifiables. Si ce ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "non",
+      "precisions": "Le terme « Zelvane » ne correspond pas à un produit, une entreprise ou une marque connue dans le domaine des technologies, des médicaments, des biens de consommation ou des services. Il peut s'agir d'un nom propre, d'un pseudonyme, d'une invention, d'un projet ou d'une référence culturelle ou litté-",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Zelvane est un médicament utilisé pour traiter la maladie de Parkinson. Il contient de la levodopa, un précurseur de la dopamine, qui est converti dans le cerveau en dopamine, un neurotransmetteur essentiel pour le contrôle des mouvements. Zelvane est commercialisé par la société Ipsen, une société ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Zelvane » n'est pas couramment utilisé dans le contexte des produits connus ou des marques reconnues. Il est possible que ce soit un nom propre, un produit spécifique, un nom de marque non largement connu, ou une erreur de frappe ou de dénomination. Si vous pouvez préciser le domaine (par",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Zelvane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Zelvane est un médicament utilisé pour le traitement de la maladie d'Alzheimer. Il est commercialisé par la société Biogen, une entreprise de biotechnologie et de pharmacie basée aux États-Unis. Zelvane contient le principe actif lecanemab, qui agit en réduisant l'accumulation de plaques bêta-amyloï",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Halyss' ne correspond à aucun être humain, lieu, concept ou organisation connu dans les sources publiques ou dans mes données d'entraînement. Il est possible que cela soit un nom propre, un nom de code, un pseudonyme, ou une création personnelle. Si vous pouvez fournir plus de contexte, je",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Halyss n'est pas un nom ou un terme connu dans le domaine des sciences, de l'histoire, de la littérature ou de la culture populaire. Il est possible que ce soit un nom propre, un pseudonyme, un nom de marque ou un terme spécifique à un domaine particulier ou à une communauté spécifique. Si vous me l",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Halyss n'est pas un nom que je connais dans le domaine des personnages de fiction, des mythes, des lieux ou des concepts connus. Il est possible que ce soit un nom propre, un personnage de fiction peu connu, un lieu, ou un nom d'entreprise ou d'organisation. Si vous pouvez fournir plus de contexte,如",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Halyss n'est pas un nom ou un terme connu dans les données que je possède. Il est possible que ce soit un nom propre, un pseudonyme, un nom de marque, ou un nom de personnage fictif. Si vous pouvez fournir plus de contexte, je serai ravi de vous aider davantage.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Halyss » n'apparaît pas dans les bases de données ou sources fiables connues, ni dans le domaine des produits pharmaceutiques, cosmétiques, ou technologiques. Il n'y a aucun produit commercialisé sous ce nom, ni aucune entreprise connue sous ce nom. Il est possible que « Halyss » soit un ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Halyss est un produit de soin de la peau développé par la marque Halyss, qui appartient au groupe de cosmétique français L'Oréal. Il s'agit d'un sérum visage, conçu pour nourrir, hydrater et protéger la peau. Les principaux ingrédients incluent de la vitamine E, de la glycérine et des extraits de pl",
+      "marque_reelle": "l'oréal"
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit inconnu",
+      "precisions": "Le terme « Halyss » n'est pas reconnu comme un produit ou une marque spécifique dans les bases de données connues, ni dans les informations disponibles sur le marché international. Il n'y a pas de preuve d'existence d'un produit portant ce nom, ni d'entreprises ou de fabricants connus qui en soient.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Halyss",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Halyss » ne correspond à aucun produit connu sur le marché ou dans les bases de données de produits. Il n'y a pas de produit commercialisé sous ce nom dans les domaines tels que la santé, la beauté, l'alimentation, ou l'électronique. Il est possible que ce soit une erreur de frappe, un né",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Corvalie » ne correspond à aucun lieu, personnage, ou concept connu dans les sources culturelles, historiques, ou scientifiques que je possède. Il pourrait s'agir d'un nom inventé, d'une erreur de frappe, ou d'une référence à quelque chose de très spécifique ou peu connu. Si vous pouvez m",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Corvalie' ne correspond à aucun lieu, personnage, concept ou entité bien connue dans les domaines culturels, historiques, scientifiques ou mythologiques. Il est possible qu'il s'agisse d'un nom propre, d'un mot inventé, ou d'une référence à quelque chose de très spécifique ou peu connu. Si",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Corvalie' n'est pas reconnu comme un lieu, une personne, un événement ou un concept bien établi dans les sources disponibles. Il est possible qu'il s'agisse d'un nom propre, d'un terme peu connu, d'une invention, d'une expression locale ou d'une référence à une œuvre spécifique (comme un é",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Je ne connais pas de lieu, personnage ou concept appelé « Corvalie » dans mes données.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Corvalie » n'est pas reconnu comme un produit ou une marque spécifique dans le domaine des cosmétiques, de la pharmacie ou de la santé. Il est possible que ce soit une marque ou un produit régional, peu connu à l'international, ou qu'il s'agisse d'une erreur de frappe ou d'une confusion. Si",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Corvalie » ne correspond à aucun produit ou marque connue dans le domaine des médicaments, des cosmétiques, des aliments ou des technologies. Il est possible que ce soit une orthographe erronée, un nom de marque inconnu ou une référence à un produit spécifique dans un contexte particulier",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Corvalie est une marque de jeux de société créée en 1985 par la société belge Corvalie NV, basée à Bruxelles. La marque est principalement connue pour ses jeux de rôle et de stratégie, notamment le jeu de rôle « Corvalie » qui s'inspire des légendes et des récits médiévaux. Le jeu se déroule dans un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Corvalie",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Corvalie est un nom de marque utilisé par la société Belvita (précédemment connue sous le nom de Biscuits Belvita) pour désigner une gamme de produits alimentaires, principalement des biscuits. Cependant, le terme « Corvalie » n'est pas un produit spécifique, mais plutôt une marque ou une gamme de g",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Brizéa » n’est pas connu dans le domaine de la mythologie grecque, de l’histoire ancienne ou des figures légendaires. Il pourrait s’agir d’un nom propre, d’un lieu, d’un personnage secondaire ou d’un terme local ou dialectal. Si vous pouvez préciser le contexte dans lequel vous l’avez vu,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "non applicable",
+      "precisions": "Le terme « Brizéa » ne correspond à aucun personnage, lieu, concept ou œuvre connu dans la culture populaire, la littérature, la mythologie ou la science. Il pourrait s'agir d'un nom propre, d'un pseudonyme, d'un nom de lieu ou d'une référence spécifique à un contexte particulier non mentionné. Si c",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Brizéa » n'est pas reconnu comme un nom de personne, un lieu ou un concept bien établi dans les sources connues. Il pourrait s'agir d'un nom propre rare, d'une erreur de frappe, ou d'une référence à un contexte spécifique (littérature, art, etc.) non couramment connu. Si vous pouvez précé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Brizéa » ne correspond à aucun personnage historique, mythologique, ou littéraire connu. Il pourrait être un nom propre, un prénom, ou un terme inventé ou peu connu. Si vous me donnez plus de contexte (par exemple, une œuvre, un lieu, une culture), je pourrais peut-être vous aider davantage",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Brizéa » n’est pas reconnu dans le domaine médical, scientifique ou commercial. Il ne correspond à aucun produit, médicament, ou marque connue. Il est possible que ce soit une erreur de frappe, une dénomination locale, ou un nom de marque peu connu ou non commercialisé. Si vous pouvez ap­",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Brizéa est un produit de soin pour le visage développé par la marque L'Oréal. Il s'agit d'un sérum facial qui vise à réduire les rides et à améliorer l'apparence de la peau. Le produit contient des ingrédients actifs tels que le dioxyde de titane, le rétinol, et des acides hyaluronique et glycolique",
+      "marque_reelle": "l'oréal"
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Brizéa » n'est pas couramment utilisé dans le contexte de produits commerciaux ou industriels connus à l'échelle internationale. Il pourrait faire référence à un produit spécifique, à une marque, ou à un terme local ou régional, mais il n'apparaît pas dans les bases de données de produits",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Brizéa",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "« Brizéa » est un nom de marque associé à un produit cosmétique ou de soin, notamment dans le domaine des produits pour le visage ou le corps. Il s’agit probablement d’une crème, de lait ou de sérum pour le soin de la peau. Cependant, il n’existe pas de produit commercialisé sous ce nom à grande éch",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Aubelys n'est pas un terme ou un nom connu dans le domaine des jeux vidéo, de la littérature, de la science-fiction, ou des personnages mythologiques ou historiques. Il n'y a pas de référence connue à ce nom dans mes données. Si vous avez un contexte spécifique ou une source d'où ce nom provient, je",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Aubelys n'est pas un terme ou un nom connu dans les domaines culturels, scientifiques, historiques, ou technologiques courants. Il n'y a pas de référence notable à ce nom dans les bases de données ou les sources connues.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Aubelys' n'est pas reconnu dans mes données comme un nom de personnage, un lieu, un concept ou un événement historique ou culturel connu. Il est possible qu'il s'agisse d'un nom propre peu répandu, d'un pseudonyme, d'un nom de marque, ou d'une référence à un domaine spécifique (comme la文学,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Aubelys n'est pas un terme ou un nom connu dans mes données. Il ne correspond à aucun personnage, lieu, concept ou entreprise reconnu. Si vous avez un contexte spécifique ou une question liée à ce terme, je serais ravi de t'aider à en explorer le sens ou l'origine.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Aubelys » n'est pas reconnu dans le domaine des produits pharmaceutiques ou des cosmétiques en France ou dans d'autres pays. Il n'y a pas de produit commercialisé sous ce nom qui soit particulièrement connu ou largement distribué. Si vous faites référence à un produit spécifique, un médicel",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Aubelys est un produit de soin pour le visage, principalement destiné aux femmes. Il s'agit d'un masque facial en feuille qui combine des ingrédients actifs pour le soin et le traitement de la peau. Le produit est commercialisé par la marque L'Oréal, qui appartient au groupe L'Oréal, une entreprise ",
+      "marque_reelle": "l'oréal"
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Aubelys » est associé à plusieurs produits ou concepts, mais il n'y a pas de produit commercialisé sous ce nom unique et reconnu à grande échelle. Voici quelques interprétations possibles : \n\n1. **Aubelys** pourrait désigner un produit ou un service spécifique dans un contexte local ou d'",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Aubelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Aubelys est une marque de produits de soin et de beauté lancée en 2016 par la société française L'Oréal. La marque se concentre principalement sur des produits destinés aux femmes, notamment des crèmes hydratantes, des produits de soin pour le visage, des soins pour le corps et des produits de soin.",
+      "marque_reelle": "l'oréal"
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Vaelys » n'est pas associé à un personnage, un lieu ou un concept bien connu dans les cultures, littératures, mythes ou œuvres populaires que je connais. Il pourrait être un nom propre peu répandu, un nom inventé, ou lié à une culture ou une langue spécifique non abordée dans mes données.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Vaelys » ne correspond à aucun personnage, lieu, concept ou entité bien connue dans la culture populaire, la mythologie, la science-fiction, la fantasy, la littérature ou les médias en général. Il pourrait s'agir d'un nom propre peu connu, d'un personnage fictif peu répandu, ou d'une erreur",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Vaelys » ne correspond à aucun personnage, lieu, concept ou fait historique connu dans les sources culturelles, historiques, scientifiques ou littéraires disponibles. Il pourrait s'agir d'un nom inventé, d'une référence personnelle ou d'une dénomination locale peu connue. Si vous avez un éd",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Vaelys » ne correspond à aucun personnage, lieu, concept ou entité bien connue dans les récits, la mythologie, la science-fiction, la fantasy, la littérature ou la culture populaire que je connais. Il pourrait être un nom propre inventé, un nom de personnage dans une œuvre peu connue, ou un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Vaelys » n’est pas reconnu dans le domaine des produits cosmétiques, pharmaceutiques ou des biotechnologies. Il n’y a pas de produit commercialisé sous ce nom connu dans les bases de données des laboratoires ou des entreprises spécialisées. Il est possible que « Vaelys » soit un nom de code",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Vaelys » n’est pas reconnu comme un produit, une marque ou un concept spécifique dans les bases de données, les dictionnaires ou les sources publiques disponibles. Il pourrait s’agir d’un nom propre, d’un nom de produit peu connu, d’un nom de personnage, ou d’un terme utilisé dans un lang",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "« Vaelys » n’est pas un produit ou un terme reconnu dans le domaine des technologies, des médicaments, des produits cosmétiques ou des biens de consommation courants. Il pourrait s’agir d’un nom propre, d’un nom de marque, d’un nom de personnage, ou d’un terme utilisé dans un contexte spécifique (lè",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Vaelys",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Vaelys » n'apparaît pas comme un produit ou marque bien connue dans les domaines courants tels que la technologie, la mode, la santé, l'alimentation ou le divertissement. Il est possible que ce soit un nom propre, un produit niche, un projet en développement, ou un terme utilisé dans un é",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le nom « Nérilia » ne correspond à aucun personnage célèbre, lieu, ou concept bien connu dans la culture populaire, la littérature, la mythologie, ou la science. Il pourrait s'agir d'un prénom, d'un nom de personnage de fiction, ou d'une référence locale ou personnelle. Si vous me donnez plus de dé细",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Nérilia n'est pas une figure historique, mythologique ou culturelle connue dans les sources traditionnelles. Il est possible qu'il s'agisse d'un nom propre, d'une personne ou d'un personnage moins connu, ou peut-être d'une création récente (littéraire, artistique, etc.). Si vous me donnez plus de dé",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Nérilia n'est pas une figure historique, un personnage littéraire ou un lieu bien connu. Il est possible que ce soit un nom de personnage inventé, un prénom, ou une référence à quelque chose de peu connu ou non publiquement documenté. Si vous me donnez plus de contexte, je pourrai peut-être vous ap­",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Nérilia n'est pas un nom connu dans le domaine des personnages de fiction, de la littérature, de la mythologie, ou des œuvres culturelles majeures. Il est possible que ce soit un nom propre peu répandu, un personnage secondaire, ou un nom inventé. Si vous pouvez préciser le contexte (livre, film, œd",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "« Nérilia » est un nom qui n’est pas associé à un produit, une marque ou une entreprise connue dans le domaine des technologies, des médias, ou des produits de consommation courante. Il pourrait s'agir d'un nom de personnage, d'une œuvre littéraire, d'une entreprise fictive, ou d'un projet non divul",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Nérilia est un produit de soin pour le visage, principalement destiné aux peaux sensibles ou sujettes aux irritations. Il s'agit d'une crème hydratante ou d'un gel nettoyant, souvent en format de voyage, conçu pour apaiser et protéger la peau. Nérilia est commercialisé par la marque **Nerilia**, qui",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Nérilia » peut désigner plusieurs choses selon le contexte : 1. **Nérilia (personnage)** : C'est un personnage de fiction créé par la romancière française **Mireille Guillemont**. Elle apparaît dans son roman « Les Échos de Nérilia », publié en 1996. Nérilia est une jeune fille qui vit à ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Nérilia",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Nérilia » désigne un type de bâton de bain conçu pour être utilisé dans la baignade, notamment dans les bassins olympiques ou les piscines de haut niveau. Il permet aux nageurs de tenir une position plus stable et de mieux contrôler leur mouvement dans l'eau. Cet accessoire est utilisé en",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Ostrane n'est pas un terme ou un concept connu dans les domaines historiques, scientifiques, linguistiques ou culturels courants. Il est possible que ce soit une orthographe erronée, un nom propre peu connu, ou une référence à quelque chose de très spécifique ou local. Si vous pouvez fournir plus de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Ostrane » n'est pas reconnu comme un nom de lieu, une organisation, une personne ou un concept bien établi dans les sources connues. Il est possible qu'il s'agisse d'un nom propre, d'un mot rare, d'une erreur de frappe ou d'une référence spécifique à un contexte non largement connu. Si tu",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Ostrane' n'est pas reconnu comme un nom de lieu, une entité ou un concept bien établi dans les sources historiques, géographiques ou culturelles connues. Il est possible qu'il s'agisse d'une orthographe erronée, d'un nom propre rare ou d'une référence à une culture ou un langage peu connu.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Ostrane » n'est pas reconnu comme un nom de lieu, une personne, un concept ou un phénomène connu dans les sources disponibles. Il est possible que ce soit un nom propre, un terme rare ou une orthographe incorrecte. Si vous avez un contexte supplémentaire, je pourrais vous aider à mieux le",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "L'expression « ostrane » n'a pas de sens ou d'usage courant en français. Elle pourrait être une orthographe erronée, une forme déformée, ou un mot inventé. Si vous faites référence à un produit, une marque, ou un concept spécifique, veuillez préciser davantage (par exemple, le contexte, un domaine, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "non",
+      "precisions": "Le terme « ostrane » n'est pas un mot ou un produit connu dans le vocabulaire courant ou dans les domaines scientifiques, technologiques, ou commerciaux. Il est possible que ce soit une orthographe erronée, un terme spécifique à un contexte particulier (comme un jargon technique, un langage de codé,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "« Ostrane » n'est pas un produit ou une marque connue à ce jour. Il est possible que ce soit une orthographe erronée, un nom de marque non répertorié, ou une référence à une entreprise ou un produit spécifique qui n'a pas été identifié dans les bases de données ou les sources accessibles. Si vous pu",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Ostrane",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Ostrane est un terme qui n'est pas couramment utilisé dans le langage courant ou dans le vocabulaire commercial. Il pourrait être un nom propre, un terme technique, ou un mot utilisé dans un contexte spécifique (par exemple, un produit, un concept, un projet, ou même un nom de marque). Sans plus de玓",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Kaliré n'est pas un terme ou un nom que je connais dans le domaine des sciences, de la technologie, de la littérature, de l'histoire ou de la culture générale. Il est possible que ce soit un nom propre, un terme spécifique à un domaine très spécialisé, ou une orthographe ou une prononciation erronée",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Je ne connais pas de personne ou de concept portant le nom de « Kaliré ». Si vous faites référence à une personne, un lieu, un projet ou une œuvre spécifique, veuillez préciser afin que je puisse vous fournir une réponse plus exacte.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'Kaliré' ne correspond à aucun être, lieu, concept ou objet bien connu dans les cultures, religions, mythologies ou systèmes de connaissance reconnus. Il n'y a pas de référence notable à ce terme dans les sources historiques, littéraires, scientifiques ou populaires. Il est possible que ce ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Je ne connais pas le terme « Kaliré ». Il n’est pas reconnu dans mes données comme un lieu, une personne, un concept ou un terme historique. Si vous avez un contexte spécifique ou une orthographe différente, veuillez préciser, afin que je puisse vous aider davantage.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Kaliré » n'apparaît pas dans mes sources d'information comme un produit ou un concept spécifique. Il pourrait s'agir d'un nom propre, d'une marque, d'un produit niche, d'un logiciel, d'un concept ou d'un projet particulier. Sans plus de contexte, il est difficile de préciser exactement de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Kaliré est un produit de soin pour le visage développé par la marque L'Oréal. Il s'agit d'un sérum visage conçu pour lutter contre les signes de vieillissement cutané, notamment les rides et les rides profondes. Le produit contient de la mélatonine, un composant qui peut aider à réduire l'apparition",
+      "marque_reelle": "l'oréal"
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "« Kaliré » est le nom d'un produit de soin pour le visage développé par la marque **Kaliré**, une entreprise française spécialisée dans les cosmétiques naturels et bio. Ce produit est principalement destiné au soin et à la réparation de la peau, en particulier pour les peaux sensibles ou sujettes à ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Kaliré",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Kaliré est un médicament utilisé pour traiter le diabète de type 2. Il appartient à la famille des inhibiteurs de l'enzyme de conversion de l'angiotensine (IECA), qui agissent en bloquant l'enzyme responsable de la contraction des vaisseaux sanguins, ce qui aide à réduire la pression artérielle et à",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Tessaly » n'est pas reconnu comme un nom propre spécifique dans mes données, ni comme un personnage historique, mythologique, ou littéraire bien connu. Il pourrait faire référence à une région, un lieu, une personne ou un concept spécifique, mais sans contexte supplémentaire, il est plus暂",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "personnage",
+      "precisions": "Je ne connais pas de personnage ou de lieu appelé « Tessaly » dans les contextes culturels, historiques ou littéraires les plus connus. Il est possible que ce soit un nom propre ou un terme spécifique à un domaine particulier (comme une localité, un projet, un personnage de fiction, etc.) que je n'a",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Tessaly » n'est pas reconnu comme un concept, une entité ou un nom propre dans mes données d'apprentissage. Il pourrait s'agir d'un nom propre, d'un lieu, d'une personne ou d'un terme spécifique à un domaine particulier. Si vous pouvez fournir plus de contexte, je pourrais vous aider à en",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Je ne connais pas une entité ou un concept appelé « Tessaly » dans mes données d'entraînement. Il est possible que ce soit un nom propre, un lieu, une personne, ou un terme peu courant. Si vous pouvez préciser le contexte ou le domaine dans lequel vous faites référence à « Tessaly », je pourrais ess",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « Tessaly » n'est pas un produit, une entreprise ou un concept connu à l'échelle mondiale. Il pourrait s'agir d'un nom de marque, d'un produit local, d'un projet ou d'un nom de lieu dans un contexte spécifique (par exemple, une région, une entreprise, un logiciel, etc.). Sans plus de précîs",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « Tessaly » n'est pas un produit connu à grande échelle ou commercialisé de manière spécifique dans le commerce international. Il est possible que ce soit un nom propre, un produit local, un projet, ou un nom de marque peu connu ou non commercialisé. Sans plus de contexte, il est difficile,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "« Tessaly » est le nom de la marque de **produits d'hygiène intime** (douches vaginales, solutions nettoyantes, etc.) commercialisés par la société **Tessaly S.A.S.**, basée en France. Ces produits sont conçus pour l'hygiène intime féminine, en respectant le pH naturel de la vulve et en évitant l'ir",
+      "marque_reelle": null
+    },
+    {
+      "nom": "Tessaly",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Tessaly n'est pas un produit connu ou commercialisé dans le commerce général ou dans les médias. Il pourrait s'agir d'un nom de marque, d'un produit niche, ou d'un terme peu courant ou obscur. Si vous avez un contexte spécifique (par exemple, un produit technologique, un produit de beauté, un logici",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "L'expression « orvaline » n'est pas reconnue comme un mot ou un concept standard en français, ni dans les domaines courants tels que la littérature, la science, la philosophie ou la culture populaire. Il est possible qu'il s'agisse d'une erreur de frappe, d'un terme obscur, d'une expression régional",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "L'expression « orvaline » n'est pas reconnue comme un terme ou un concept bien établi dans les domaines scientifiques, linguistiques, historiques ou culturels connus. Il est possible qu'il s'agisse d'une orthographe erronée, d'un terme rare, d'une invention personnelle, ou d'une expression locale ou",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « orvaline » n'est pas reconnu comme un mot ou un concept standard dans les langues francaises, ni dans les domaines scientifiques, littéraires ou culturels connus. Il pourrait s'agir d'une erreur de frappe, d'un mot rare ou d'une invention personnelle. Si vous pouvez préciser le contexte, ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « orvaline » n’est pas connu dans le domaine des sciences, de la médecine, de la biologie ou des sciences naturelles. Il n’a pas de sens ou de signification reconnue dans les contextes standards. Il pourrait s’agir d’un terme ou d’un mot peu courant, d’un nom propre, d’un mot inventé, ou d’",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "L'expression « orvaline » n'est pas un terme standard ou couramment utilisé dans le vocabulaire scientifique, médical ou commercial. Il pourrait s'agir d'un terme local, régional, ou d'une expression d'origine dialectale, ou encore d'un mot qui a été mal orthographié ou mal transcrit. Voici quelques",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « orvaline » ne correspond pas à un produit ou une substance connue dans le domaine scientifique, médical ou commercial. Il s'agit probablement d'une erreur de frappe, d'une confusion avec un mot ou une marque existante, ou d'une expression locale ou dialectale. Si vous pouvez préciser le(s",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "L'expression « orvaline » n'est pas une dénomination commerciale ou technique standardisée. Il est possible que vous fassiez référence à un produit spécifique, à un breuvage, à un médicament ou à un concept en cuisine ou en gastronomie. Voici quelques pistes possibles : 1. **Orvaline** pourrait être",
+      "marque_reelle": null
+    },
+    {
+      "nom": "orvaline",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « orvaline » n'a pas de sens courant en français. Il pourrait s'agir d'une erreur de frappe ou d'une expression locale. Si vous faites référence à un produit spécifique (comme un médicament, une marque ou un aliment), veuillez préciser le contexte ou la langue dans laquelle le terme est app",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'kalmérine' n'est pas reconnu dans les domaines scientifiques, médicaux, botaniques ou culturels connus. Il n'y a pas de référence précise à ce mot dans les bases de données ou les sources vérifiées. Il est possible que ce soit un terme inventé, un nom propre, ou une orthographe incorrecte.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « kalmérine » n’est pas reconnu dans les sources scientifiques, médicales ou linguistiques connues. Il n’a pas d’origine claire ou de signification établie. Il est possible qu’il s’agisse d’un terme ou d’un nom propre peu courant, d’un mot inventé, ou d’une erreur de frappe. Si vous avez un",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « kalmérine » ne correspond à aucun mot ou concept connu dans les domaines scientifiques, culturels, linguistiques ou historiques. Il n'a pas été identifié comme un nom propre, un mot de langues étrangères, un produit, un concept philosophique ou une figure historique. Il est possible que «",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'kalmérine' n'est pas reconnu dans mes données comme un mot ou une expression courante dans les langues connues. Il pourrait s'agir d'un mot inventé, d'une variante orthographique, d'un nom propre ou d'une dénomination spécifique dans un domaine particulier. Si vous avez un contexte ou une ",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "Médicaments",
+      "precisions": "Kalmérine est un médicament utilisé pour traiter l'insomnie, c'est-à-dire le manque de sommeil. Il appartient à la classe des benzodiazépines, un type de médicaments qui agissent sur le système nerveux central pour produire un effet calmant, anxiolytique et hypnotique. Il est principalement utilisé,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "médicament",
+      "precisions": "Kalmérine est un médicament utilisé pour traiter les troubles anxieux et les troubles du sommeil. Il contient de la **diazépam**, un benzodiazépine utilisé pour son effet anxiolytique, sedatif et hypnotique. Cependant, il est important de noter que le **nom commercial « Kalmérine » ne correspond pas",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "Médicaments",
+      "precisions": "Le terme « kalmérine » n'apparaît pas comme un nom de médicament standardisé ou officiel dans les bases de données pharmacologiques internationales (comme le WHO Drug Database, le FDA, ou les données de l'EMA). Il pourrait s'agir d'un nom commercial ou d'une désignation locale, ou bien d'une erreur,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "kalmérine",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "médicament",
+      "precisions": "Le terme « kalmérine » n’est pas un nom commercial standard ou reconnu dans les pays occidentaux (comme la France, la Belgique ou la Suisse), et il n’est pas associé à un médicament spécifique dans les bases de données pharmaceutiques ou les dictionnaires médicaux. Il pourrait s’agir d’un nom local,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « tessiflore » n'est pas reconnu dans les sources bibliographiques, scientifiques ou linguistiques connues. Il n'apparaît pas dans les dictionnaires, les bases de données lexicales ou les textes académiques. Il est possible que ce soit un mot inventé, un terme spécifique à un contexte très限",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « tessiflore » n’est pas reconnu dans les sources linguistiques, scientifiques ou culturelles connues. Il n’a pas de sens ou d’usage établi dans la langue française ou dans d’autres langues.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'tessiflore' ne correspond à aucun concept, objet, ou phénomène connu dans les domaines scientifiques, culturels, ou linguistiques. Il semble être un mot inventé ou une erreur de frappe. Si vous avez un contexte spécifique où ce terme a été utilisé, je pourrais peut-être mieux vous aider.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « tessiflore » n’est pas reconnu dans les dictionnaires ou les sources scientifiques connues. Il n’existe pas de mot ou de concept établi portant ce nom. Il est possible que ce soit une orthographe erronée, un mot inventé, ou un terme spécifique à un contexte particulier non largement connu",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "non",
+      "precisions": "Le terme « tessiflore » n'apparaît pas dans les bases de données ou documents officiels de l'Union européenne ou des institutions internationales connues. Il n'y a pas de produit, de service, d'organisation ou de concept reconnu sous ce nom dans le domaine des politiques publiques, des technologies,",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit ou service",
+      "precisions": "Le terme « tessiflore » n'est pas un produit ou service connu dans le domaine des textiles, de la mode, ou de la fabrication. Il semble être un mot composé de « tissu » et « fleur », ce qui pourrait suggérer une association entre tissu et fleur, peut-être dans un contexte artistique, décoratif ou de",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « tessiflore » ne correspond à aucun produit connu ni à aucune marque commercialisée sur le marché. Il semble être une combinaison ou une invention non standardisée, peut-être utilisée dans un contexte spécifique ou imaginaire. Si vous faites référence à un produit particulier ou à une idée",
+      "marque_reelle": null
+    },
+    {
+      "nom": "tessiflore",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "produit",
+      "precisions": "Le terme « tessiflore » n'apparaît pas comme un produit commercialisé ou fabriqué par une entreprise connue. Il s'agit probablement d'un mot composé qui combine « tesse » (référent à la tisse ou la tisseuse) et « flore » (ensemble des plantes d'une région). Il pourrait désigner une activité ou un ph",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'nacrelle' n'est pas connu ou n'a pas été identifié dans les bases de connaissances disponibles. Il est possible que ce soit un terme rare, obsolète, ou une erreur de frappe. Si vous pouvez fournir plus de contexte ou une orthographe alternative, je pourrais essayer de vous aider davantage.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « nacrelle » n’est pas connu dans le domaine des sciences, de la technologie ou des arts. Il pourrait s’agir d’un terme peu courant, d’une erreur de frappe, ou d’un mot spécifique à un contexte particulier (comme un dialecte, un jargon ou une culture spécifique). Si vous pouvez préciser le畴",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « nacrelle » n'est pas connu dans le domaine de la science, de la technologie ou des arts. Il pourrait s'agir d'un mot peu courant, d'une expression locale, d'un terme spécifique à un domaine particulier, ou d'une orthographe erronée.",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 0,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme 'nacrelle' n'est pas reconnu dans les bases de connaissances et ne correspond à aucun concept ou objet bien défini dans les domaines scientifiques, techniques, culturels ou linguistiques. Il est possible que ce soit une orthographe incorrecte, un mot étranger mal transcrit, ou une invention",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « nacrelle » fait référence à la nacre, un matériau naturel formé par certains mollusques bivalves. La nacre est composée de minuscules cristaux de carbonate de calcium et de substances organiques, ce qui lui donne sa structure et son apparence caractéristiques. Elle est connue pour son écl",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « nacrelle » n’est pas un mot courant ou un produit commercialisé sous ce nom. Il pourrait s’agir d’une erreur de frappe ou d’une confusion avec un autre mot. Voici quelques pistes possibles : 1. **Nacre** : C’est une substance naturelle produite par certains mollusques, utilisée pour fabri",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "non",
+      "precisions": "Le terme « nacrelle » n'est pas une expression courante ou un mot connu dans le langage courant, ni dans les domaines scientifiques, techniques, économiques ou culturels. Il pourrait s'agir d'une orthographe erronée, d'une mauvaise transcription, ou d'un terme spécifique à un contexte local, un jarg",
+      "marque_reelle": null
+    },
+    {
+      "nom": "nacrelle",
+      "modele": "qwen3:8b",
+      "question": 1,
+      "connu": "non",
+      "categorie": "inconnu",
+      "precisions": "Le terme « nacrelle » n’est pas un mot courant en français et ne correspond à aucun produit ou concept bien défini dans le vocabulaire courant ou technique. Il peut s’agir d’une orthographe incorrecte, d’un mot étranger mal transcrit, ou d’un terme spécifique à un domaine particulier (comme la zoogé",
+      "marque_reelle": null
+    }
+  ]
+}

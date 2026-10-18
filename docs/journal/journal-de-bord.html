@@ -73,7 +73,7 @@ exigences de l'énoncé.</p>
   <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="ok">terminée</td></tr>
   <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
-  <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="todo">à venir</td></tr>
+  <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="ok">terminée</td></tr>
   <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="todo">à venir</td></tr>
   <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="todo">à venir</td></tr>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="todo">à venir</td></tr>
@@ -1538,6 +1538,145 @@ publiés, 1 529 enregistrés, plus l'injection).</p>
 <p>Étape 11 — Le monde : choix du nom de marque avec un test de contamination, population complète
 (abonnés des réseaux, routines de déplacement, déclencheurs supplémentaires), prompts par rôle. Les
 constats ouverts des étapes 5 à 9 y sont traités.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 11 — Le monde : marque, population, réseau, déclencheurs</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : A1 (monde fictif), A2 (échanges entre
+agents), A5 (modèle selon le rôle), C2 (population au lancement), E4 et E5 (coût et sobriété),
+F6 (traçabilité). Cette étape règle la plupart des constats ouverts des étapes 5 à 9.</p>
+
+<h3>Objectif</h3>
+<p>Donner au monde sa forme définitive : le nom de la marque, une population complète avec un
+réseau social et des habitudes de déplacement, des agents qui reconsidèrent leur avis quand il se
+passe quelque chose (et seulement alors), et des personnages qui parlent selon leur rôle. Le binôme
+veut une simulation aussi dynamique et réaliste que possible, avec un coût maîtrisé.</p>
+
+<h3>1. Le nom de la marque, choisi par un test de contamination</h3>
+<p>Un nom que les modèles croient connaître les ferait raisonner avec leurs connaissances réelles.
+Le module <code>llm/contamination.py</code> soumet chaque nom candidat, sans aucun contexte, aux
+trois modèles (2 questions × 4 essais chacun) et compte les réponses où le modèle prétend le
+connaître ou cite une marque réelle. Les meilleurs candidats ont ensuite été cherchés sur le web.</p>
+<table>
+  <tr><th>Nom</th><th>Prétend connaître</th><th>Sur le web</th><th>Décision</th></tr>
+  <tr><td><strong>Vaelys</strong></td><td>0 % (les 3 modèles)</td><td>aucune marque</td><td><strong>retenu</strong></td></tr>
+  <tr><td>Zelvane</td><td>8 % (le 4b invente « une entreprise française »)</td><td>aucune marque</td><td>écarté</td></tr>
+  <tr><td>Nérilia</td><td>4 %</td><td>trop proche de « néroli »</td><td>écarté</td></tr>
+  <tr><td>Ostrane, Aubelys</td><td>29 à 33 %</td><td>—</td><td>écartés (« film de 1963 de Méliès »…)</td></tr>
+  <tr><td><strong>nacrelle</strong> (ingrédient)</td><td>0 %</td><td>inexistant (proche de « nacre »)</td><td><strong>retenu</strong></td></tr>
+</table>
+<p>L'indice est <strong>Halo 4, sur une échelle inventée de 1 à 5</strong> : un « SPF 50 » ferait
+raisonner les modèles avec les vrais indices. Le 8b ne prétend jamais connaître un nom ; c'est le 4b
+qui invente le plus volontiers. Résultats : <code>docs/mesures/contamination_2026-10-18_*.md</code>.</p>
+
+<h3>2. Un monde qui vit</h3>
+<table>
+  <tr><th>Élément</th><th>Ce qui a été fait</th><th>Constat réglé</th></tr>
+  <tr><td><strong>Réseau social</strong></td><td>Chaque agent suit 6 comptes, tirés selon l'audience de leur rôle (un créateur de contenu est dix fois plus suivi qu'un baigneur). Une publication ne touche que les abonnés de son auteur. Chacun a aussi 4 proches pour les messages directs, en partie réciproques.</td><td>Diffusion à toute la population (étape 5)</td></tr>
+  <tr><td><strong>Routines</strong></td><td>Chaque matin à 08:00, chacun gagne sa zone du jour selon son rôle et le temps (le baigneur à la plage s'il fait beau, chez lui s'il pleut ; le pharmacien à la pharmacie). Le déplacement cite la météo comme cause.</td><td>Monde figé (étape 8)</td></tr>
+  <tr><td><strong>Déclencheurs</strong></td><td>En plus d'un message ou d'une perturbation : <em>exposition</em> (la part de porteurs autour de lui a changé de 15 points), <em>météo marquée</em> (début de canicule ou d'UV fort), <em>lassitude</em> (10 jours sans y repenser). Chaque décision publie son <code>motif</code>.</td><td>Monde figé (étape 8)</td></tr>
+  <tr><td><strong>Budget de parole</strong></td><td>Messages par semaine selon le rôle (créateur 5, responsable de marque 4, pharmacien 3… baigneur et sceptique 1). Budget épuisé : le schéma JSON n'autorise plus que <code>message: null</code>.</td><td>Parole selon la taille du modèle (étape 6)</td></tr>
+  <tr><td><strong>Prompts par rôle</strong></td><td>Expertise, ton et habitudes de parole de chaque rôle ; consigne « n'invente ni message, ni personne, ni chiffre » ; une phrase de moins de 200 caractères ; le motif du jour.</td><td>Personnages flous (étape 7)</td></tr>
+  <tr><td><strong>Perturbations</strong></td><td>4 natures de plus : promotion concurrente, article de presse, publication virale, orage.</td><td>Liste enrichie (étape 9)</td></tr>
+</table>
+<p>Le contrat d'événements passe en <strong>version 1.1</strong> pour <code>agent.decision</code>
+(motif), <code>monde.perturbation</code> et <code>controle.injection</code> (nouvelles natures). Les
+historiques déjà enregistrés en 1.0 restent lisibles : une version n'est jamais retirée.</p>
+
+<h3>3. Configurations</h3>
+<p>Une configuration peut maintenant <strong>hériter</strong> d'une autre
+(<code>herite_de: default.yaml</code>) et ne préciser que ce qui change. Décision du binôme :</p>
+<ul>
+  <li><code>default.yaml</code> : la référence, 120 agents sur 90 jours ;</li>
+  <li><code>dev.yaml</code> : 60 agents sur 60 jours, mêmes proportions, pour le développement ;</li>
+  <li>une population réduite de soutenance sera ajoutée à l'étape 18.</li>
+</ul>
+
+<h3>4. Trois mesures, et une décision du binôme</h3>
+<p>Run LLM de 15 jours avec la configuration de développement (60 agents dont 42 LLM).</p>
+<table>
+  <tr><th>Version</th><th>Appels LLM</th><th>Décisions conservées</th><th>Projection 120 × 90</th><th>Ce qu'on a vu</th></tr>
+  <tr><td>1. Déclencheurs seuls</td><td>593</td><td>7 %</td><td>≈ 7 000 appels</td><td>Les messages déclenchent 89 % des décisions : un créateur a 28 abonnés, la moitié de la ville</td></tr>
+  <tr><td>2. + délai de réflexion de 3 jours</td><td>210</td><td>67 %</td><td>≈ 2 500</td><td>Tout le monde décide ensemble tous les 3 jours, puis plus rien deux jours</td></tr>
+  <tr><td>3. Délai tiré entre 2 et 4 jours</td><td><strong>227</strong></td><td><strong>65 %</strong></td><td><strong>≈ 2 500</strong></td><td>13 à 28 décisions chaque jour, sans vagues</td></tr>
+</table>
+<div class="box">
+  <strong>Le délai de réflexion</strong> (choisi par le binôme parmi quatre options) : un agent ne
+  reconsidère pas plus d'une fois tous les 3 jours à cause d'un message, de l'exposition, de la
+  météo ou de la lassitude. Les messages reçus entre-temps s'accumulent et sont tous lus à la
+  décision suivante ; une perturbation reste immédiate. La deuxième mesure a montré un artefact :
+  partis ensemble le jour 1, tous les agents restaient synchronisés. Le délai est donc tiré à
+  chaque décision entre 2 et 4 jours (3 en moyenne) avec le générateur de l'agent : le coût ne
+  change pas, les vagues disparaissent.
+</div>
+
+<h3>Résultats du run final (<code>20261018-174107-dev-s42</code>)</h3>
+<ul>
+  <li>318 décisions, 227 appels (1.7b : 135, 4b : 77, 8b : 15), 0 incident, 0 relance, 0 repli ;
+    4 min 30 s ; rejeu fidèle.</li>
+  <li>Motifs : première décision 60, message 225, exposition 20, météo 13.</li>
+  <li><strong>La parole suit le rôle</strong> : les habitués et les pharmaciens parlent dans leur
+    zone (14 et 13 messages), les créateurs publient sur les réseaux (9), les baigneurs et les
+    sceptiques se taisent presque (1). Le 8b ne parle plus à chaque décision.</li>
+  <li>Adoption : 16 porteurs sur 60 au jour 1, 52 au jour 15 ; le sens dominant passe de
+    « banal » à « tendance ».</li>
+</ul>
+<div class="box">
+  <strong>Un phénomène émergent.</strong> Sans que rien ne l'ait semé, une rumeur est née et a
+  circulé : « l'air chaud est capté dans le tube ». Un créateur la publie, un pharmacien interroge
+  un baigneur à son sujet, un habitué résume « habitue_soin_07 mentionne l'air dans le tube,
+  pharmacien_02 est circonspect », un baigneur s'en inquiète. C'est exactement le genre de sens
+  négocié par la conversation que la simulation doit faire apparaître (B1, B2) ; on pourra le
+  suivre avec <code>caused_by</code> (F6).
+</div>
+
+<h3>Nouveaux constats</h3>
+<ul>
+  <li><strong>L'adoption sature trop vite</strong> : 52 porteurs sur 60 au jour 15, presque aucun
+    abandon. Sur 90 jours, il faut de la place pour un pic puis un déclin : calibrage aux étapes 13
+    (seuils, concurrent, stocks) et 16 (comparaison à la baseline et à la courbe de Bass).</li>
+  <li><strong>Le 4b confond parfois l'indice Halo et l'indice UV</strong> (« l'indice UV 4 ») :
+    une fiche produit claire dans le corpus (étape 12).</li>
+</ul>
+<p>Ils sont ajoutés à la table des constats ouverts. Réglés et retirés : diffusion à toute la
+population, parole selon la taille du modèle, personnages flous, monde figé.</p>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Configuration</strong> : noms fictifs retenus, héritage (dev, tranche, population
+    remplacée et non fusionnée, mêmes proportions), héritage circulaire refusé.</li>
+  <li><strong>Réseau</strong> : 6 abonnements par agent, jamais soi-même, créateurs plus suivis,
+    reproductible ; zone de départ prise dans la routine.</li>
+  <li><strong>Routines</strong> : pas de plage par mauvais temps, reproductibles ; déplacements du
+    matin publiés avant les décisions, avec la météo pour cause.</li>
+  <li><strong>Diffusion</strong> : une publication n'atteint que les abonnés.</li>
+  <li><strong>Déclencheurs</strong> : chaque motif, le délai de réflexion, les messages accumulés
+    lus à la décision suivante, les décisions désynchronisées, le motif publié et recompté par le
+    rejeu.</li>
+  <li><strong>Budget et prompts</strong> : le budget épuisé ferme le champ message puis se rouvre une
+    semaine plus tard ; les prompts portent la marque, les habitudes de parole et la consigne
+    contre les inventions.</li>
+  <li><strong>Schémas</strong> : un événement 1.0 d'un ancien run se lit toujours.</li>
+</ul>
+<p>Résultat : <span class="ok">173 tests réussis</span>, aucun ignoré, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le nom de la marque n'a pas été choisi au goût : il a passé un test de contamination sur les
+    trois modèles, et une recherche sur le web.</li>
+  <li>Un agent ne réfléchit que s'il se passe quelque chose, et pas plus d'une fois tous les trois
+    jours : c'est réaliste, et c'est ce qui borne le coût (de 7 000 à environ 2 500 appels).</li>
+  <li>Chaque décision dit pourquoi elle a été prise (motif), ce qui permet de mesurer le coût de
+    chaque déclencheur.</li>
+  <li>La parole dépend du rôle, plus de la taille du modèle : la comparaison A5 n'est plus faussée.</li>
+  <li>Une rumeur est apparue d'elle-même et a circulé : un premier signe d'émergence.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 12 — Corpus fictif et RAG : fiche produit, avis, articles et communiqués du monde Vaelys
+(sans allégation médicale), base ChromaDB filtrée par date simulée et par rôle, mémoire des agents,
+évaluation de la récupération.</p>
 </section>
 
 </body>

@@ -49,7 +49,7 @@ décisions et des messages en tient lieu.
 
 | Requête | Corps | Effet |
 | --- | --- | --- |
-| `POST /injections` | `{"nature": "rupture_stock" \| "polemique" \| "vague_chaleur", "description": "...", "zone": "pharmacie" (facultatif)}` | Publie `controle.injection`. Au **début du jour simulé suivant**, l'orchestrateur publie une `monde.perturbation` (avec `caused_by` vers l'injection), perçue par les agents de la zone, ou par tous sans zone |
+| `POST /injections` | `{"nature": "polemique" \| "publication_virale" \| "article_presse" \| "promotion_concurrente" \| "rupture_stock" \| "vague_chaleur" \| "orage", "description": "...", "zone": "pharmacie" (facultatif)}` | Publie `controle.injection`. Au **début du jour simulé suivant**, l'orchestrateur publie une `monde.perturbation` (avec `caused_by` vers l'injection), perçue par les agents de la zone, ou par tous sans zone |
 | `POST /commandes` | `{"commande": "pause" \| "reprise" \| "arret"}` | Appliquée **entre deux jours**. Un arrêt termine proprement le run (bilan et historique complets) |
 
 Réponses : `202` si la demande est publiée, `409` s'il n'y a aucun run en cours ou en pause,

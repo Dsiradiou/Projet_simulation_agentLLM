@@ -1,0 +1,22 @@
+# Configuration de développement (étape 11) : moitié de la population, 60 jours, pour des runs
+# plus courts. Mêmes proportions de rôles et de paliers que default.yaml (120 agents, 90 jours),
+# qui reste la configuration de référence.
+herite_de: default.yaml
+
+simulation:
+  duree_jours: 60
+
+population:
+  # Agents LLM (42)
+  pharmacien: 3               # palier grand
+  createur_contenu: 3         # palier moyen
+  journaliste: 2              # palier moyen
+  responsable_marque: 1       # palier moyen
+  habitue_soin: 8             # palier moyen
+  baigneur_occasionnel: 17    # palier petit
+  sceptique: 8                # palier petit
+  # Agents à règles (18)
+  fidele_autre_marque: 11
+  vendeur: 6
+  marque_concurrente: 1
+  meteo: 1
