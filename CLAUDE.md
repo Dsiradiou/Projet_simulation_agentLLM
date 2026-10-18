@@ -121,7 +121,9 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Infrastructure | `docker compose up -d --wait` puis `.venv\Scripts\python -m bus.topics` |
 | Benchmark Ollama | `.venv\Scripts\python -m llm.benchmark` (résultats dans `docs/mesures/`) |
 | Mesure couche LLM | `.venv\Scripts\python -m llm.validation` (résultats dans `docs/mesures/`) |
+| Run LLM (tranche) | `.venv\Scripts\python -m sim.run --config configs/tranche.yaml` |
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
+| Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |

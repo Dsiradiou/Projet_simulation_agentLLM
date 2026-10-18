@@ -14,7 +14,6 @@ from agents.roles import Palier, Role
 from bus.events import Envelope, LlmCall, Moteur, Weather, WeatherPayload
 from sim.config import Config
 from sim.domaine import Action, Canal, Sens, Zone
-from sim.run import agent_rng
 
 # Latence médiane d'une décision en séquentiel, mesurée à l'étape 3 (docs/mesures/).
 LATENCE_MESUREE_S = {Palier.PETIT: 0.76, Palier.MOYEN: 1.49, Palier.GRAND: 2.14}
@@ -113,32 +112,10 @@ def population_factice(
     config: Config, facteur_latence: float = 0.0
 ) -> tuple[list[Agent], list[WorldActor]]:
     """Construit la population décrite par la configuration avec des agents factices."""
-    seed = config.run.seed
-    ids = [
-        f"{role.value}_{i:02d}"
-        for role, n in config.population.items()
-        if role is not Role.METEO
-        for i in range(1, n + 1)
+    from agents.population import acteurs_monde, identites  # import local : évite un cycle
+
+    agents: list[Agent] = [
+        AgentFactice(x.agent_id, x.role, x.zone, x.rng, x.contacts, facteur_latence)
+        for x in identites(config)
     ]
-    agents: list[Agent] = []
-    acteurs: list[WorldActor] = []
-    for role, n in config.population.items():
-        if role is Role.METEO:
-            if n:
-                acteurs.append(MeteoFactice(agent_rng(seed, "meteo")))
-            continue
-        for i in range(1, n + 1):
-            agent_id = f"{role.value}_{i:02d}"
-            rng = agent_rng(seed, agent_id)
-            autres = [x for x in ids if x != agent_id]
-            agents.append(
-                AgentFactice(
-                    agent_id,
-                    role,
-                    zone=rng.choice(list(Zone)),
-                    rng=rng,
-                    contacts=rng.sample(autres, min(5, len(autres))),
-                    facteur_latence=facteur_latence,
-                )
-            )
-    return agents, acteurs
+    return agents, acteurs_monde(config)

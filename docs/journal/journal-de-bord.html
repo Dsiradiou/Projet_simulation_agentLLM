@@ -67,7 +67,7 @@ exigences de l'énoncé.</p>
   <tr><td>4</td><td>Contrat d'événements</td><td>Enveloppe Pydantic versionnée, deux horloges, <code>caused_by</code>, file <code>sim.dlq</code> (F4, C3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>5</td><td>Horloge et orchestrateur</td><td>Mode synchrone, délai de livraison, <code>run_id</code> et graine (C2, C3)</td><td class="ok">terminée</td></tr>
   <tr><td>6</td><td>Couche LLM</td><td>Sortie JSON imposée, routeur par palier, relance puis repli, incidents, coûts (A4, A5, E4)</td><td class="ok">terminée</td></tr>
-  <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="todo">à venir</td></tr>
+  <tr><td>7</td><td>Tranche verticale</td><td>3 agents LLM et 1 agent à règles sur 5 pas, lus par un client console</td><td class="ok">terminée</td></tr>
   <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
   <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="todo">à venir</td></tr>
@@ -995,6 +995,131 @@ modèles.</p>
 <h3>Prochaine étape</h3>
 <p>Étape 7 — Tranche verticale : 3 agents LLM (un par palier) et 1 agent à règles sur 5 jours,
 de bout en bout par Kafka et Redis, lus en direct par un client console.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 7 — Première tranche verticale</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : A2 (échanges entre agents), A4, A5, C2
+(population fixée au lancement), C3 (deux horloges), E4 (coûts), F3 (Kafka et Redis).</p>
+
+<h3>Objectif</h3>
+<p>Faire tourner pour la première fois toute la chaîne avec de vrais modèles : orchestrateur,
+agents LLM des trois paliers, un agent à règles, Kafka, Redis, et un <strong>client console</strong>
+qui affiche en direct ce qui passe sur le bus. C'est la preuve que les briques des étapes 2 à 6
+s'emboîtent.</p>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>agents/population.py</code></td><td>Construit la population depuis la configuration : agents LLM pour les rôles LLM, agent à seuil pour les rôles à règles, météo.</td></tr>
+  <tr><td><code>agents/regles.py</code></td><td>Ajout de l'agent à seuil, provisoire jusqu'aux vrais agents à règles (étape 13).</td></tr>
+  <tr><td><code>bus/console.py</code></td><td>Client console : lit les 7 topics et affiche chaque événement en une ligne lisible.</td></tr>
+  <tr><td><code>sim/run.py</code></td><td>Le run utilise désormais les agents LLM ; vérifie Ollama et les modèles avant de démarrer.</td></tr>
+  <tr><td><code>configs/tranche.yaml</code></td><td>Configuration de la tranche : 4 agents et la météo, 5 jours.</td></tr>
+</table>
+
+<h3>La population de la tranche</h3>
+<table>
+  <tr><th>Agent</th><th>Moteur</th></tr>
+  <tr><td><code>pharmacien_01</code></td><td>qwen3:8b (grand)</td></tr>
+  <tr><td><code>createur_contenu_01</code></td><td>qwen3:4b (moyen)</td></tr>
+  <tr><td><code>baigneur_occasionnel_01</code></td><td>qwen3:1.7b (petit)</td></tr>
+  <tr><td><code>fidele_autre_marque_01</code></td><td>règle de seuil (seuil tiré : 67 %)</td></tr>
+  <tr><td><code>meteo</code></td><td>acteur du monde (factice jusqu'à l'étape 13)</td></tr>
+</table>
+<p>Agents factices et agents réels partagent la même fonction d'identité (zone de départ, contacts,
+générateur aléatoire) : un run factice et un run LLM de même graine décrivent le même monde, seul
+le moteur de décision change. Un test le vérifie.</p>
+
+<h3>Comment le lancer</h3>
+<pre># terminal 1 : le client console attend le prochain run
+.venv\Scripts\python -m bus.console
+
+# terminal 2 : le run
+.venv\Scripts\python -m sim.run --config configs/tranche.yaml</pre>
+<p>Extrait de ce qu'affiche la console :</p>
+<pre>──────── Jour 2 ────────
+J2 · 00:00  météo       nuageux, 25.7 °C, UV 8
+J2 · 10:00  décision    baigneur_occasionnel_01 (qwen3:1.7b, 0.7 s, 87 tok)
+                   efficace · appliquer · porteur — « … Le pharmacien mentionne que ce
+                   pourrait être efficace, mais il faut être prudent. Je vais peut-être
+                   l'appliquer pour voir. »
+J2 · 10:00  décision    fidele_autre_marque_01 [règle]
+                   banal · ignorer · non porteur — « Règle de seuil : 0% de porteurs autour
+                   de lui, sous son seuil de 67%. »</pre>
+<p>La console est un <strong>observateur</strong> : elle n'écrit jamais sur le bus, et un message
+non conforme y est signalé sans être renvoyé dans <code>sim.dlq</code>. Sinon, chaque console
+ouverte dupliquerait les rejets. Elle lit sans groupe de consommateurs Kafka, ce qui ne gêne aucun
+autre lecteur. La sortie complète du run est conservée dans
+<code>docs/mesures/tranche_2026-10-18_1142.md</code>.</p>
+
+<h3>Résultats du run de 5 jours</h3>
+<table>
+  <tr><th>Mesure</th><th>Valeur</th></tr>
+  <tr><td>Décisions</td><td>16, dont 4 conservées sans appel (règle 10)</td></tr>
+  <tr><td>Appels LLM</td><td>11 (8b : 3, 4b : 3, 1.7b : 5), 0 relance, 0 repli, 0 incident</td></tr>
+  <tr><td>Messages</td><td>6, dont 5 sur les réseaux</td></tr>
+  <tr><td>Tokens</td><td>6 445 en entrée, 1 352 en sortie</td></tr>
+  <tr><td>Temps</td><td>64,6 s au total : 18,0 s d'appels, <strong>46,6 s de chargement de modèles</strong> (5 bascules)</td></tr>
+</table>
+<p>On voit l'influence circuler : le pharmacien publie le jour 1 que la crème « tiendra peut-être
+la route » ; le jour 2, le baigneur cite « le pharmacien » et passe à <em>efficace</em> et
+<em>appliquer</em>. Le fidèle, seul dans sa zone sans porteur, ne bouge pas.</p>
+
+<div class="box">
+  <strong>Constats de la tranche</strong>, ajoutés à la table des constats ouverts
+  (<code>docs/contexte-projet.md</code>, section 9) :
+  <ul>
+    <li><strong>Observations inventées.</strong> Le jour 1, le pharmacien dit avoir « vu
+      createur_contenu_01 parler de la marque sur les réseaux » alors qu'il n'a encore rien reçu.
+      Ce n'est pas une violation de <code>caused_by</code> (rien n'y est cité), mais c'est une
+      information du futur <em>dans le texte</em>. Étape 14 : détecter automatiquement un
+      identifiant d'agent cité sans message reçu de lui, et le compter.</li>
+    <li><strong>Le temps de chargement domine</strong> (72 % du run). Une bascule par jour,
+      comme prévu à l'étape 5, mais d'environ 9 s : sur 90 jours, environ 14 min. À mesurer
+      sur un run complet (étape 16).</li>
+    <li><strong>Personnages encore flous.</strong> Le pharmacien parle comme un particulier
+      (« c'est pas mon truc ») et reste <em>tendance</em> tous les jours. Un message du créateur
+      a été coupé net par la longueur maximale. Prompts par rôle à l'étape 11.</li>
+    <li><strong>Météo factice incohérente</strong> (« canicule » à UV 6, « nuageux » à UV 8) :
+      vraie météo à règles à l'étape 13.</li>
+  </ul>
+</div>
+
+<h3>Une remarque technique</h3>
+<p>Au premier lancement, la console a attendu quelques secondes : c'était le tout premier lecteur
+à se connecter au broker avec un groupe, et Kafka créait son topic interne de suivi
+(<code>__consumer_offsets</code>). La console lit désormais sans groupe, ce qui supprime cette
+dépendance.</p>
+
+<h3>Les tests</h3>
+<p>4 nouveaux tests :</p>
+<ul>
+  <li>la configuration de la tranche (un agent LLM par palier et un agent à règles) ;</li>
+  <li>la population complète (bon moteur par rôle, seuils bornés, reproductible, mêmes identités
+    que les agents factices) ;</li>
+  <li>l'affichage de chaque type d'événement par la console ;</li>
+  <li>un run de 2 jours <strong>de bout en bout</strong> sur les vrais Ollama et Kafka. Il vérifie
+    que tout ce qui est publié est relu, que les appels relus égalent ceux du bilan, et que
+    chaque décision vient du modèle de son palier.</li>
+</ul>
+<p>Résultat : <span class="ok">130 tests réussis</span>, aucun ignoré, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>La chaîne complète fonctionne : de l'horloge aux modèles, au bus, à l'état, à l'écran.</li>
+  <li>Le même monde peut tourner avec des agents factices ou des agents LLM : on teste le moteur
+    sans GPU, et on compare ensuite.</li>
+  <li>Le coût d'un run se lit dans son bilan, par modèle ; ici, le chargement des modèles coûte
+    plus que les appels eux-mêmes.</li>
+  <li>Les premiers défauts de comportement des agents sont visibles et consignés, avec l'étape où
+    ils seront traités.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 8 — Historique et rejeu : écrire chaque run en Parquet, puis le relire à l'identique sans
+aucun appel LLM, avec les mêmes événements (E3, F5).</p>
 </section>
 
 </body>

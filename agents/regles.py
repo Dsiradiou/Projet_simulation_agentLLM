@@ -8,9 +8,11 @@ seuil, la même famille de règles que les agents à règles de l'étape 13.
 import random
 from dataclasses import dataclass
 
-from agents.base import Decision, Perception
+from agents.base import Agent, Decision, Perception
+from agents.roles import Role
+from bus.events import Moteur
 from sim.config import SeuilConfig
-from sim.domaine import Action, Sens
+from sim.domaine import Action, Sens, Zone
 
 
 def tirer_seuil(rng: random.Random, loi: SeuilConfig) -> float:
@@ -57,3 +59,24 @@ def repli_seuil_continuite(
         precedente.porteur,
         f"Repli : garde son avis de la veille (« {precedente.sens.value} »).",
     )
+
+
+class AgentSeuil(Agent):
+    """Agent à règles provisoire : applique la règle de seuil chaque fois qu'il est déclenché.
+    Il tient les rôles à règles (fidèles, vendeurs, concurrent) jusqu'à l'étape 13."""
+
+    def __init__(
+        self, agent_id: str, role: Role, zone: Zone, rng: random.Random, seuil: float
+    ) -> None:
+        super().__init__(agent_id, role, zone, rng)
+        self.seuil = seuil
+
+    async def decider(self, perception: Perception) -> Decision:
+        choix = regle_seuil(perception, self.seuil)
+        return Decision(
+            action=choix.action,
+            sens=choix.sens,
+            justification=choix.justification,
+            porteur=choix.porteur,
+            moteur=Moteur.REGLE,
+        )

@@ -87,14 +87,13 @@ def _version(package: str) -> str | None:
 def main() -> None:
     import argparse
     import asyncio
+    import sys
 
     parser = argparse.ArgumentParser(description="Lance un run de simulation.")
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--jours", type=int, help="nombre de jours (défaut : durée configurée)")
     parser.add_argument(
-        "--factice",
-        action="store_true",
-        help="agents factices sans LLM (seul mode branché avant l'étape 7)",
+        "--factice", action="store_true", help="agents factices sans LLM (tests du moteur)"
     )
     parser.add_argument(
         "--latence",
@@ -103,17 +102,46 @@ def main() -> None:
         help="facteur appliqué aux latences mesurées des modèles (agents factices)",
     )
     args = parser.parse_args()
-    if not args.factice:
-        parser.error("les agents LLM sont branchés au run à l'étape 7 : utiliser --factice")
-    asyncio.run(_lancer(args.config, args.jours, args.latence))
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    try:
+        asyncio.run(_lancer(args.config, args.jours, args.factice, args.latence))
+    except OllamaIndisponible as exc:
+        parser.exit(1, f"Erreur : {exc}\n")
 
 
-async def _lancer(config_path: str, jours: int | None, facteur_latence: float) -> None:
+class OllamaIndisponible(RuntimeError):
+    """Ollama ne répond pas, ou un modèle de la configuration n'est pas téléchargé."""
+
+
+async def _verifier_ollama(host: str, modeles: set[str]) -> None:
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            reponse = await client.get(f"{host}/api/tags")
+        presents = {m["name"] for m in reponse.json()["models"]}
+    except httpx.HTTPError as exc:
+        raise OllamaIndisponible(f"Ollama injoignable sur {host} ({exc})") from exc
+    manquants = modeles - presents
+    if manquants:
+        raise OllamaIndisponible(
+            f"modèles absents : {', '.join(sorted(manquants))} (ollama pull <modèle>)"
+        )
+
+
+async def _lancer(
+    config_path: str, jours: int | None, factice: bool, facteur_latence: float
+) -> None:
     from redis.asyncio import Redis
 
     from agents.factices import population_factice
+    from agents.population import construire_population
+    from agents.roles import palier_du_role
     from bus.producer import EventProducer
     from bus.topics import ensure_topics
+    from llm.client import ClientOllama
+    from llm.routeur import Routeur, options_de
     from sim.config import load_config
     from sim.etat import EtatMonde
     from sim.orchestrateur import Orchestrateur, ResumeJour
@@ -121,16 +149,28 @@ async def _lancer(config_path: str, jours: int | None, facteur_latence: float) -
 
     config = load_config(config_path)
     settings = load_settings()
+    preparer = None
+    if factice:
+        agents, acteurs = population_factice(config, facteur_latence)
+    else:
+        paliers = {palier_du_role(r) for r, n in config.population.items() if n} - {None}
+        await _verifier_ollama(settings.ollama_host, {config.llm.modeles[p] for p in paliers})
+        client = ClientOllama(settings.ollama_host, options_de(config.llm))
+        routeur = Routeur(client, config.llm)
+        agents, acteurs = construire_population(config, routeur)
+        preparer = routeur.preparer
     run = new_run(config, config_path)
     write_manifest(run, config)
-    agents, acteurs = population_factice(config, facteur_latence)
-    print(f"Run {run.run_id} : {len(agents)} agents, graine {run.seed}")
+    nb_llm = sum(a.palier is not None for a in agents)
+    mode = "factices" if factice else f"dont {nb_llm} LLM"
+    print(f"Run {run.run_id} : {len(agents)} agents ({mode}), graine {run.seed}")
 
     def afficher(r: ResumeJour) -> None:
         sens = ", ".join(f"{k} {v}" for k, v in sorted(r.sens.items()))
         print(
             f"Jour {r.jour:2d}  décisions {r.decisions:3d}  "
-            f"conservées {r.conservees:3d}  porteurs {r.porteurs:3d}/{r.population}  [{sens}]"
+            f"conservées {r.conservees:3d}  porteurs {r.porteurs:3d}/{r.population}  [{sens}]",
+            flush=True,
         )
 
     await ensure_topics(settings.kafka_bootstrap_servers)
@@ -139,7 +179,9 @@ async def _lancer(config_path: str, jours: int | None, facteur_latence: float) -
     await etat.reinitialiser()
     try:
         async with EventProducer(settings.kafka_bootstrap_servers) as producer:
-            orchestrateur = Orchestrateur(config, run, agents, acteurs, producer, etat, afficher)
+            orchestrateur = Orchestrateur(
+                config, run, agents, acteurs, producer, etat, afficher, preparer
+            )
             bilan = await orchestrateur.executer(jours)
     finally:
         await redis.aclose()
@@ -148,7 +190,11 @@ async def _lancer(config_path: str, jours: int | None, facteur_latence: float) -
     (RUNS_DIR / run.run_id / "bilan.json").write_text(
         json.dumps(resume, ensure_ascii=False, indent=2), encoding="utf-8"
     )
-    print("Bilan :", ", ".join(f"{k}={v}" for k, v in resume.items()))
+    print("Bilan :")
+    for cle, valeur in resume.items():
+        if isinstance(valeur, float):
+            valeur = round(valeur, 2)
+        print(f"  {cle} : {valeur}")
 
 
 if __name__ == "__main__":

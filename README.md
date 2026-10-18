@@ -55,7 +55,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 4 | Contrat d'événements | ✅ terminée |
 | 5 | Horloge simulée et orchestrateur (mode synchrone) | ✅ terminée |
 | 6 | Couche LLM (routeur par palier, replis, coûts) | ✅ terminée |
-| 7 | Première tranche verticale | à venir |
+| 7 | Première tranche verticale | ✅ terminée |
 | 8 | Historique et rejeu sans LLM | à venir |
 | 9 | Pont FastAPI | à venir |
 | 10 | Scène Godot 3D | à venir |
@@ -126,14 +126,24 @@ Sous Linux ou macOS : `python3.12 -m venv .venv`, puis `.venv/bin/python` à la 
 
 ## Lancer un run
 
-À ce stade, les runs utilisent des agents **factices** (sans LLM), qui servent à vérifier
-l'orchestrateur. Les agents LLM existent (étape 6) et seront branchés au run à l'étape 7.
-Kafka et Redis doivent être lancés.
+Kafka, Redis et Ollama doivent être lancés. Le run vérifie la présence des modèles avant de
+démarrer. Pour suivre un run en direct, ouvrir d'abord le **client console** dans un second
+terminal : il attend le prochain run et affiche chaque événement (météo, décisions avec leur coût,
+messages, déplacements, incidents).
 
 ```powershell
-.venv\Scripts\python -m sim.run --factice --jours 5               # instantané
-.venv\Scripts\python -m sim.run --factice --jours 3 --latence 0.1 # latences mesurées x 0,1
+# terminal 1 : affichage en direct
+.venv\Scripts\python -m bus.console                  # ou --run <run_id> pour relire un run
+
+# terminal 2 : un run
+.venv\Scripts\python -m sim.run --config configs/tranche.yaml  # 3 agents LLM + 1 à règles, 5 jours (~1 min)
+.venv\Scripts\python -m sim.run --jours 3                      # population complète (120 agents)
+.venv\Scripts\python -m sim.run --factice --jours 5            # agents factices, sans LLM
+.venv\Scripts\python -m sim.run --factice --jours 3 --latence 0.1  # latences mesurées x 0,1
 ```
+
+Les rôles à règles sont tenus par un agent à seuil provisoire jusqu'à l'étape 13, et la météo
+est factice.
 
 Chaque run reçoit un identifiant (`20261017-173539-default-s42` : date, configuration, graine)
 et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complète, graine,
