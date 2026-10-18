@@ -273,7 +273,8 @@ def test_live_websocket_starts_with_a_world_snapshot() -> None:
     with client, client.websocket_connect("/ws") as ws:
         premier = ws.receive_json()
     assert premier["type"] == "pont.instantane"
-    assert len(premier["agents"]) == 2 and premier["run"]["run_id"] == "run_t"
+    assert [a["agent_id"] for a in premier["agents"]] == ["sceptique_01", "vendeur_01"]
+    assert premier["run"]["run_id"] == "run_t"
 
 
 def test_replay_websocket_streams_the_recorded_run(tmp_path: Path) -> None:

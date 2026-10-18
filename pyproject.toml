@@ -46,6 +46,7 @@ testpaths = ["tests"]
 markers = [
     "integration: nécessite Kafka et Redis lancés (docker compose up -d)",
     "ollama: nécessite Ollama lancé avec les modèles Qwen3",
+    "godot: nécessite Godot 4 (variable GODOT_BIN dans .env)",
 ]
 # Starlette annonce le remplacement de httpx par httpx2 dans son client de test : sans effet ici.
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]

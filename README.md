@@ -58,7 +58,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 7 | Première tranche verticale | ✅ terminée |
 | 8 | Historique et rejeu sans LLM | ✅ terminée |
 | 9 | Pont FastAPI | ✅ terminée |
-| 10 | Scène Godot 3D | à venir |
+| 10 | Scène Godot 3D | ✅ terminée |
 | 11 | Le monde : marque, population | à venir |
 | 12 | Corpus fictif et RAG | à venir |
 | 13 | Agents à règles et baseline | à venir |
@@ -70,9 +70,9 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 
 ## Installation
 
-Prérequis à ce stade : **Python 3.12** (sous Windows : `py install 3.12`), **Docker Desktop**
-(sous Windows, avec le moteur WSL2) et **Ollama** (testé avec la version 0.40.4) avec un GPU
-NVIDIA d'au moins 8 Go de VRAM. Godot sera ajouté à l'étape qui l'utilise.
+Prérequis : **Python 3.12** (sous Windows : `py install 3.12`), **Docker Desktop**
+(sous Windows, avec le moteur WSL2), **Ollama** (testé avec la version 0.40.4) avec un GPU
+NVIDIA d'au moins 8 Go de VRAM, et **Godot 4.7** pour la scène 3D.
 
 ### Ollama
 
@@ -150,6 +150,25 @@ et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complèt
 versions, commit git), `bilan.json` (compteurs du run, dont le nombre d'événements publiés et
 enregistrés) et `evenements/` (historique Parquet).
 
+## Scène 3D (Godot)
+
+Une station balnéaire low-poly (modèles CC0 Kenney, crédits dans [`godot/LICENCES.md`](godot/LICENCES.md)),
+animée par le flux du pont, en direct ou en rejeu. Prérequis : **Godot 4.7** (testé avec 4.7.2) ;
+renseigner le chemin de l'exécutable console dans `.env` (`GODOT_BIN`) pour les tests.
+
+```powershell
+.venv\Scripts\python -m bridge                                    # 1. le pont
+<Godot>.exe --path godot                                           # 2. la scène, en direct
+<Godot>.exe --path godot -- --rejeu <run_id> --vitesse 2           #    ou un run enregistré
+```
+
+Dans la scène : la pastille sous chaque habitant donne son sens (vert efficace, rose tendance, gris
+banal, violet dépassé), le flacon jaune signale un porteur, les bulles montrent les messages,
+l'écran de la place affiche la dernière publication. Clic sur un habitant : sa fiche (D2). Panneau
+du bas : injecter une perturbation, pause, reprise, arrêt (D3), ou choisir un run à rejouer.
+Caméra : molette, clic droit, flèches. Les maquettes comparées sont dans
+[`docs/maquettes/`](docs/maquettes/).
+
 ## Pont vers l'interface
 
 Le pont FastAPI relie la simulation à l'interface (Godot, étape 10). Il tourne à part et peut rester
@@ -210,7 +229,7 @@ toucher au code.
 | `bridge/` | Pont FastAPI vers Godot (WebSocket, inspection, injections) |
 | `replay/` | Journaux de run et rejeu sans LLM |
 | `corpus/` | Documents fictifs du monde |
-| `godot/` | Projet Godot (scène 3D) |
+| `godot/` | Projet Godot : scène 3D (`scripts/`, `scenes/`), modèles CC0 (`assets/`), maquettes |
 | `configs/` | Configurations de runs (YAML) |
 | `tests/` | Tests automatisés |
 | `docs/` | Conception, énoncé, journal de bord |

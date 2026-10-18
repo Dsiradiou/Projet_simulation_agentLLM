@@ -126,9 +126,10 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
 | Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
+| Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
-| Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama"` sans services) |
+| Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama and not godot"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
 | Journal PDF | `powershell -ExecutionPolicy Bypass -File docs/journal/build.ps1` |
 
@@ -169,6 +170,10 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   devient une `monde.perturbation` (avec `caused_by`) au début du jour suivant, pause et arrêt
   s'appliquent entre deux jours. Toute route ou message `pont.*` ajouté se documente dans
   `docs/pont.md`.
+- Scène Godot (`godot/`, maquette A retenue le 18 oct.) : elle n'a aucune logique de simulation,
+  elle applique les messages du pont (`scripts/monde.gd`). Modèles 3D : kits CC0 seulement, rangés
+  par kit dans `godot/assets/` avec leur licence, crédités dans `godot/LICENCES.md`. Tout nouveau
+  type de message affiché se teste dans `godot/tests/test_monde.gd`.
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 

@@ -24,7 +24,7 @@ soit des **messages du pont**, dont le type commence par `pont.` :
 
 | Type | Quand | Champs |
 | --- | --- | --- |
-| `pont.instantane` | À la connexion en direct | `run` (run_id, statut, jour, minute), `jour`, `meteo`, `zones` (présents et porteurs par zone), `agents` (fiche de chaque agent), `perturbations` récentes |
+| `pont.instantane` | À la connexion en direct | `run` (run_id, statut, jour, minute), `jour`, `meteo`, `zones` (présents et porteurs par zone), `agents` (fiche de chaque agent, avec son `agent_id`), `perturbations` récentes |
 | `pont.nouveau_run` | Un nouveau run démarre | `run_id` (repartir d'un monde vide) |
 | `pont.rejeu` | Début d'un rejeu | `run_id`, `evenements` (nombre à venir) |
 | `pont.fin_rejeu` | Fin d'un rejeu | `run_id` |

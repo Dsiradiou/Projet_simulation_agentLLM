@@ -17,6 +17,7 @@ class Settings(BaseModel):
     ollama_host: str = "http://localhost:11434"
     kafka_bootstrap_servers: str = "localhost:9092"
     redis_url: str = "redis://localhost:6379/0"
+    godot_bin: str = ""  # exécutable Godot 4 (version console sous Windows), pour les tests
 
 
 def load_settings(env_file: str | Path = ".env") -> Settings:

@@ -71,7 +71,7 @@ exigences de l'énoncé.</p>
   <tr><td>8</td><td>Historique et rejeu</td><td>Écriture Parquet, relecture d'un run sans appel LLM (E3, F5)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 3 — Visualisation</strong></td></tr>
   <tr><td>9</td><td>Pont FastAPI</td><td>WebSocket en direct ou en rejeu, inspection (D2), injection (D3)</td><td class="ok">terminée</td></tr>
-  <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="todo">à venir</td></tr>
+  <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
   <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="todo">à venir</td></tr>
   <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="todo">à venir</td></tr>
@@ -1406,6 +1406,138 @@ Dépendances ajoutées : <code>fastapi 0.144.0</code>, <code>uvicorn 0.54.0</cod
 <p>Étape 10 — Scène Godot 3D : plusieurs maquettes low-poly à comparer (bâtiments distincts par
 zone, plage avec sable et mer, personnages animés), puis la scène choisie branchée sur le pont,
 avec le panneau d'indicateurs et l'inspection d'un agent (D1, D2, D3).</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 10 — Scène Godot 3D</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : D1 (affichage en direct, compréhensible
+pour un observateur), D2 (inspection d'un agent), D3 (injection), E3 (rejeu), C8 (deux tailles
+de population à montrer).</p>
+
+<h3>Objectif</h3>
+<p>Montrer la simulation dans une scène 3D low-poly au rendu léger : une station balnéaire avec ses
+7 zones et ses habitants animés, alimentée en direct (ou en rejeu) par le pont. Comme convenu au
+départ, le binôme a d'abord choisi une direction visuelle parmi plusieurs maquettes.</p>
+
+<h3>1. Trois maquettes, un choix</h3>
+<p>Les modèles 3D viennent de kits gratuits sous licence CC0 (Kenney, Kay Lousberg), conservés avec
+leur licence dans <code>godot/assets/</code> (crédits dans <code>godot/LICENCES.md</code>). Les trois
+maquettes montrent le même contenu : 7 zones, une trentaine d'habitants dont la pastille donne le
+sens, et le même bandeau d'indicateurs. On a mesuré leur coût de rendu, car Godot partage la carte
+graphique avec les modèles de langage.</p>
+<table>
+  <tr><th>Maquette</th><th>Principe</th><th>Mémoire vidéo</th><th>Appels de dessin</th></tr>
+  <tr><td><strong>A — Station balnéaire</strong></td><td>Ville organique au bord de l'eau, modèles Kenney texturés</td><td>211 Mo</td><td>400</td></tr>
+  <tr><td>B — Îlots</td><td>Une plateforme par zone autour des réseaux sociaux, formes simples</td><td>208 Mo</td><td>169</td></tr>
+  <tr><td>C — Quartier</td><td>Avenues et immeubles KayKit en damier, plage au sud</td><td>216 Mo</td><td>373</td></tr>
+</table>
+<p>Les trois tournent à 60 images par seconde (plafond de l'écran). <strong>Le binôme a choisi la
+maquette A</strong> : c'est la plus proche d'un vrai lieu, avec des bâtiments distincts par zone et
+une vraie plage. Les maquettes restent dans <code>godot/maquettes/</code> et
+<code>docs/maquettes/</code>.</p>
+<p><img src="../maquettes/maquette-A.png" alt="Maquette A" style="width:100%"></p>
+<p><img src="../maquettes/maquette-B.png" alt="Maquette B" style="width:49%"> <img src="../maquettes/maquette-C.png" alt="Maquette C" style="width:49%"></p>
+
+<h3>2. La scène définitive</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>godot/scripts/decor.gd</code></td><td>Le décor de la maquette A, les emplacements de chaque zone, la météo, l'écran des réseaux, les zones signalées.</td></tr>
+  <tr><td><code>godot/scripts/habitant.gd</code></td><td>Un habitant = un agent : modèle animé, pastille de sens, flacon s'il est porteur, bulle de message, marche, clic.</td></tr>
+  <tr><td><code>godot/scripts/pont.gd</code></td><td>Client du pont : WebSocket (avec reconnexion en direct) et requêtes HTTP.</td></tr>
+  <tr><td><code>godot/scripts/interface.gd</code></td><td>Bandeau, indicateurs, fil des événements, fiche d'agent, injection, commandes, choix du rejeu.</td></tr>
+  <tr><td><code>godot/scripts/monde.gd</code></td><td>La scène principale : applique chaque message du pont au décor et aux habitants.</td></tr>
+  <tr><td><code>godot/tests/test_monde.gd</code></td><td>Test de la scène sans écran ni pont.</td></tr>
+</table>
+
+<h3>Comment lire la scène (D1)</h3>
+<table>
+  <tr><th>Ce qu'on voit</th><th>Ce que ça signifie</th></tr>
+  <tr><td>Pastille sous les pieds</td><td>Le sens du produit pour l'agent : <span style="color:#2e9e5b">efficace</span>, <span style="color:#e8558e">tendance</span>, <span style="color:#7a828c">banal</span>, <span style="color:#7c5cc4">dépassé</span></td></tr>
+  <tr><td>Flacon jaune au-dessus de la tête</td><td>L'agent utilise le produit (porteur)</td></tr>
+  <tr><td>Geste « oui » ou « non »</td><td>Il vient d'acheter ou d'appliquer, ou au contraire de critiquer ou d'abandonner</td></tr>
+  <tr><td>Bulle</td><td>Un message qu'il envoie (blanc : à sa zone, bleu : direct, mauve : réseaux)</td></tr>
+  <tr><td>Écran de la place</td><td>La dernière publication sur les réseaux sociaux</td></tr>
+  <tr><td>Zone surlignée en rouge</td><td>Une perturbation vient de la toucher</td></tr>
+  <tr><td>Marche</td><td>Un déplacement d'une zone à l'autre</td></tr>
+</table>
+<p>Le panneau de droite donne la répartition des sens, la part de porteurs, les messages du jour et
+les incidents. Le fil « Ce qui se passe » raconte les changements de sens, les messages et les
+perturbations. La caméra se déplace à la souris : molette pour zoomer, clic droit pour tourner,
+flèches pour se déplacer.</p>
+
+<h3>Inspection, injection, rejeu</h3>
+<ul>
+  <li><strong>D2</strong> : un clic sur un habitant ouvre sa fiche. On y trouve son rôle et son
+    palier, son sens et son seuil, sa dernière décision avec sa justification, son modèle et son
+    coût, ses messages reçus et envoyés, et ses décisions précédentes. En rejeu, la fiche est
+    construite à partir des événements relus.</li>
+  <li><strong>D3</strong> : le panneau du bas envoie une perturbation (nature, zone, description),
+    ainsi que pause, reprise et arrêt. Ces commandes sont désactivées en rejeu.</li>
+  <li><strong>Rejeu</strong> : on choisit un run enregistré et une vitesse en jours par seconde. Le
+    même code affiche le direct et le rejeu.</li>
+</ul>
+
+<h3>Vérifications</h3>
+<p><strong>En rejeu</strong>, sur la tranche LLM de l'étape 9 : on voit la polémique arriver
+au jour 3, puis le pharmacien critiquer et publier, et sa critique s'afficher sur l'écran de la
+place et dans le fil.</p>
+<p><img src="../scene/rejeu-tranche.png" alt="Rejeu de la tranche" style="width:100%"></p>
+<p><strong>En direct</strong>, avec la population complète (119 agents factices) et une vague de
+chaleur injectée sur la plage pendant le run : la plage est surlignée au jour suivant, et la fiche
+du pharmacien est complétée par l'état Redis. Le run garde un historique complet (1 529 événements
+publiés, 1 529 enregistrés, plus l'injection).</p>
+<p><img src="../scene/direct-population.png" alt="Direct, population complète" style="width:100%"></p>
+
+<h3>Défauts trouvés et corrigés</h3>
+<ul>
+  <li><strong>La mer était cachée sous la pelouse</strong> dans la première maquette : le sol
+    allait jusqu'au large.</li>
+  <li><strong>L'instantané du pont ne donnait pas l'identifiant des agents</strong> : la scène ne
+    pouvait pas savoir qui était qui à la connexion. Le pont l'ajoute maintenant, et un test le
+    vérifie.</li>
+  <li><strong>La fin d'un rejeu s'affichait comme une coupure du pont</strong> : le dernier
+    message arrivait juste avant la fermeture. Le client lit maintenant les messages jusqu'à la
+    fermeture.</li>
+  <li><strong>Texte de l'écran et bulles trop petits</strong>, panneaux qui se chevauchaient :
+    tailles et positions revues.</li>
+</ul>
+
+<h3>Nouveau constat</h3>
+<div class="box">
+  <strong>Lisibilité à 120 agents.</strong> Les zones les plus fréquentées deviennent des foules où
+  les pastilles se masquent. Le panneau d'indicateurs reste juste, mais la scène ne laisse plus voir
+  la répartition d'un coup d'œil. Piste : une jauge des sens au-dessus de chaque zone, à l'étape
+  14 (indicateurs par groupe), et une population de démonstration réduite à l'étape 18 (C8).
+  Ajouté à la table des constats ouverts.
+</div>
+
+<h3>Les tests</h3>
+<ul>
+  <li><code>godot/tests/test_monde.gd</code> fait tourner la scène sans écran. Il lui donne un
+    instantané, des décisions, un déplacement, un message sur les réseaux, un changement de jour,
+    une perturbation et un nouveau run. Il vérifie ensuite les habitants, leur sens et leur
+    flacon, leurs zones, la bulle, l'écran, la zone signalée et le contenu de la fiche
+    d'inspection.</li>
+  <li>pytest le lance (marqueur <code>godot</code>) quand le chemin de Godot est renseigné
+    (<code>GODOT_BIN</code> dans <code>.env</code>).</li>
+</ul>
+<p>Résultat : <span class="ok">157 tests réussis</span>, aucun ignoré, aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>La direction visuelle a été choisie sur maquettes, avec leur coût de rendu mesuré.</li>
+  <li>La scène ne contient aucune logique de simulation : elle applique les événements du pont,
+    ce qui garantit qu'en rejeu elle montre exactement le run enregistré.</li>
+  <li>Tout ce que l'énoncé demande à l'interface est là : voir (D1), interroger (D2) et perturber
+    (D3), en direct comme en rejeu.</li>
+  <li>Le rendu est léger : environ 210 Mo de mémoire vidéo, à côté des modèles de langage.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 11 — Le monde : choix du nom de marque avec un test de contamination, population complète
+(abonnés des réseaux, routines de déplacement, déclencheurs supplémentaires), prompts par rôle. Les
+constats ouverts des étapes 5 à 9 y sont traités.</p>
 </section>
 
 </body>

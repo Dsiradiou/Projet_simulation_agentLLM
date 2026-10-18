@@ -184,7 +184,12 @@ async def instantane_direct(services: Services) -> dict:
         "jour": int(courant.get("jour") or monde.get("jour") or 0),  # jour en cours
         "meteo": json.loads(monde["meteo"]) if monde.get("meteo") else None,
         "zones": await services.etat.zones(run_id) if run_id else {},
-        "agents": list((await services.etat.agents(run_id)).values()) if run_id else [],
+        "agents": [
+            {"agent_id": a, **_fiche_lisible(f)}
+            for a, f in sorted((await services.etat.agents(run_id)).items())
+        ]
+        if run_id
+        else [],
         "perturbations": services.vue.instantane()["perturbations"],
     }
 
