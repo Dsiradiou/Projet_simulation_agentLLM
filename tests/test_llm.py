@@ -109,7 +109,7 @@ def decider(agent: AgentLLM, perception: Perception | None = None) -> Decision:
 def test_schema_uses_closed_categories() -> None:
     schema = schema_sortie(CONTACTS)
     props = schema["properties"]
-    assert props["sens"]["enum"] == [s.value for s in Sens]
+    assert props["sens"]["enum"] == ["efficace", "tendance", "banal", "demode"]  # pas « depasse »
     assert props["action"]["enum"] == [a.value for a in Action]
     assert list(props)[0] == "justification"  # la raison est écrite avant le choix
     direct = props["message"]["anyOf"][2]
@@ -306,13 +306,15 @@ def test_porteur_follows_action(action: Action, avant: bool, apres: bool) -> Non
 
 
 def test_prompts_take_the_brand_from_config() -> None:
-    monde = MondeConfig(brand_name="Zelvane", ingredient="okarine", indice_protection="IP 42")
+    monde = MondeConfig(
+        brand_name="Kelvora", ingredient="okarine", indice_protection="IP 42", concurrent="Brizo"
+    )
     for role in PALIER_PAR_ROLE:
         systeme = prompt_systeme(role, monde)
-        assert "Zelvane" in systeme and "okarine" in systeme and "IP 42" in systeme
+        assert "Kelvora" in systeme and "okarine" in systeme and "IP 42" in systeme
         assert "PROVISOIRE" not in systeme
     jour, _ = prompt_jour(_perception(), None, CONTACTS, monde)
-    assert "Zelvane" in jour and "sceptique_01" in jour
+    assert "Kelvora" in jour and "sceptique_01" in jour
 
 
 def test_prompt_shows_only_the_latest_messages() -> None:
@@ -360,3 +362,11 @@ def test_orchestrator_publishes_agent_incidents_and_costs() -> None:
     assert set(bilan.cout_par_modele) == {"qwen3:4b", "qwen3:1.7b"}
     assert bilan.cout_par_modele["qwen3:1.7b"]["appels"] == 2
     assert client.charges == ["qwen3:1.7b", "qwen3:4b"]  # jour 1 : petit puis moyen
+
+
+def test_outdated_meaning_is_asked_with_an_unambiguous_word() -> None:
+    """« depasse » se lisait « dépasse (mes attentes) » : le modèle répond « demode »."""
+    assert lire_sortie(_json(sens="demode"), CONTACTS).sens is Sens.DEPASSE
+    with pytest.raises(SortieInvalide):
+        lire_sortie(_json(sens="depasse"), CONTACTS)
+    assert "demode (démodé" in prompt_systeme(Role.SCEPTIQUE, _config().monde)

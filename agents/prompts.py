@@ -4,14 +4,21 @@ Le nom de la marque, l'ingrédient et l'indice viennent toujours de `config.mond
 de produit n'est écrit ici. Chaque rôle a son profil (expertise, ton) et ses habitudes de parole :
 c'est le rôle, et non la taille du modèle, qui doit décider de la propension à parler (constat de
 l'étape 6). Le prompt rappelle aussi de ne citer que ce qui y figure (constat de l'étape 7 :
-observations inventées). La mémoire et le RAG compléteront ces prompts à l'étape 12.
+observations inventées). Depuis l'étape 12, le prompt contient aussi ce que l'agent a retrouvé
+dans le corpus du monde et dans ses souvenirs (RAG).
 """
+
+from typing import TYPE_CHECKING
 
 from agents.base import Decision, Perception
 from agents.roles import Role
 from bus.events import AgentMessage, Disturbance, Motif
+from llm.sortie import MOT_DU_SENS
 from sim.config import MondeConfig
 from sim.domaine import Zone
+
+if TYPE_CHECKING:
+    from rag.recuperation import Contexte
 
 # Au-delà, les plus anciens messages sont résumés par leur nombre : le contexte est de 2048
 # tokens et une publication peut toucher beaucoup d'abonnés.
@@ -80,6 +87,16 @@ ZONES_LISIBLES: dict[Zone, str] = {
     Zone.DOMICILE: "chez toi",
 }
 
+TYPES_LISIBLES = {
+    "fiche_produit": "fiche produit",
+    "communique": "communiqué de la marque",
+    "avis_client": "avis client",
+    "article": "article de presse",
+    "conseil": "conseil",
+    "note_interne": "note interne",
+    "concurrent": "concurrent",
+}
+
 MOTIFS_LISIBLES: dict[Motif, str] = {
     Motif.PREMIERE_DECISION: "tu découvres le produit",
     Motif.MESSAGE: "tu as reçu des messages",
@@ -100,14 +117,15 @@ Le produit : la crème solaire {marque}, nouvelle cet été, à l'ingrédient {i
 réels, seulement ce qu'on te dit. C'est un cosmétique : aucune affirmation médicale.
 
 Règle essentielle : ne mentionne que ce qui figure dans la situation du jour (lieu, météo, \
-messages reçus, événements). N'invente ni message, ni personne, ni chiffre, ni souvenir. Les \
-identifiants comme pharmacien_02 désignent des habitants ; ne cite que ceux qui t'ont écrit.
+messages reçus, événements), dans ce que tu as lu et dans tes souvenirs. N'invente ni message, \
+ni personne, ni chiffre, ni souvenir. Les identifiants comme pharmacien_02 désignent des \
+habitants ; ne cite que ceux qui t'ont écrit ou dont tu te souviens.
 
 Chaque jour, tu réponds en JSON :
 - justification : une ou deux phrases courtes, à la première personne ;
 - sens : ce que le produit représente pour toi, exactement une valeur parmi efficace (il remplit \
 sa fonction), tendance (on le porte pour être dans le coup), banal (un produit comme un autre), \
-depasse (sa mode est passée) ;
+demode (démodé : sa mode est passée, on n'en veut plus) ;
 - action : ce que tu fais aujourd'hui, parmi acheter, appliquer, recommander, critiquer, \
 en_parler, ignorer, abandonner ; elle doit être cohérente avec le sens choisi ;
 - message : null si tu n'as rien d'utile à dire. Sinon une seule phrase de moins de 200 \
@@ -134,6 +152,8 @@ def prompt_jour(
     monde: MondeConfig,
     motif: Motif | None = None,
     messages_restants: int | None = None,
+    contexte: "Contexte | None" = None,
+    messages_max: int = MESSAGES_MAX,
 ) -> tuple[str, tuple[AgentMessage, ...]]:
     """Prompt du jour et messages effectivement montrés au modèle : seuls ceux-là sont cités
     dans `caused_by` de la décision (F6)."""
@@ -153,13 +173,13 @@ def prompt_jour(
     else:
         usage = "tu l'utilises" if precedente.porteur else "tu ne l'utilises pas"
         lignes.append(
-            f"Jusqu'ici, {marque} te semblait « {precedente.sens.value} » "
+            f"Jusqu'ici, {marque} te semblait « {MOT_DU_SENS[precedente.sens]} » "
             f"(dernière action : {precedente.action.value}) ; {usage}."
         )
     if motif is not None:
         lignes.append(f"Tu y repenses aujourd'hui parce que {MOTIFS_LISIBLES[motif]}.")
 
-    montres = perception.messages[-MESSAGES_MAX:]
+    montres = perception.messages[-messages_max:]
     if montres:
         lignes.append("Messages reçus depuis ta dernière décision :")
         anciens = len(perception.messages) - len(montres)
@@ -175,6 +195,15 @@ def prompt_jour(
     if evenements:
         lignes.append("Ce qui s'est passé :")
         lignes += [f"- {e.payload.description}" for e in evenements]
+    if contexte and contexte.passages:
+        lignes.append("Ce que tu as lu ou entendu dire :")
+        lignes += [
+            f"- [{TYPES_LISIBLES.get(p.type, p.type)}, jour {p.jour}] {p.texte}"
+            for p in contexte.passages
+        ]
+    if contexte and contexte.souvenirs:
+        lignes.append("Ce dont tu te souviens :")
+        lignes += [f"- {p.texte}" for p in contexte.souvenirs]
     if contacts:
         lignes.append(f"Tes contacts : {', '.join(contacts)}.")
     if messages_restants is not None:

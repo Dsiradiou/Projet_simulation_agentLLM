@@ -70,6 +70,16 @@
           ],
           "default": null,
           "description": "Déclencheur de la décision (version 1.1 et suivantes)."
+        },
+        "sources": {
+          "default": [],
+          "description": "Passages du corpus et souvenirs montrés à l'agent (version 1.2, F1, F2).",
+          "items": {
+            "maxLength": 120,
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
         }
       },
       "required": [
@@ -188,10 +198,11 @@
       "type": "string"
     },
     "schema_version": {
-      "default": "1.1",
+      "default": "1.2",
       "enum": [
         "1.0",
-        "1.1"
+        "1.1",
+        "1.2"
       ],
       "title": "Schema Version",
       "type": "string"

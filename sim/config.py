@@ -135,7 +135,15 @@ class MondeConfig(_Section):
 
     brand_name: str = Field(min_length=1)
     ingredient: str = Field(min_length=1)
+    concurrent: str = Field(min_length=1, description="Marque concurrente fictive (corpus).")
     indice_protection: str = Field(min_length=1)
+
+
+class RagConfig(_Section):
+    actif: bool
+    modele_embeddings: str = Field(min_length=1)
+    passages: NonNegativeInt
+    souvenirs: NonNegativeInt
 
 
 class Config(_Section):
@@ -146,6 +154,7 @@ class Config(_Section):
     declencheurs: DeclencheursConfig
     reseau: ReseauConfig
     routines: RoutinesConfig
+    rag: RagConfig
     monde: MondeConfig
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."

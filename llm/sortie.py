@@ -13,9 +13,28 @@ justifier après coup un choix déjà fait.
 import json
 from collections.abc import Sequence
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from sim.domaine import Action, Canal, Sens
+
+# Mots proposés au modèle pour les catégories fermées du sens (B1). « depasse », sans accent, était
+# lu « dépasse (mes attentes) » : 17 décisions « dépassé » sur 23 allaient avec appliquer,
+# recommander ou acheter (mesure du 18 oct.). Le modèle choisit donc « demode », traduit ici vers
+# la catégorie interne, inchangée dans le contrat d'événements.
+SENS_POUR_LE_MODELE: dict[str, Sens] = {
+    "efficace": Sens.EFFICACE,
+    "tendance": Sens.TENDANCE,
+    "banal": Sens.BANAL,
+    "demode": Sens.DEPASSE,
+}
+MOT_DU_SENS = {sens: mot for mot, sens in SENS_POUR_LE_MODELE.items()}
 
 # Garde-fous de longueur. La contrainte de longueur d'Ollama coupe le texte net, en plein mot :
 # c'est le prompt qui demande des réponses courtes, ces plafonds ne servent qu'en dernier recours.
@@ -46,6 +65,16 @@ class MessageSortie(_Strict):
 class SortieAgent(_Strict):
     justification: str = Field(min_length=1, max_length=LONGUEUR_JUSTIFICATION)
     sens: Sens
+
+    @field_validator("sens", mode="before")
+    @classmethod
+    def _mot_du_modele(cls, valeur: object) -> object:
+        if isinstance(valeur, str) and valeur not in SENS_POUR_LE_MODELE:
+            raise ValueError(
+                f"sens inconnu : {valeur} (attendu : {', '.join(SENS_POUR_LE_MODELE)})"
+            )
+        return SENS_POUR_LE_MODELE.get(valeur, valeur) if isinstance(valeur, str) else valeur
+
     action: Action
     message: MessageSortie | None = None
 
@@ -84,7 +113,7 @@ def schema_sortie(contacts: Sequence[str], message_possible: bool = True) -> dic
         "type": "object",
         "properties": {
             "justification": {"type": "string", "maxLength": LONGUEUR_JUSTIFICATION},
-            "sens": {"type": "string", "enum": [s.value for s in Sens]},
+            "sens": {"type": "string", "enum": list(SENS_POUR_LE_MODELE)},
             "action": {"type": "string", "enum": [a.value for a in Action]},
             "message": {"anyOf": formes},
         },

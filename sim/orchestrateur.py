@@ -377,6 +377,7 @@ class Orchestrateur:
                     palier=decision.palier,
                     appel_llm=decision.appel_llm,
                     motif=agent.motif,
+                    sources=decision.sources,
                 ),
             )
             suites = self._suites(agent, decision, event.event_id, t)

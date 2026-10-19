@@ -25,7 +25,7 @@ func _initialize() -> void:
 	verifier(ph.zone == "pharmacie" and ph.porteur and ph.sens == "efficace", "fiche du pharmacien appliquée")
 	verifier(ph._flacon.visible, "le flacon signale un porteur")
 
-	var decision := {"type": "agent.decision", "source_agent_id": "sceptique_01", "zone": "plage", "payload": {"sens": "tendance", "action": "acheter", "porteur": true, "moteur": "llm", "palier": "petit", "justification": "Tout le monde en a.", "appel_llm": {"modele": "qwen3:1.7b", "duree_s": 0.8, "tokens_sortie": 90, "tentatives": 1}}}
+	var decision := {"type": "agent.decision", "source_agent_id": "sceptique_01", "zone": "plage", "payload": {"sens": "tendance", "action": "acheter", "porteur": true, "moteur": "llm", "palier": "petit", "justification": "Tout le monde en a.", "motif": "message", "sources": ["corpus:fiche-produit", "memoire:sceptique_01:j2"], "appel_llm": {"modele": "qwen3:1.7b", "duree_s": 0.8, "tokens_sortie": 90, "tentatives": 1}}}
 	monde._sur_message(decision)
 	var sc = monde.habitants["sceptique_01"]
 	verifier(sc.sens == "tendance" and sc.porteur, "une décision change le sens et le porteur")
@@ -52,6 +52,7 @@ func _initialize() -> void:
 	var fiche: String = monde.ui._fiche_texte.text
 	verifier(fiche.contains("sceptique_01") and fiche.contains("Tout le monde en a."), "la fiche montre la justification")
 	verifier(fiche.contains("qwen3:1.7b"), "la fiche montre le modèle et le coût")
+	verifier(fiche.contains("fiche-produit") and fiche.contains("J2"), "la fiche montre ce que l'agent avait lu et ses souvenirs")
 
 	monde._sur_message({"type": "pont.nouveau_run", "run_id": "r2"})
 	verifier(monde.habitants.is_empty(), "un nouveau run repart d'un monde vide")

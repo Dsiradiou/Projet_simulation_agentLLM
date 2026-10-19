@@ -84,6 +84,8 @@ class VueMonde:
                         "justification": p.justification,
                         "appel_llm": p.appel_llm.model_dump(mode="json") if p.appel_llm else None,
                         "caused_by": [str(c) for c in event.caused_by],
+                        "motif": p.motif.value if p.motif else None,
+                        "sources": list(p.sources),
                     }
                 )
             case ev.AgentMove():

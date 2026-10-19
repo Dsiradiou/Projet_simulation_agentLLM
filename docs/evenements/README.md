@@ -38,7 +38,7 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
-| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.1 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
+| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.2 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
 | [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.0 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
 | [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.0 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
 | [`controle.injection`](#controleinjection) | `sim.control` | 1.1 | Demande d'injection d'une perturbation depuis l'interface (D3). |
@@ -111,7 +111,7 @@ Payload :
 
 ### agent.decision
 
-Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.1.
+Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.2.
 
 Payload :
 
@@ -125,6 +125,7 @@ Payload :
 | `palier` | `grand` \| `moyen` \| `petit` ou null | non |  |  |
 | `appel_llm` | LlmCall ou null | non |  |  |
 | `motif` | `premiere_decision` \| `message` \| `perturbation` \| `exposition` \| `meteo` \| `lassitude` ou null | non |  | Déclencheur de la décision (version 1.1 et suivantes). |
+| `sources` | liste de string | non |  | Passages du corpus et souvenirs montrés à l'agent (version 1.2, F1, F2). |
 
 ### agent.deplacement
 

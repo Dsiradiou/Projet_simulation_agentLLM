@@ -129,6 +129,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
 | Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
 | Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
+| Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama and not godot"` sans services) |
@@ -176,6 +177,12 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   elle applique les messages du pont (`scripts/monde.gd`). Modèles 3D : kits CC0 seulement, rangés
   par kit dans `godot/assets/` avec leur licence, crédités dans `godot/LICENCES.md`. Tout nouveau
   type de message affiché se teste dans `godot/tests/test_monde.gd`.
+- RAG (étape 12) : corpus dans `corpus/documents/` (règles dans `corpus/README.md` : gabarits
+  `{marque}`…, aucune allégation de santé, faits seulement pour les documents datés). Toute
+  recherche filtre sur la date (`jour <= jour de l'agent`, C6) et le rôle ; les souvenirs d'un
+  agent ne viennent que de jours passés. Chaque décision publie ses `sources` (F2). Embeddings :
+  `bge-m3`, choisi sur mesure. Un nouveau document s'accompagne d'une question dans
+  `corpus/evaluation/reference.yaml`.
 - Les noms de topics viennent de l'énumération `bus.topics.Topic`, jamais d'une chaîne en dur.
   La création automatique de topics est désactivée sur le broker.
 

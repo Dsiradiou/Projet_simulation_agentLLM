@@ -1,0 +1,170 @@
+# Jeu de référence de la récupération (F2) : pour chaque question, ce qu'un bon système doit
+# retrouver dans les 4 premiers passages, à la date et pour le rôle indiqués.
+# `attendus` : au moins un de ces documents doit figurer (pertinence) ; `interdits` : aucun ne doit
+# figurer (filtre de date ou de rôle). Écrit avec le corpus, à relire par le binôme.
+questions:
+  - question: "Quel est l'indice de protection de {marque} ?"
+    jour: 5
+    role: baigneur_occasionnel
+    attendus: [fiche-produit, echelle-halo, faq]
+  - question: "Halo 4, c'est l'indice UV du jour ?"
+    jour: 5
+    role: habitue_soin
+    attendus: [echelle-halo, faq]
+  - question: "L'indice UV est à 9 aujourd'hui, est-ce que {marque} protège encore assez ?"
+    jour: 12
+    role: sceptique
+    attendus: [echelle-halo, faq, fiche-produit]
+  - question: "C'est quoi la {ingredient} dans cette crème ?"
+    jour: 20
+    role: journaliste
+    attendus: [ingredient, enquete-ingredient]
+  - question: "Combien coûte {marque} et où l'acheter ?"
+    jour: 3
+    role: baigneur_occasionnel
+    attendus: [prix-formats, lancement, faq]
+  - question: "Est-ce que {marque} tient après la baignade ?"
+    jour: 10
+    role: habitue_soin
+    attendus: [fiche-produit, avis-03, mode-emploi, faq]
+  - question: "Faut-il en remettre après le sport ?"
+    jour: 15
+    role: sceptique
+    attendus: [mode-emploi, avis-06, faq]
+  - question: "{marque} laisse-t-elle des traces ou un aspect brillant ?"
+    jour: 30
+    role: createur_contenu
+    attendus: [reponse-texture, avis-02, faq]
+  - question: "Y a-t-il une promotion sur {concurrent} ?"
+    jour: 22
+    role: fidele_autre_marque
+    attendus: [promo-concurrent]
+  - question: "Quelle différence entre {marque} et {concurrent} ?"
+    jour: 10
+    role: pharmacien
+    attendus: [guide-pharmacien, concurrent-fiche, article-ete, avis-05]
+  - question: "Peut-on encore avoir des échantillons gratuits ?"
+    jour: 6
+    role: baigneur_occasionnel
+    attendus: [echantillons]
+  - question: "Peut-on encore avoir des échantillons gratuits ?"
+    jour: 16
+    role: baigneur_occasionnel
+    attendus: [fin-echantillons]
+  - question: "Existe-t-il un grand format pour la famille ?"
+    jour: 34
+    role: habitue_soin
+    attendus: [format-familial, avis-10]
+  - question: "Existe-t-il un grand format pour la famille ?"
+    jour: 10
+    role: habitue_soin
+    attendus: []
+    interdits: [format-familial, avis-10]   # pas encore sorti au jour 10 (C6)
+  - question: "Que fait la marque sur la plage ce week-end ?"
+    jour: 36
+    role: baigneur_occasionnel
+    attendus: [animation-plage]
+  - question: "Comment appliquer la crème correctement ?"
+    jour: 8
+    role: baigneur_occasionnel
+    attendus: [mode-emploi, conseils-pharmacie, reponse-texture]
+  - question: "Quand arrive le réassort en rayon ?"
+    jour: 22
+    role: vendeur
+    attendus: [note-vendeurs, note-stock]
+  - question: "Quand arrive le réassort en rayon ?"
+    jour: 22
+    role: baigneur_occasionnel
+    attendus: []
+    interdits: [note-vendeurs, note-stock, guide-pharmacien, plan-marque]   # notes internes (rôle)
+  - question: "Quel est le plan de communication de la marque cet été ?"
+    jour: 2
+    role: responsable_marque
+    attendus: [plan-marque]
+  - question: "{concurrent} a-t-il changé sa formule ?"
+    jour: 50
+    role: fidele_autre_marque
+    attendus: [concurrent-formule, avis-12]
+  - question: "{concurrent} a-t-il changé sa formule ?"
+    jour: 20
+    role: fidele_autre_marque
+    attendus: [concurrent-fiche]
+    interdits: [concurrent-formule, avis-12]   # annoncé au jour 45 (C6)
+  - question: "Les modes de l'été durent-elles ?"
+    jour: 10
+    role: journaliste
+    attendus: [modes-passees]
+  - question: "{marque} est-elle trop chère ?"
+    jour: 25
+    role: sceptique
+    attendus: [avis-09, avis-01, prix-formats]
+  - question: "Elle est grasse quand il fait très chaud ?"
+    jour: 42
+    role: habitue_soin
+    attendus: [avis-11]
+  # --- Reformulations : comme un agent l'écrirait, sans reprendre les mots des documents -------
+  - question: "pharmacien_02 dit que ça laisse un film qui brille sur la figure, c'est normal ?"
+    jour: 28
+    role: habitue_soin
+    attendus: [reponse-texture, avis-02, faq]
+  - question: "Il fait 36 degrés et je sens que le produit reste collé sur ma peau."
+    jour: 45
+    role: baigneur_occasionnel
+    attendus: [avis-11]
+  - question: "Mon voisin a eu un petit modèle gratuit à l'officine, j'en veux un aussi."
+    jour: 8
+    role: sceptique
+    attendus: [echantillons]
+  - question: "Les gens la comparent à celle au fini mat qui coûte moins cher."
+    jour: 12
+    role: sceptique
+    attendus: [concurrent-fiche, avis-05, prix-formats]
+  - question: "Je fais mon footing tous les matins, est-ce que ça me coule dans les yeux ?"
+    jour: 14
+    role: baigneur_occasionnel
+    attendus: [avis-06]
+  - question: "C'est fabriqué avec quoi exactement, ce truc nacré ?"
+    jour: 16
+    role: sceptique
+    attendus: [ingredient, enquete-ingredient]
+  - question: "Il y a un stand avec des jeux pour les gosses au bord de l'eau ?"
+    jour: 36
+    role: habitue_soin
+    attendus: [animation-plage]
+  - question: "L'été dernier tout le monde avait les mêmes lunettes et plus personne maintenant."
+    jour: 20
+    role: createur_contenu
+    attendus: [modes-passees]
+  - question: "Impossible de faire sortir le reste du produit au fond."
+    jour: 18
+    role: habitue_soin
+    attendus: [avis-07]
+  - question: "Le produit d'en face est soldé au centre en ce moment ?"
+    jour: 23
+    role: sceptique
+    attendus: [promo-concurrent]
+  - question: "Combien de temps je peux rester dans l'eau avant d'en remettre ?"
+    jour: 9
+    role: baigneur_occasionnel
+    attendus: [fiche-produit, faq, avis-03, mode-emploi]
+  - question: "Le soleil tape fort aujourd'hui, une protection 4 sur 5 ça suffit ?"
+    jour: 11
+    role: baigneur_occasionnel
+    attendus: [echelle-halo, faq]
+  - question: "Mes petits ne tiennent pas en place quand je les tartine."
+    jour: 22
+    role: habitue_soin
+    attendus: [avis-08]
+  - question: "Je veux savoir ce que la marque a promis dans ses annonces au public."
+    jour: 26
+    role: journaliste
+    attendus: [lancement, interview-marque, reponse-texture]
+  - question: "Ce que coûte le gros flacon pour toute la tribu."
+    jour: 31
+    role: baigneur_occasionnel
+    attendus: [format-familial, avis-10]
+  - question: "Ce que coûte le gros flacon pour toute la tribu."
+    jour: 29
+    role: baigneur_occasionnel
+    attendus: [prix-formats]
+    interdits: [format-familial, avis-10]   # sort au jour 30 (C6)

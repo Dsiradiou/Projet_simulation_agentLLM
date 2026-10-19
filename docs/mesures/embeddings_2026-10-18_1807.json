@@ -1,0 +1,2054 @@
+[
+  {
+    "modele": "qwen3-embedding:0.6b",
+    "reussite": 0.974,
+    "mrr": 0.868,
+    "violations": 0,
+    "duree_index_s": 8.78,
+    "duree_question_ms": 28.3,
+    "vram_mo": 1948,
+    "details": [
+      {
+        "question": "Quel est l'indice de protection de Vaelys ?",
+        "jour": 5,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "fiche-produit",
+          "faq",
+          "article-ete",
+          "lancement"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Halo 4, c'est l'indice UV du jour ?",
+        "jour": 5,
+        "role": "habitue_soin",
+        "trouves": [
+          "echelle-halo",
+          "faq",
+          "article-ete",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "L'indice UV est à 9 aujourd'hui, est-ce que Vaelys protège encore assez ?",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "fiche-produit",
+          "article-ete",
+          "faq",
+          "mode-emploi"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq",
+          "fiche-produit"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est quoi la nacrelle dans cette crème ?",
+        "jour": 20,
+        "role": "journaliste",
+        "trouves": [
+          "ingredient",
+          "enquete-ingredient",
+          "fiche-produit",
+          "interview-marque"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Combien coûte Vaelys et où l'acheter ?",
+        "jour": 3,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "lancement",
+          "prix-formats",
+          "fiche-produit",
+          "faq"
+        ],
+        "attendus": [
+          "prix-formats",
+          "lancement",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Est-ce que Vaelys tient après la baignade ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "mode-emploi",
+          "fiche-produit",
+          "faq",
+          "interview-marque"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "avis-03",
+          "mode-emploi",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Faut-il en remettre après le sport ?",
+        "jour": 15,
+        "role": "sceptique",
+        "trouves": [
+          "avis-06",
+          "avis-03",
+          "mode-emploi",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "avis-06",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys laisse-t-elle des traces ou un aspect brillant ?",
+        "jour": 30,
+        "role": "createur_contenu",
+        "trouves": [
+          "fiche-produit",
+          "interview-marque",
+          "faq",
+          "reponse-texture"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 3,
+        "violations": []
+      },
+      {
+        "question": "Y a-t-il une promotion sur Zelvane ?",
+        "jour": 22,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "promo-concurrent",
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quelle différence entre Vaelys et Zelvane ?",
+        "jour": 10,
+        "role": "pharmacien",
+        "trouves": [
+          "prix-formats",
+          "guide-pharmacien",
+          "fiche-produit",
+          "interview-marque"
+        ],
+        "attendus": [
+          "guide-pharmacien",
+          "concurrent-fiche",
+          "article-ete",
+          "avis-05"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 6,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "lancement",
+          "modes-passees",
+          "avis-01"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 16,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "fin-echantillons",
+          "lancement",
+          "avis-04"
+        ],
+        "attendus": [
+          "fin-echantillons"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 34,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-10",
+          "format-familial",
+          "avis-08",
+          "avis-01"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-01",
+          "avis-04",
+          "modes-passees",
+          "interview-marque"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Que fait la marque sur la plage ce week-end ?",
+        "jour": 36,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "animation-plage",
+          "interview-marque",
+          "modes-passees",
+          "article-ete"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Comment appliquer la crème correctement ?",
+        "jour": 8,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "mode-emploi",
+          "conseils-pharmacie",
+          "avis-03",
+          "avis-01"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "conseils-pharmacie",
+          "reponse-texture"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "vendeur",
+        "trouves": [
+          "note-vendeurs",
+          "fin-echantillons",
+          "note-stock",
+          "avis-01"
+        ],
+        "attendus": [
+          "note-vendeurs",
+          "note-stock"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "fin-echantillons",
+          "avis-01",
+          "avis-08",
+          "mode-emploi"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Quel est le plan de communication de la marque cet été ?",
+        "jour": 2,
+        "role": "responsable_marque",
+        "trouves": [
+          "plan-marque",
+          "article-ete",
+          "modes-passees",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "plan-marque"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 50,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "concurrent-formule",
+          "concurrent-fiche",
+          "promo-concurrent",
+          "avis-05"
+        ],
+        "attendus": [
+          "concurrent-formule",
+          "avis-12"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 20,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats",
+          "article-ete"
+        ],
+        "attendus": [
+          "concurrent-fiche"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Les modes de l'été durent-elles ?",
+        "jour": 10,
+        "role": "journaliste",
+        "trouves": [
+          "modes-passees",
+          "article-ete",
+          "conseils-pharmacie",
+          "mode-emploi"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys est-elle trop chère ?",
+        "jour": 25,
+        "role": "sceptique",
+        "trouves": [
+          "lancement",
+          "prix-formats",
+          "fiche-produit",
+          "faq"
+        ],
+        "attendus": [
+          "avis-09",
+          "avis-01",
+          "prix-formats"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Elle est grasse quand il fait très chaud ?",
+        "jour": 42,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-11",
+          "avis-06",
+          "avis-01",
+          "avis-02"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "pharmacien_02 dit que ça laisse un film qui brille sur la figure, c'est normal ?",
+        "jour": 28,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-02",
+          "conseils-pharmacie",
+          "reponse-texture",
+          "avis-07"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il fait 36 degrés et je sens que le produit reste collé sur ma peau.",
+        "jour": 45,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-11",
+          "avis-03",
+          "conseils-pharmacie",
+          "avis-01"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mon voisin a eu un petit modèle gratuit à l'officine, j'en veux un aussi.",
+        "jour": 8,
+        "role": "sceptique",
+        "trouves": [
+          "avis-01",
+          "lancement",
+          "echantillons",
+          "avis-04"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": 3,
+        "violations": []
+      },
+      {
+        "question": "Les gens la comparent à celle au fini mat qui coûte moins cher.",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "avis-05",
+          "avis-02",
+          "avis-01",
+          "lancement"
+        ],
+        "attendus": [
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Je fais mon footing tous les matins, est-ce que ça me coule dans les yeux ?",
+        "jour": 14,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-06",
+          "avis-02",
+          "avis-03",
+          "mode-emploi"
+        ],
+        "attendus": [
+          "avis-06"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est fabriqué avec quoi exactement, ce truc nacré ?",
+        "jour": 16,
+        "role": "sceptique",
+        "trouves": [
+          "ingredient",
+          "enquete-ingredient",
+          "avis-07",
+          "avis-01"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il y a un stand avec des jeux pour les gosses au bord de l'eau ?",
+        "jour": 36,
+        "role": "habitue_soin",
+        "trouves": [
+          "animation-plage",
+          "avis-08",
+          "modes-passees",
+          "avis-04"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "L'été dernier tout le monde avait les mêmes lunettes et plus personne maintenant.",
+        "jour": 20,
+        "role": "createur_contenu",
+        "trouves": [
+          "modes-passees",
+          "article-ete",
+          "avis-06",
+          "echantillons"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Impossible de faire sortir le reste du produit au fond.",
+        "jour": 18,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-07",
+          "avis-04",
+          "avis-01",
+          "fin-echantillons"
+        ],
+        "attendus": [
+          "avis-07"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Le produit d'en face est soldé au centre en ce moment ?",
+        "jour": 23,
+        "role": "sceptique",
+        "trouves": [
+          "avis-01",
+          "promo-concurrent",
+          "avis-02",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Combien de temps je peux rester dans l'eau avant d'en remettre ?",
+        "jour": 9,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-03",
+          "mode-emploi",
+          "avis-04",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "faq",
+          "avis-03",
+          "mode-emploi"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Le soleil tape fort aujourd'hui, une protection 4 sur 5 ça suffit ?",
+        "jour": 11,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echelle-halo",
+          "article-ete",
+          "conseils-pharmacie",
+          "faq"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mes petits ne tiennent pas en place quand je les tartine.",
+        "jour": 22,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-08",
+          "avis-01",
+          "avis-07",
+          "ingredient"
+        ],
+        "attendus": [
+          "avis-08"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Je veux savoir ce que la marque a promis dans ses annonces au public.",
+        "jour": 26,
+        "role": "journaliste",
+        "trouves": [
+          "interview-marque",
+          "article-ete",
+          "avis-01",
+          "enquete-ingredient"
+        ],
+        "attendus": [
+          "lancement",
+          "interview-marque",
+          "reponse-texture"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 31,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-09",
+          "avis-04",
+          "prix-formats",
+          "promo-concurrent"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 29,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-09",
+          "avis-04",
+          "prix-formats",
+          "promo-concurrent"
+        ],
+        "attendus": [
+          "prix-formats"
+        ],
+        "rang": 3,
+        "violations": []
+      }
+    ]
+  },
+  {
+    "modele": "bge-m3",
+    "reussite": 1.0,
+    "mrr": 0.89,
+    "violations": 0,
+    "duree_index_s": 0.86,
+    "duree_question_ms": 21.8,
+    "vram_mo": 633,
+    "details": [
+      {
+        "question": "Quel est l'indice de protection de Vaelys ?",
+        "jour": 5,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "fiche-produit",
+          "faq",
+          "echelle-halo",
+          "article-ete"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Halo 4, c'est l'indice UV du jour ?",
+        "jour": 5,
+        "role": "habitue_soin",
+        "trouves": [
+          "echelle-halo",
+          "faq",
+          "article-ete",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "L'indice UV est à 9 aujourd'hui, est-ce que Vaelys protège encore assez ?",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "faq",
+          "fiche-produit",
+          "echelle-halo",
+          "article-ete"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq",
+          "fiche-produit"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est quoi la nacrelle dans cette crème ?",
+        "jour": 20,
+        "role": "journaliste",
+        "trouves": [
+          "ingredient",
+          "interview-marque",
+          "enquete-ingredient",
+          "fiche-produit"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Combien coûte Vaelys et où l'acheter ?",
+        "jour": 3,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "lancement",
+          "fiche-produit",
+          "prix-formats",
+          "faq"
+        ],
+        "attendus": [
+          "prix-formats",
+          "lancement",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Est-ce que Vaelys tient après la baignade ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "faq",
+          "mode-emploi",
+          "fiche-produit",
+          "article-ete"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "avis-03",
+          "mode-emploi",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Faut-il en remettre après le sport ?",
+        "jour": 15,
+        "role": "sceptique",
+        "trouves": [
+          "avis-06",
+          "avis-03",
+          "faq",
+          "mode-emploi"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "avis-06",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys laisse-t-elle des traces ou un aspect brillant ?",
+        "jour": 30,
+        "role": "createur_contenu",
+        "trouves": [
+          "fiche-produit",
+          "reponse-texture",
+          "faq",
+          "interview-marque"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Y a-t-il une promotion sur Zelvane ?",
+        "jour": 22,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "promo-concurrent",
+          "concurrent-fiche",
+          "avis-05",
+          "article-ete"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quelle différence entre Vaelys et Zelvane ?",
+        "jour": 10,
+        "role": "pharmacien",
+        "trouves": [
+          "prix-formats",
+          "guide-pharmacien",
+          "article-ete",
+          "avis-05"
+        ],
+        "attendus": [
+          "guide-pharmacien",
+          "concurrent-fiche",
+          "article-ete",
+          "avis-05"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 6,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "lancement",
+          "avis-01",
+          "prix-formats"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 16,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "fin-echantillons",
+          "avis-05",
+          "lancement"
+        ],
+        "attendus": [
+          "fin-echantillons"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 34,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-10",
+          "format-familial",
+          "prix-formats",
+          "avis-08"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "prix-formats",
+          "avis-04",
+          "echantillons",
+          "avis-01"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Que fait la marque sur la plage ce week-end ?",
+        "jour": 36,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "animation-plage",
+          "article-ete",
+          "modes-passees",
+          "avis-04"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Comment appliquer la crème correctement ?",
+        "jour": 8,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "conseils-pharmacie",
+          "avis-03",
+          "mode-emploi",
+          "ingredient"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "conseils-pharmacie",
+          "reponse-texture"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "vendeur",
+        "trouves": [
+          "note-stock",
+          "note-vendeurs",
+          "echantillons",
+          "fin-echantillons"
+        ],
+        "attendus": [
+          "note-vendeurs",
+          "note-stock"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "fin-echantillons",
+          "article-ete",
+          "lancement"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Quel est le plan de communication de la marque cet été ?",
+        "jour": 2,
+        "role": "responsable_marque",
+        "trouves": [
+          "article-ete",
+          "plan-marque",
+          "conseils-pharmacie",
+          "modes-passees"
+        ],
+        "attendus": [
+          "plan-marque"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 50,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "concurrent-formule",
+          "avis-05",
+          "avis-09",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "concurrent-formule",
+          "avis-12"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 20,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "avis-05",
+          "concurrent-fiche",
+          "prix-formats",
+          "article-ete"
+        ],
+        "attendus": [
+          "concurrent-fiche"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Les modes de l'été durent-elles ?",
+        "jour": 10,
+        "role": "journaliste",
+        "trouves": [
+          "modes-passees",
+          "conseils-pharmacie",
+          "article-ete",
+          "faq"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys est-elle trop chère ?",
+        "jour": 25,
+        "role": "sceptique",
+        "trouves": [
+          "fiche-produit",
+          "lancement",
+          "prix-formats",
+          "avis-09"
+        ],
+        "attendus": [
+          "avis-09",
+          "avis-01",
+          "prix-formats"
+        ],
+        "rang": 3,
+        "violations": []
+      },
+      {
+        "question": "Elle est grasse quand il fait très chaud ?",
+        "jour": 42,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-11",
+          "conseils-pharmacie",
+          "avis-03",
+          "avis-08"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "pharmacien_02 dit que ça laisse un film qui brille sur la figure, c'est normal ?",
+        "jour": 28,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-02",
+          "avis-03",
+          "conseils-pharmacie",
+          "avis-06"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il fait 36 degrés et je sens que le produit reste collé sur ma peau.",
+        "jour": 45,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-11",
+          "conseils-pharmacie",
+          "avis-03",
+          "avis-05"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mon voisin a eu un petit modèle gratuit à l'officine, j'en veux un aussi.",
+        "jour": 8,
+        "role": "sceptique",
+        "trouves": [
+          "echantillons",
+          "avis-01",
+          "lancement",
+          "avis-04"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Les gens la comparent à celle au fini mat qui coûte moins cher.",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "avis-05",
+          "avis-02",
+          "avis-01",
+          "avis-06"
+        ],
+        "attendus": [
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Je fais mon footing tous les matins, est-ce que ça me coule dans les yeux ?",
+        "jour": 14,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-06",
+          "avis-02",
+          "faq",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "avis-06"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est fabriqué avec quoi exactement, ce truc nacré ?",
+        "jour": 16,
+        "role": "sceptique",
+        "trouves": [
+          "ingredient",
+          "enquete-ingredient",
+          "interview-marque",
+          "fiche-produit"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il y a un stand avec des jeux pour les gosses au bord de l'eau ?",
+        "jour": 36,
+        "role": "habitue_soin",
+        "trouves": [
+          "animation-plage",
+          "avis-08",
+          "modes-passees",
+          "avis-04"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "L'été dernier tout le monde avait les mêmes lunettes et plus personne maintenant.",
+        "jour": 20,
+        "role": "createur_contenu",
+        "trouves": [
+          "modes-passees",
+          "article-ete",
+          "avis-02",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Impossible de faire sortir le reste du produit au fond.",
+        "jour": 18,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-07",
+          "avis-01",
+          "avis-05",
+          "avis-03"
+        ],
+        "attendus": [
+          "avis-07"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Le produit d'en face est soldé au centre en ce moment ?",
+        "jour": 23,
+        "role": "sceptique",
+        "trouves": [
+          "promo-concurrent",
+          "avis-07",
+          "fin-echantillons",
+          "avis-02"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Combien de temps je peux rester dans l'eau avant d'en remettre ?",
+        "jour": 9,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-03",
+          "mode-emploi",
+          "faq",
+          "avis-04"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "faq",
+          "avis-03",
+          "mode-emploi"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Le soleil tape fort aujourd'hui, une protection 4 sur 5 ça suffit ?",
+        "jour": 11,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echelle-halo",
+          "faq",
+          "article-ete",
+          "conseils-pharmacie"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mes petits ne tiennent pas en place quand je les tartine.",
+        "jour": 22,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-08",
+          "avis-07",
+          "avis-03",
+          "avis-06"
+        ],
+        "attendus": [
+          "avis-08"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Je veux savoir ce que la marque a promis dans ses annonces au public.",
+        "jour": 26,
+        "role": "journaliste",
+        "trouves": [
+          "interview-marque",
+          "avis-03",
+          "avis-01",
+          "enquete-ingredient"
+        ],
+        "attendus": [
+          "lancement",
+          "interview-marque",
+          "reponse-texture"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 31,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-09",
+          "format-familial",
+          "prix-formats",
+          "lancement"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 29,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-09",
+          "prix-formats",
+          "lancement",
+          "promo-concurrent"
+        ],
+        "attendus": [
+          "prix-formats"
+        ],
+        "rang": 2,
+        "violations": []
+      }
+    ]
+  },
+  {
+    "modele": "nomic-embed-text",
+    "reussite": 0.868,
+    "mrr": 0.759,
+    "violations": 0,
+    "duree_index_s": 6.56,
+    "duree_question_ms": 14.1,
+    "vram_mo": 320,
+    "details": [
+      {
+        "question": "Quel est l'indice de protection de Vaelys ?",
+        "jour": 5,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "fiche-produit",
+          "faq",
+          "lancement",
+          "mode-emploi"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Halo 4, c'est l'indice UV du jour ?",
+        "jour": 5,
+        "role": "habitue_soin",
+        "trouves": [
+          "echelle-halo",
+          "faq",
+          "article-ete",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "L'indice UV est à 9 aujourd'hui, est-ce que Vaelys protège encore assez ?",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "faq",
+          "echelle-halo",
+          "avis-03",
+          "interview-marque"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq",
+          "fiche-produit"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est quoi la nacrelle dans cette crème ?",
+        "jour": 20,
+        "role": "journaliste",
+        "trouves": [
+          "ingredient",
+          "enquete-ingredient",
+          "fiche-produit",
+          "avis-05"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Combien coûte Vaelys et où l'acheter ?",
+        "jour": 3,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "faq",
+          "mode-emploi",
+          "lancement",
+          "avis-01"
+        ],
+        "attendus": [
+          "prix-formats",
+          "lancement",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Est-ce que Vaelys tient après la baignade ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-03",
+          "lancement",
+          "mode-emploi",
+          "faq"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "avis-03",
+          "mode-emploi",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Faut-il en remettre après le sport ?",
+        "jour": 15,
+        "role": "sceptique",
+        "trouves": [
+          "avis-06",
+          "avis-01",
+          "avis-03",
+          "faq"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "avis-06",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys laisse-t-elle des traces ou un aspect brillant ?",
+        "jour": 30,
+        "role": "createur_contenu",
+        "trouves": [
+          "reponse-texture",
+          "faq",
+          "interview-marque",
+          "avis-02"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Y a-t-il une promotion sur Zelvane ?",
+        "jour": 22,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "promo-concurrent",
+          "concurrent-fiche",
+          "avis-05",
+          "article-ete"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Quelle différence entre Vaelys et Zelvane ?",
+        "jour": 10,
+        "role": "pharmacien",
+        "trouves": [
+          "guide-pharmacien",
+          "avis-05",
+          "lancement",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "guide-pharmacien",
+          "concurrent-fiche",
+          "article-ete",
+          "avis-05"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 6,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "echantillons",
+          "modes-passees",
+          "avis-02",
+          "faq"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Peut-on encore avoir des échantillons gratuits ?",
+        "jour": 16,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-05",
+          "echantillons",
+          "modes-passees",
+          "fin-echantillons"
+        ],
+        "attendus": [
+          "fin-echantillons"
+        ],
+        "rang": 4,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 34,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-10",
+          "format-familial",
+          "mode-emploi",
+          "prix-formats"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Existe-t-il un grand format pour la famille ?",
+        "jour": 10,
+        "role": "habitue_soin",
+        "trouves": [
+          "mode-emploi",
+          "prix-formats",
+          "modes-passees",
+          "faq"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Que fait la marque sur la plage ce week-end ?",
+        "jour": 36,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "animation-plage",
+          "enquete-ingredient",
+          "modes-passees",
+          "article-ete"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Comment appliquer la crème correctement ?",
+        "jour": 8,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "interview-marque",
+          "conseils-pharmacie",
+          "article-ete",
+          "faq"
+        ],
+        "attendus": [
+          "mode-emploi",
+          "conseils-pharmacie",
+          "reponse-texture"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "vendeur",
+        "trouves": [
+          "article-ete",
+          "note-stock",
+          "note-vendeurs",
+          "avis-05"
+        ],
+        "attendus": [
+          "note-vendeurs",
+          "note-stock"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Quand arrive le réassort en rayon ?",
+        "jour": 22,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "article-ete",
+          "avis-05",
+          "modes-passees",
+          "avis-06"
+        ],
+        "attendus": [],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Quel est le plan de communication de la marque cet été ?",
+        "jour": 2,
+        "role": "responsable_marque",
+        "trouves": [
+          "modes-passees",
+          "plan-marque",
+          "article-ete",
+          "faq"
+        ],
+        "attendus": [
+          "plan-marque"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 50,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "concurrent-formule",
+          "concurrent-fiche",
+          "promo-concurrent",
+          "avis-05"
+        ],
+        "attendus": [
+          "concurrent-formule",
+          "avis-12"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Zelvane a-t-il changé sa formule ?",
+        "jour": 20,
+        "role": "fidele_autre_marque",
+        "trouves": [
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats",
+          "article-ete"
+        ],
+        "attendus": [
+          "concurrent-fiche"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Les modes de l'été durent-elles ?",
+        "jour": 10,
+        "role": "journaliste",
+        "trouves": [
+          "modes-passees",
+          "mode-emploi",
+          "article-ete",
+          "avis-05"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Vaelys est-elle trop chère ?",
+        "jour": 25,
+        "role": "sceptique",
+        "trouves": [
+          "interview-marque",
+          "lancement",
+          "fiche-produit",
+          "avis-09"
+        ],
+        "attendus": [
+          "avis-09",
+          "avis-01",
+          "prix-formats"
+        ],
+        "rang": 4,
+        "violations": []
+      },
+      {
+        "question": "Elle est grasse quand il fait très chaud ?",
+        "jour": 42,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-11",
+          "avis-05",
+          "avis-06",
+          "avis-02"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "pharmacien_02 dit que ça laisse un film qui brille sur la figure, c'est normal ?",
+        "jour": 28,
+        "role": "habitue_soin",
+        "trouves": [
+          "faq",
+          "conseils-pharmacie",
+          "echantillons",
+          "fiche-produit"
+        ],
+        "attendus": [
+          "reponse-texture",
+          "avis-02",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il fait 36 degrés et je sens que le produit reste collé sur ma peau.",
+        "jour": 45,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-11",
+          "faq",
+          "fiche-produit",
+          "avis-06"
+        ],
+        "attendus": [
+          "avis-11"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mon voisin a eu un petit modèle gratuit à l'officine, j'en veux un aussi.",
+        "jour": 8,
+        "role": "sceptique",
+        "trouves": [
+          "avis-02",
+          "faq",
+          "avis-04",
+          "avis-01"
+        ],
+        "attendus": [
+          "echantillons"
+        ],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Les gens la comparent à celle au fini mat qui coûte moins cher.",
+        "jour": 12,
+        "role": "sceptique",
+        "trouves": [
+          "avis-05",
+          "avis-06",
+          "avis-03",
+          "avis-02"
+        ],
+        "attendus": [
+          "concurrent-fiche",
+          "avis-05",
+          "prix-formats"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Je fais mon footing tous les matins, est-ce que ça me coule dans les yeux ?",
+        "jour": 14,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-06",
+          "avis-05",
+          "avis-02",
+          "faq"
+        ],
+        "attendus": [
+          "avis-06"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "C'est fabriqué avec quoi exactement, ce truc nacré ?",
+        "jour": 16,
+        "role": "sceptique",
+        "trouves": [
+          "enquete-ingredient",
+          "ingredient",
+          "fiche-produit",
+          "faq"
+        ],
+        "attendus": [
+          "ingredient",
+          "enquete-ingredient"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Il y a un stand avec des jeux pour les gosses au bord de l'eau ?",
+        "jour": 36,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-02",
+          "avis-08",
+          "avis-06",
+          "avis-04"
+        ],
+        "attendus": [
+          "animation-plage"
+        ],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "L'été dernier tout le monde avait les mêmes lunettes et plus personne maintenant.",
+        "jour": 20,
+        "role": "createur_contenu",
+        "trouves": [
+          "modes-passees",
+          "avis-05",
+          "article-ete",
+          "echelle-halo"
+        ],
+        "attendus": [
+          "modes-passees"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Impossible de faire sortir le reste du produit au fond.",
+        "jour": 18,
+        "role": "habitue_soin",
+        "trouves": [
+          "avis-07",
+          "avis-04",
+          "avis-01",
+          "faq"
+        ],
+        "attendus": [
+          "avis-07"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Le produit d'en face est soldé au centre en ce moment ?",
+        "jour": 23,
+        "role": "sceptique",
+        "trouves": [
+          "promo-concurrent",
+          "concurrent-fiche",
+          "lancement",
+          "avis-09"
+        ],
+        "attendus": [
+          "promo-concurrent"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Combien de temps je peux rester dans l'eau avant d'en remettre ?",
+        "jour": 9,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-05",
+          "faq",
+          "article-ete",
+          "modes-passees"
+        ],
+        "attendus": [
+          "fiche-produit",
+          "faq",
+          "avis-03",
+          "mode-emploi"
+        ],
+        "rang": 2,
+        "violations": []
+      },
+      {
+        "question": "Le soleil tape fort aujourd'hui, une protection 4 sur 5 ça suffit ?",
+        "jour": 11,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "faq",
+          "echelle-halo",
+          "fiche-produit",
+          "article-ete"
+        ],
+        "attendus": [
+          "echelle-halo",
+          "faq"
+        ],
+        "rang": 1,
+        "violations": []
+      },
+      {
+        "question": "Mes petits ne tiennent pas en place quand je les tartine.",
+        "jour": 22,
+        "role": "habitue_soin",
+        "trouves": [
+          "modes-passees",
+          "article-ete",
+          "enquete-ingredient",
+          "faq"
+        ],
+        "attendus": [
+          "avis-08"
+        ],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Je veux savoir ce que la marque a promis dans ses annonces au public.",
+        "jour": 26,
+        "role": "journaliste",
+        "trouves": [
+          "faq",
+          "enquete-ingredient",
+          "interview-marque",
+          "avis-02"
+        ],
+        "attendus": [
+          "lancement",
+          "interview-marque",
+          "reponse-texture"
+        ],
+        "rang": 3,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 31,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-07",
+          "avis-09",
+          "avis-04",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "format-familial",
+          "avis-10"
+        ],
+        "rang": null,
+        "violations": []
+      },
+      {
+        "question": "Ce que coûte le gros flacon pour toute la tribu.",
+        "jour": 29,
+        "role": "baigneur_occasionnel",
+        "trouves": [
+          "avis-07",
+          "avis-09",
+          "avis-04",
+          "concurrent-fiche"
+        ],
+        "attendus": [
+          "prix-formats"
+        ],
+        "rang": null,
+        "violations": []
+      }
+    ]
+  }
+]

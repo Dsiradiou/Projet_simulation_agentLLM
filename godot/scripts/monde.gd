@@ -176,7 +176,7 @@ func _decision(agent_id: String, zone, p: Dictionary) -> void:
 	var h := _habitant(agent_id, zone if zone else "domicile")
 	if p.get("palier"):
 		h.palier = p["palier"]
-	h.decisions.push_front({"jour": _jour, "sens": p["sens"], "action": p["action"], "porteur": p["porteur"], "moteur": p["moteur"], "justification": p["justification"], "appel": p.get("appel_llm")})
+	h.decisions.push_front({"jour": _jour, "sens": p["sens"], "action": p["action"], "porteur": p["porteur"], "moteur": p["moteur"], "justification": p["justification"], "appel": p.get("appel_llm"), "motif": p.get("motif"), "sources": p.get("sources", [])})
 	if h.decisions.size() > 10:
 		h.decisions.resize(10)
 	var avant := h.sens
@@ -313,6 +313,19 @@ func _afficher_fiche() -> void:
 				cout += ", %d essais" % d["appel"]["tentatives"]
 		lignes.append("\n[b]Dernière décision[/b] (jour %d, %s%s)" % [d["jour"], d["moteur"], cout])
 		lignes.append("%s — « %s »" % [d["action"], d["justification"]])
+		if d.get("motif"):
+			lignes.append("[i]Pourquoi aujourd'hui : %s[/i]" % d["motif"])
+		var lus: Array = []
+		var souvenirs: Array = []
+		for s in d.get("sources", []):
+			if str(s).begins_with("corpus:"):
+				lus.append(str(s).trim_prefix("corpus:"))
+			else:
+				souvenirs.append("J" + str(s).rsplit(":", true, 1)[1].trim_prefix("j"))
+		if lus.size() > 0:
+			lignes.append("Avait lu : %s" % ", ".join(lus))
+		if souvenirs.size() > 0:
+			lignes.append("Se souvenait de : %s" % ", ".join(souvenirs))
 	elif etat.get("justification", "") != "":
 		lignes.append("\n[b]Dernière décision[/b] : %s — « %s »" % [etat.get("action", ""), etat["justification"]])
 	var recus: Array = etat.get("messages_recus", [])

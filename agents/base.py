@@ -69,6 +69,7 @@ class Decision:
     deplacement: Zone | None = None
     caused_by: tuple[UUID, ...] = field(default=())  # événements de la perception utilisés
     incidents: tuple[IncidentAgent, ...] = ()
+    sources: tuple[str, ...] = ()  # passages du corpus et souvenirs montrés au modèle (RAG)
 
 
 def porteur_apres(action: Action, porteur_avant: bool) -> bool:

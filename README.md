@@ -64,7 +64,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 9 | Pont FastAPI | ✅ terminée |
 | 10 | Scène Godot 3D | ✅ terminée |
 | 11 | Le monde : marque, population | ✅ terminée |
-| 12 | Corpus fictif et RAG | à venir |
+| 12 | Corpus fictif et RAG | ✅ terminée |
 | 13 | Agents à règles et baseline | à venir |
 | 14 | Indicateurs d'émergence | à venir |
 | 15 | Mode asynchrone et cohérence temporelle | à venir |
@@ -80,12 +80,13 @@ NVIDIA d'au moins 8 Go de VRAM, et **Godot 4.7** pour la scène 3D.
 
 ### Ollama
 
-Télécharger les modèles (environ 9 Go) :
+Télécharger les modèles (environ 10 Go) :
 
 ```powershell
 ollama pull qwen3:1.7b
 ollama pull qwen3:4b
 ollama pull qwen3:8b
+ollama pull bge-m3          # embeddings du RAG (étape 12)
 ```
 
 Définir ces variables d'environnement utilisateur, puis redémarrer Ollama :
@@ -189,6 +190,23 @@ ouvert entre les runs. Référence complète : [`docs/pont.md`](docs/pont.md).
   zone, appliquée au début du jour simulé suivant (D3).
 - `POST /commandes` : pause, reprise ou arrêt, entre deux jours.
 
+## Base de connaissances (RAG)
+
+Avant chaque décision, un agent LLM retrouve 4 passages du **corpus fictif** (`corpus/documents/`,
+37 documents : fiche produit, communiqués, avis, articles, notes internes) et 3 de ses **souvenirs**,
+ajoutés à son prompt. Toute recherche est filtrée par date simulée (rien du futur) et par rôle (une
+note interne n'est lue que par son destinataire) ; chaque décision publie ses sources. Embeddings :
+`bge-m3` via Ollama (`ollama pull bge-m3`), index ChromaDB local dans `data/chroma/` (reconstruit
+quand le corpus change), mémoires de chaque run dans `runs/<run_id>/memoires/`.
+
+```powershell
+.venv\Scripts\python -m rag.evaluation --modeles bge-m3       # jeu de référence (40 questions)
+.venv\Scripts\python -m rag.evaluation --annoter <run_id>      # échantillon à annoter + contrôle C6
+.venv\Scripts\python -m rag.evaluation --noter docs/mesures/annotation_<run_id>.csv
+```
+
+Règles d'écriture du corpus et relecture : [`corpus/README.md`](corpus/README.md).
+
 ## Historique et rejeu
 
 Chaque run est enregistré en Parquet dans `runs/<run_id>/evenements/` par un lecteur Kafka que le
@@ -233,11 +251,11 @@ Une variante hérite de la configuration principale et ne précise que ce qui ch
 | `agents/` | Rôles, profils LLM, agents à règles |
 | `llm/` | Client Ollama, routeur par palier, mesure des coûts |
 | `bus/` | Kafka : producteurs, consommateurs, schémas d'événements |
-| `rag/` | Base de connaissances ChromaDB, récupération filtrée |
+| `rag/` | Corpus, embeddings, ChromaDB, récupération filtrée, mémoire des agents, évaluation |
 | `indicators/` | Indicateurs d'émergence et traçabilité |
 | `bridge/` | Pont FastAPI vers Godot (WebSocket, inspection, injections) |
 | `replay/` | Journaux de run et rejeu sans LLM |
-| `corpus/` | Documents fictifs du monde |
+| `corpus/` | Documents fictifs du monde et jeu de référence de la récupération |
 | `godot/` | Projet Godot : scène 3D (`scripts/`, `scenes/`), modèles CC0 (`assets/`), maquettes |
 | `configs/` | Configurations de runs (YAML) |
 | `tests/` | Tests automatisés |

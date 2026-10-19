@@ -115,6 +115,7 @@ class Perturbation(StrEnum):
 # Versions de schéma : un type évolue en ajoutant une version, et les historiques déjà enregistrés
 # dans une version antérieure restent lisibles (rejeu, E3). Une version n'est jamais retirée.
 VERSIONS_1_1 = Literal["1.0", "1.1"]
+VERSIONS_1_2 = Literal["1.0", "1.1", "1.2"]
 
 
 class ClockStepPayload(_Strict):
@@ -248,13 +249,17 @@ class AgentDecisionPayload(_Strict):
     motif: Motif | None = Field(
         default=None, description="Déclencheur de la décision (version 1.1 et suivantes)."
     )
+    sources: tuple[Annotated[str, Field(max_length=120)], ...] = Field(
+        default=(),
+        description="Passages du corpus et souvenirs montrés à l'agent (version 1.2, F1, F2).",
+    )
 
 
 class AgentDecision(Envelope):
     TOPIC = Topic.AGENT_DECISIONS
     DESCRIPTION = "Décision d'un agent : action, sens attribué au produit, justification (D2)."
     type: Literal["agent.decision"] = "agent.decision"
-    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : ajoute le motif de la décision
+    schema_version: VERSIONS_1_2 = "1.2"  # 1.1 : motif ; 1.2 : sources (RAG)
     payload: AgentDecisionPayload
 
     @model_validator(mode="after")

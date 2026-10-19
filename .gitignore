@@ -23,3 +23,6 @@ godot/export/
 .DS_Store
 Thumbs.db
 .idea/
+
+# Index ChromaDB du corpus (reconstruit à la demande)
+data/

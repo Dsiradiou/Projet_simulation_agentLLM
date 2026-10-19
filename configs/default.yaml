@@ -113,12 +113,23 @@ routines:
       beau: {centre_commercial: 1}
       mauvais: {centre_commercial: 1}
 
+# Base de connaissances (RAG, étape 12) : avant chaque décision LLM, l'agent retrouve des passages
+# du corpus (filtrés par date et par rôle) et ses propres souvenirs, ajoutés à son prompt.
+rag:
+  actif: true
+  # Choisi sur mesure (docs/mesures/embeddings_*.md) : 100 % de réussite au rang 4 sur 40 questions
+  # françaises, 633 Mo de VRAM (tient à côté du 8b) ; nomic-embed-text, anglophone, plafonne à 87 %.
+  modele_embeddings: bge-m3
+  passages: 4                # documents du corpus retrouvés par décision
+  souvenirs: 3               # souvenirs retrouvés par décision (jours précédents seulement)
+
 monde:
   # Choisis à l'étape 11 après le test de contamination (docs/mesures/contamination_*.md) :
   # aucun modèle ne prétend les connaître et aucune marque réelle ne porte ces noms.
   # L'indice suit une échelle inventée, pour que les modèles ne raisonnent pas en SPF réels.
   brand_name: Vaelys
   ingredient: nacrelle
+  concurrent: Zelvane      # marque concurrente du corpus (test de contamination : 8 %, aucune marque réelle)
   indice_protection: Halo 4 (sur une échelle de 1 à 5)
 
 # Nombre d'agents par rôle (exigence C2 : fixé au lancement, sans modifier le code).

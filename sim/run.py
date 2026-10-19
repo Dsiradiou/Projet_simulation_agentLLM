@@ -22,6 +22,7 @@ if TYPE_CHECKING:  # imports de typage seulement : sim.run est importé par les 
 
     from agents.base import Agent, WorldActor
     from agents.roles import Palier
+    from rag.recuperation import Recuperateur
     from sim.orchestrateur import ResumeJour
     from sim.settings import Settings
 
@@ -123,6 +124,29 @@ class OllamaIndisponible(RuntimeError):
     """Ollama ne répond pas, ou un modèle de la configuration n'est pas téléchargé."""
 
 
+async def _recuperateur(config: Config, host: str, run: RunInfo) -> "Recuperateur":
+    """Base de connaissances du run : corpus indexé (réutilisé s'il n'a pas changé) et mémoires
+    propres au run, gardées dans son dossier pour l'analyse (étape 12)."""
+    import chromadb
+    from chromadb.config import Settings as ChromaSettings
+
+    from rag.base import BaseCorpus, Memoires, client_persistant
+    from rag.corpus import lire_corpus
+    from rag.embeddings import EmbeddeurOllama
+    from rag.recuperation import Recuperateur
+
+    embeddeur = EmbeddeurOllama(host, config.rag.modele_embeddings)
+    corpus = BaseCorpus(client_persistant(), embeddeur)
+    if await corpus.indexer(lire_corpus(config.monde)):
+        print(f"Corpus indexé avec {embeddeur.modele}")
+    dossier = RUNS_DIR / run.run_id / "memoires"
+    dossier.mkdir(parents=True, exist_ok=True)
+    client = chromadb.PersistentClient(
+        path=str(dossier), settings=ChromaSettings(anonymized_telemetry=False)
+    )
+    return Recuperateur(corpus, Memoires(client, embeddeur, run.run_id), config.rag, config.monde)
+
+
 async def _verifier_ollama(host: str, modeles: set[str]) -> None:
     import httpx
 
@@ -132,7 +156,8 @@ async def _verifier_ollama(host: str, modeles: set[str]) -> None:
         presents = {m["name"] for m in reponse.json()["models"]}
     except httpx.HTTPError as exc:
         raise OllamaIndisponible(f"Ollama injoignable sur {host} ({exc})") from exc
-    manquants = modeles - presents
+    # Un modèle sans étiquette (« bge-m3 ») est listé par Ollama avec « :latest ».
+    manquants = {m for m in modeles if m not in presents and f"{m}:latest" not in presents}
     if manquants:
         raise OllamaIndisponible(
             f"modèles absents : {', '.join(sorted(manquants))} (ollama pull <modèle>)"
@@ -153,17 +178,23 @@ async def _lancer(
 
     config = load_config(config_path)
     settings = load_settings()
+    run = new_run(config, config_path)
     preparer = None
     if factice:
         agents, acteurs = population_factice(config, facteur_latence)
     else:
         paliers = {palier_du_role(r) for r, n in config.population.items() if n} - {None}
-        await _verifier_ollama(settings.ollama_host, {config.llm.modeles[p] for p in paliers})
+        modeles = {config.llm.modeles[p] for p in paliers}
+        if config.rag.actif:
+            modeles.add(config.rag.modele_embeddings)
+        await _verifier_ollama(settings.ollama_host, modeles)
         client = ClientOllama(settings.ollama_host, options_de(config.llm))
         routeur = Routeur(client, config.llm)
-        agents, acteurs = construire_population(config, routeur)
+        recuperateur = (
+            await _recuperateur(config, settings.ollama_host, run) if config.rag.actif else None
+        )
+        agents, acteurs = construire_population(config, routeur, recuperateur)
         preparer = routeur.preparer
-    run = new_run(config, config_path)
     write_manifest(run, config)
     nb_llm = sum(a.palier is not None for a in agents)
     mode = "factices" if factice else f"dont {nb_llm} LLM"
@@ -250,6 +281,15 @@ async def executer_run(
     resume["evenements_publies"] = producer.published
     resume["evenements_enregistres"] = enregistres  # publiés par l'orchestrateur et relus
     resume["evenements_externes"] = ecrivain.recus - enregistres  # injections, commandes du pont
+    # Prompts ramenés sous le budget du contexte (étape 12) : état des agents, pas des événements.
+    resume["prompts_reduits"] = sum(getattr(a, "prompts_reduits", 0) for a in agents)
+    recuperateurs = {
+        id(a.recuperateur): a.recuperateur for a in agents if getattr(a, "recuperateur", None)
+    }
+    if recuperateurs:  # embeddings du RAG : appels et relances après un arrêt du serveur
+        (recuperateur,) = recuperateurs.values()
+        resume["embeddings_appels"] = recuperateur.corpus.embeddeur.appels
+        resume["embeddings_relances"] = recuperateur.corpus.embeddeur.relances
     (runs_dir / run.run_id / "bilan.json").write_text(
         json.dumps(resume, ensure_ascii=False, indent=2), encoding="utf-8"
     )

@@ -74,7 +74,7 @@ exigences de l'énoncé.</p>
   <tr><td>10</td><td>Scène Godot 3D</td><td>Bâtiments distincts par zone, plage avec sable et mer, personnages animés, panneau d'indicateurs (D1)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
   <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="ok">terminée</td></tr>
-  <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="todo">à venir</td></tr>
+  <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="ok">terminée</td></tr>
   <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="todo">à venir</td></tr>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="todo">à venir</td></tr>
   <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="todo">à venir</td></tr>
@@ -1677,6 +1677,169 @@ population, parole selon la taille du modèle, personnages flous, monde figé.</
 <p>Étape 12 — Corpus fictif et RAG : fiche produit, avis, articles et communiqués du monde Vaelys
 (sans allégation médicale), base ChromaDB filtrée par date simulée et par rôle, mémoire des agents,
 évaluation de la récupération.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 12 — Corpus fictif et RAG</h2>
+<p class="meta">18 octobre 2026 · Exigences concernées : F1 (décisions appuyées sur une base de
+connaissances), F2 (qualité de la récupération démontrée), A1 (mémoire propre à chaque agent), C6
+(rien du futur), F6 (traçabilité), E4 (coût).</p>
+
+<h3>Objectif</h3>
+<p>Avant de décider, un agent ne connaissait que sa situation du jour et les messages reçus. Il
+doit maintenant <strong>retrouver</strong> ce qu'il a pu lire sur le produit (fiche, avis,
+articles, communiqués) et <strong>se souvenir</strong> de ce qu'il a vécu les jours précédents,
+sans jamais accéder à une information du futur ni à un document qui ne lui est pas destiné.</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Qui écrit le corpus</td><td>Claude rédige, le binôme relit et valide (<code>corpus/README.md</code>)</td></tr>
+  <tr><td>Ce que disent les documents datés</td><td><strong>Des faits seulement</strong> : aucun document ne dit que Vaelys « devient la mode » ou « passe de mode ». Sinon le corpus écrirait la courbe à la place des agents, et l'émergence ne prouverait plus rien.</td></tr>
+  <tr><td>Modèle d'embeddings</td><td>Mesurer trois modèles, puis choisir sur les chiffres</td></tr>
+  <tr><td>Évaluation (F2)</td><td>Un jeu de référence automatique, plus l'annotation de 30 décisions réelles par le binôme</td></tr>
+  <tr><td>Sens « depasse »</td><td>Proposé au modèle sous le mot <strong>demode</strong>, traduit en interne (voir plus bas)</td></tr>
+  <tr><td>Contexte de 2 048 tokens</td><td><strong>Budget de prompt</strong> plutôt qu'un contexte de 4 096, trop coûteux en mémoire vidéo</td></tr>
+</table>
+
+<h3>1. Le corpus fictif</h3>
+<p>37 documents courts (40 à 80 mots) dans <code>corpus/documents/</code> : fiche produit et
+<strong>échelle Halo expliquée</strong> (« ce n'est pas l'indice UV »), communiqués de la marque
+(lancement, échantillons, format familial au jour 30, animation de plage au jour 35…), 12 avis
+clients sur l'expérience du produit, articles, conseils d'application, documents sur le concurrent
+<strong>Zelvane</strong> (promotion au jour 21, nouvelle formule au jour 45) et 4 notes internes
+réservées à un rôle (guide de l'officine pour les pharmaciens, notes aux vendeurs, plan de lancement
+pour la responsable de marque). Chaque document porte son jour de publication et sa visibilité ; les
+noms du monde y sont des gabarits (<code>{marque}</code>…) remplacés par la configuration. Aucune
+allégation de santé : un test le vérifie.</p>
+
+<h3>2. Le choix du modèle d'embeddings</h3>
+<p>Un jeu de référence de 40 questions en français (<code>corpus/evaluation/reference.yaml</code>),
+dont 16 <strong>reformulées comme un agent les écrirait</strong> (« ça me coule dans les yeux quand
+je cours », « le truc nacré »), sans les mots des documents. Les 24 premières, trop proches des
+textes, ne départageaient pas les modèles : tous réussissaient à 100 %.</p>
+<table>
+  <tr><th>Modèle</th><th>Réussite au rang 4</th><th>MRR</th><th>Violations de filtre</th><th>VRAM</th></tr>
+  <tr><td><strong>bge-m3</strong> (retenu)</td><td><strong>100 %</strong></td><td><strong>0,89</strong></td><td>0</td><td><strong>633 Mo</strong></td></tr>
+  <tr><td>qwen3-embedding:0.6b</td><td>97 %</td><td>0,87</td><td>0</td><td>1 948 Mo</td></tr>
+  <tr><td>nomic-embed-text (anglophone)</td><td>87 %</td><td>0,76</td><td>0</td><td>320 Mo</td></tr>
+</table>
+<p>bge-m3 est le meilleur sur les reformulations et tient à côté du 8b (5,6 Go) sans saturer la
+carte ; qwen3-embedding, trois fois plus gourmand, l'aurait presque saturée. Le décrochage de nomic
+confirme qu'un modèle anglophone ne convient pas.</p>
+
+<h3>3. Comment un agent retrouve et se souvient</h3>
+<ol>
+  <li>Une question est formée à partir de sa situation : ses derniers messages, les événements du
+    jour, sinon « que faut-il savoir sur cette crème ».</li>
+  <li>Dans le corpus (ChromaDB, dans le processus Python) : les 4 passages les plus proches,
+    <strong>publiés au plus tard ce jour-là</strong> et <strong>lisibles par son rôle</strong>, en
+    privilégiant ceux qu'il n'a pas encore lus (sans cela, la fiche produit et les questions
+    fréquentes revenaient à chaque décision).</li>
+  <li>Dans ses souvenirs : les 3 plus proches, <strong>de jours passés seulement</strong>.</li>
+  <li>Le tout est ajouté au prompt (« Ce que tu as lu ou entendu dire », « Ce dont tu te
+    souviens »), et la décision publie ses <strong>sources</strong> (<code>agent.decision</code> en
+    version 1.2).</li>
+  <li>Après la décision, un souvenir est enregistré : ce qu'il a reçu, ce qu'il a décidé, sa raison,
+    ce qu'il a dit.</li>
+</ol>
+
+<h3>4. Deux défauts trouvés par la mesure, et corrigés</h3>
+<div class="box">
+  <strong>Le sens « depasse » était compris à l'envers.</strong> Sur 23 décisions « dépassé », 17
+  allaient avec <em>appliquer</em>, <em>recommander</em> ou <em>acheter</em> : sans accent, les
+  modèles lisaient « dépasse (mes attentes) ». Le modèle choisit désormais <strong>demode</strong>
+  (« démodé : sa mode est passée, on n'en veut plus »), traduit en interne vers la même catégorie :
+  le contrat d'événements, les indicateurs et Godot ne changent pas. Mesure suivante : 3 décisions
+  « dépassé », toutes cohérentes (ignorer, en parler). Sans cette correction, l'indicateur de sens
+  partagé (B1) aurait mesuré un contresens.
+</div>
+<div class="box">
+  <strong>Le prompt débordait du contexte.</strong> Le plus long atteignait 2 046 tokens sur 2 048,
+  sans place pour la réponse : Ollama tronque alors le début, c'est-à-dire la consigne de rôle. Le
+  prompt est maintenant construit sous un budget (3,4 à 3,6 caractères par token mesurés en
+  français ; 3,2 retenus par prudence) : on retire d'abord les messages anciens, puis le souvenir et
+  le passage les moins proches. Les sources publiées ne citent que ce que le modèle a vu. Mesure
+  suivante : 1 677 tokens au plus, 79 prompts réduits sur 227.
+</div>
+
+<h3>5. Résultats du run final (<code>20261018-183042-dev-s42</code>, 60 agents, 15 jours)</h3>
+<table>
+  <tr><th>Mesure</th><th>Valeur</th></tr>
+  <tr><td>Appels LLM</td><td>227 (comme sans RAG), 0 relance, 0 repli</td></tr>
+  <tr><td>Tokens d'entrée par appel</td><td>1 438 en moyenne (environ 815 sans RAG : +77 %), 1 677 au plus</td></tr>
+  <tr><td>Durée</td><td>6 min 20 s (4 min 30 s sans RAG : +40 %)</td></tr>
+  <tr><td>Sources consultées</td><td>1 222, dont <strong>0 lue avant sa date, 0 hors de son rôle, 0 souvenir invalide</strong> (contrôle sur tout le run)</td></tr>
+  <tr><td>Souvenirs de 4 jours ou plus utilisés</td><td>213</td></tr>
+  <tr><td>Rejeu</td><td>fidèle, bilan identique</td></tr>
+</table>
+<p><strong>La mémoire en action (A1).</strong> Le jour 13, <code>sceptique_08</code> justifie :
+« Je me souviens des conseils de pharmacien_02 et des messages de createur_contenu_02 ». Son
+souvenir retrouvé date du jour 7, six jours plus tôt : « Messages reçus : createur_contenu_02 a dit
+« Vaelys, avec sa nacrelle et l'indice Halo 4, est la crème solaire idéale pour la canicule » ».
+<strong>Le corpus en action (F1).</strong> Le jour 15, un créateur écrit « l'avis client du jour 9
+dit que c'est plus fluide mais coûte plus cher que Zelvane », ce que dit bien l'avis
+<code>avis-05</code>.</p>
+
+<h3>6. L'annotation par le binôme (F2)</h3>
+<p><code>python -m rag.evaluation --annoter 20261018-183042-dev-s42</code> a tiré 30 décisions et
+exporté, pour chacune, ce que l'agent avait sous les yeux :
+<code>docs/mesures/annotation_20261018-183042-dev-s42.csv</code>. Le binôme remplit la colonne
+« pertinent (0/1) » ; <code>--noter</code> calcule alors la précision (au total, pour le corpus et
+pour les souvenirs), qui ira dans le rapport.</p>
+
+<h3>Constats</h3>
+<ul>
+  <li><strong>Réglés</strong> : la confusion entre l'indice Halo et l'indice UV (7 cas, puis 2
+    résiduels grâce à la fiche « Comprendre l'échelle Halo ») ; les justifications « méta » (8, puis
+    1).</li>
+  <li><strong>Nouveaux</strong>, ajoutés à la table : une <strong>invention à caractère
+    médical</strong> (« l'avis client mentionne des effets secondaires », qu'aucun document ne
+    contient) à détecter à l'étape 14 ; le <strong>serveur d'Ollama s'arrête sous charge</strong>
+    une fois par run (« CUDA error »), désormais rattrapé par une relance de l'embedding, à étudier
+    à l'étape 17 ; le <strong>coût du RAG</strong> (+77 % de tokens) à mettre en regard de son
+    apport à l'étape 16.</li>
+  <li>Toujours ouvert : l'adoption sature (54 porteurs sur 60 au jour 15).</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Corpus</strong> : fictif, noms remplacés, aucune allégation de santé, types connus,
+    jeu de référence cohérent avec le corpus.</li>
+  <li><strong>Filtres</strong> : jamais un document du futur, notes internes lues par leur seul
+    rôle, index réutilisé tant que le corpus ne change pas.</li>
+  <li><strong>Mémoire</strong> : souvenirs privés et des seuls jours passés ; un message reçu le
+    jour 3 revient dans le prompt du jour 9 et dans les sources (A1).</li>
+  <li><strong>Robustesse</strong> : l'agent décide même si la récupération et la mémoire tombent
+    en panne (deux incidents publiés) ; l'embedding est relancé après un arrêt du serveur.</li>
+  <li><strong>Budget</strong> : le prompt reste sous le budget, et les sources citées sont bien
+    celles montrées.</li>
+  <li><strong>Sens</strong> : « demode » est traduit en « dépassé », « depasse » est refusé.</li>
+  <li><strong>Contrôle d'un run</strong> : détecte un document lu avant sa date, hors de son rôle,
+    ou un souvenir invalide.</li>
+  <li><strong>Avec Ollama</strong> : le jeu de référence avec bge-m3, au moins 95 % de réussite et
+    aucune violation.</li>
+</ul>
+<p>Résultat : <span class="ok">188 tests réussis</span>, aucun ignoré, aucune remarque de ruff.
+Dépendance ajoutée : <code>chromadb 1.5.9</code> ; modèle : <code>bge-m3</code>.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Les agents décident à partir de ce qu'ils ont lu et de ce dont ils se souviennent, et chaque
+    décision dit lesquels : on peut toujours montrer « ce qu'il avait sous les yeux ».</li>
+  <li>Le futur est hors d'atteinte par construction (filtre de date) et par contrôle (0 écart sur
+    1 222 sources).</li>
+  <li>Le modèle d'embeddings a été choisi sur mesure, avec des questions reformulées comme un agent
+    les écrirait.</li>
+  <li>La mesure a révélé un contresens sur une catégorie de sens, corrigé avant qu'il ne fausse les
+    indicateurs.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 13 — Agents à règles et baseline : vraie météo saisonnière, vendeurs et stocks, marque
+concurrente, fidèles ; effets mécaniques des perturbations ; baseline C0 sans LLM avec la même
+saisonnalité (A6, E1). Les constats d'adoption trop rapide y sont traités.</p>
 </section>
 
 </body>

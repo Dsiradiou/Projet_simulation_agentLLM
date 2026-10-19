@@ -12,6 +12,7 @@ par un acteur du monde. Chaque agent reçoit aussi sa place dans le réseau soci
 import random
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from agents.agent_llm import AgentLLM
 from agents.base import Agent, WorldActor
@@ -23,6 +24,9 @@ from sim.config import Config, Temps
 from sim.domaine import Zone
 from sim.routines import tirer_zone
 from sim.run import agent_rng
+
+if TYPE_CHECKING:
+    from rag.recuperation import Recuperateur
 
 
 @dataclass(frozen=True)
@@ -98,7 +102,9 @@ def equiper(agent: Agent, identite: Identite, config: Config) -> Agent:
     return agent
 
 
-def construire_population(config: Config, routeur: Routeur) -> tuple[list[Agent], list[WorldActor]]:
+def construire_population(
+    config: Config, routeur: Routeur, recuperateur: "Recuperateur | None" = None
+) -> tuple[list[Agent], list[WorldActor]]:
     agents: list[Agent] = []
     loi = config.agents.seuil_adoption
     for x in identites(config):
@@ -110,6 +116,7 @@ def construire_population(config: Config, routeur: Routeur) -> tuple[list[Agent]
                 x.agent_id, x.role, x.zone, x.rng, routeur, config.monde,
                 config.run.seed, x.contacts, seuil,
                 messages_par_semaine=config.agents.messages_par_semaine.get(x.role, 0),
+                recuperateur=recuperateur,
             )  # fmt: skip
         agents.append(equiper(agent, x, config))
     return agents, acteurs_monde(config)
