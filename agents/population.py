@@ -16,12 +16,15 @@ from typing import TYPE_CHECKING
 
 from agents.agent_llm import AgentLLM
 from agents.base import Agent, WorldActor
-from agents.factices import MeteoFactice
-from agents.regles import AgentSeuil, tirer_seuil
+from agents.regles import AgentAuSeuil, AgentConcurrent, AgentRegleC0, tirer_seuil
 from agents.roles import Role, palier_du_role
 from llm.routeur import Routeur
-from sim.config import Config, Temps
+from rag.corpus import lire_corpus
+from sim.calendrier import CalendrierConcurrent
+from sim.commerce import Commerce
+from sim.config import Config, MoteurAgents, Temps
 from sim.domaine import Zone
+from sim.meteo import MeteoSaison
 from sim.routines import tirer_zone
 from sim.run import agent_rng
 
@@ -90,9 +93,32 @@ def identites(config: Config) -> Iterator[Identite]:
 
 
 def acteurs_monde(config: Config) -> list[WorldActor]:
+    """Acteurs à règles du monde (étape 13) : météo saisonnière, calendrier du concurrent."""
+    acteurs: list[WorldActor] = []
     if config.population.get(Role.METEO, 0):
-        return [MeteoFactice(agent_rng(config.run.seed, "meteo"))]
-    return []
+        acteurs.append(MeteoSaison(config.meteo, agent_rng(config.run.seed, "meteo")))
+    if config.population.get(Role.MARQUE_CONCURRENTE, 0):
+        acteurs.append(CalendrierConcurrent(config.monde))
+    return acteurs
+
+
+def construire_commerce(config: Config, agents: list[Agent]) -> Commerce:
+    """Stocks des points de vente, à l'échelle de la population ; un vendeur par point de vente
+    signe ses réassorts."""
+    vendeurs = sorted(a.agent_id for a in agents if a.role is Role.VENDEUR)
+    points = config.commerce.points_de_vente
+    signataires = {zone: vendeurs[i] for i, zone in enumerate(points) if i < len(vendeurs)}
+    return Commerce(config.commerce, len(agents), signataires)
+
+
+def jours_de_campagne(config: Config) -> set[int]:
+    """Jours où la marque communique (corpus) : l'influence externe de la baseline (Bass p)
+    y est plus forte, comme les agents LLM y lisent un nouveau communiqué."""
+    return {
+        d.jour
+        for d in lire_corpus(config.monde)
+        if d.type == "communique" and d.jour >= 1 and d.auteur == config.monde.brand_name
+    }
 
 
 def equiper(agent: Agent, identite: Identite, config: Config) -> Agent:
@@ -103,15 +129,30 @@ def equiper(agent: Agent, identite: Identite, config: Config) -> Agent:
 
 
 def construire_population(
-    config: Config, routeur: Routeur, recuperateur: "Recuperateur | None" = None
+    config: Config, routeur: Routeur | None, recuperateur: "Recuperateur | None" = None
 ) -> tuple[list[Agent], list[WorldActor]]:
+    """Population du run. `routeur` n'est requis que si des rôles sont tenus par des LLM."""
     agents: list[Agent] = []
     loi = config.agents.seuil_adoption
+    regles = config.regles
+    campagne = jours_de_campagne(config)
     for x in identites(config):
         seuil = tirer_seuil(x.rng, loi)
-        if palier_du_role(x.role) is None:
-            agent: Agent = AgentSeuil(x.agent_id, x.role, x.zone, x.rng, seuil)
+        if x.role is Role.MARQUE_CONCURRENTE:
+            agent: Agent = AgentConcurrent(x.agent_id, x.role, x.zone, x.rng, config.monde)
+        elif x.role is Role.FIDELE_AUTRE_MARQUE:
+            bonus = regles.bonus_fidelite
+            agent = AgentAuSeuil(x.agent_id, x.role, x.zone, x.rng, seuil, regles, bonus)
+        elif palier_du_role(x.role) is None:  # vendeurs
+            agent = AgentAuSeuil(x.agent_id, x.role, x.zone, x.rng, seuil, regles)
+        elif config.agents.moteur is MoteurAgents.REGLES:  # baseline C0 (E1)
+            agent = AgentRegleC0(
+                x.agent_id, x.role, x.zone, x.rng, seuil, regles, config.monde, x.contacts,
+                campagne, config.agents.messages_par_semaine.get(x.role, 0),
+            )  # fmt: skip
         else:
+            if routeur is None:
+                raise ValueError("agents LLM demandés sans routeur de modèles")
             agent = AgentLLM(
                 x.agent_id, x.role, x.zone, x.rng, routeur, config.monde,
                 config.run.seed, x.contacts, seuil,

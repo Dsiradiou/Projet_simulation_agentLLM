@@ -32,6 +32,9 @@ llm:
   temperature: 0.8
 
 agents:
+  # Moteur des rôles LLM : « llm » (configurations C1 à C3) ou « regles » (baseline C0, E1) :
+  # mêmes agents, même monde, même réseau, mêmes déclencheurs ; seule la décision change.
+  moteur: llm
   # Seuil d'adoption individuel (Granovetter) : part de porteurs dans sa zone à partir de
   # laquelle un agent adopte. Tiré pour chaque agent dans une loi normale bornée à [0, 1],
   # avec sa propre graine. Sert au repli des agents LLM (A4) et aux agents à règles.
@@ -48,6 +51,53 @@ agents:
     habitue_soin: 2
     baigneur_occasionnel: 1
     sceptique: 1
+
+# Météo saisonnière (règles, étape 13) : la température moyenne monte de `temperature_debut` à
+# `temperature_plateau` en `montee_jours`, puis reste estivale jusqu'au bout (pas de rentrée :
+# décision du binôme, 19 oct.). Le temps (beau ou mauvais) suit une chaîne de Markov ; la
+# température du jour garde une part de celle de la veille (`persistance`). Canicule : au-delà de
+# `seuil_canicule`. L'indice UV découle du temps et de la chaleur, toujours cohérent avec eux.
+meteo:
+  temperature_debut: 26
+  temperature_plateau: 30
+  montee_jours: 21
+  ecart_jour: 2.5
+  persistance: 0.6
+  seuil_canicule: 33
+  beau_vers_mauvais: 0.15
+  mauvais_vers_beau: 0.5
+  duree_vague_chaleur: 3     # jours de canicule après une perturbation « vague_chaleur »
+
+# Commerce (règles, étape 13) : stock de flacons Vaelys par point de vente, pour 100 agents (mis à
+# l'échelle de la population). Un nouveau porteur achète un flacon là où il se trouve, sinon au
+# point de vente le mieux fourni ; en rupture, l'achat échoue. Réassort par les vendeurs le
+# vendredi (jours 5, 12…).
+commerce:
+  points_de_vente: [pharmacie, centre_commercial]
+  # Les vendeurs commandent selon les ventes de la semaine (avec une marge), sans descendre sous un
+  # minimum : l'offre suit la demande et une rupture n'arrive que si la demande s'emballe. Calibré le
+  # 19 oct. : avec un réassort fixe, chaque flacon livré était vendu (222 achats sur 5 graines),
+  # l'offre bornait l'adoption au lieu de la dynamique sociale.
+  stock_initial_pour_100: 25   # flacons par point de vente au jour 1
+  reassort_pour_100: 10        # commande minimale par point de vente et par semaine
+  marge_commande: 1.2          # commande = ventes de la semaine × marge
+  jour_reassort: 5           # jour de la semaine (jour % 7)
+  duree_flacon_jours: 12     # jours d'usage d'un flacon, puis il faut racheter
+
+# Règles des agents qui ne sont pas LLM (étape 13).
+regles:
+  # Fidèles à une autre marque : seuil d'adoption relevé, et encore plus pendant une promotion
+  # de la marque concurrente ; ils reviennent à leur marque si la mode recule autour d'eux.
+  bonus_fidelite: 0.25
+  bonus_promotion: 0.15
+  recul_abandon: 0.15        # baisse de la part de porteurs autour d'eux qui les fait revenir
+  # Baseline C0 (seuil + Bass + déclin) pour les rôles LLM quand agents.moteur = regles.
+  p_externe: 0.01            # influence externe quotidienne (Bass p)
+  p_campagne: 0.08           # les jours de communiqué, d'animation, de publication virale ou d'article
+  q_message: 0.08            # pression sociale ajoutée par message reçu (Bass q), au plus 3
+  recul_mode: 0.2            # baisse de la part de porteurs qui fait abandonner (Berger, Le Mens)
+  p_abandon_recul: 0.3       # probabilité d'abandonner quand la mode recule
+  p_abandon_polemique: 0.25  # probabilité d'abandonner après une polémique perçue
 
 # Ce qui fait reconsidérer sa décision à un agent, en plus d'un message reçu ou d'une
 # perturbation dans sa zone (règle 10 : sans déclencheur, aucun appel).

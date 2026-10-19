@@ -80,13 +80,52 @@ class SeuilConfig(_Section):
     ecart_type: float = Field(ge=0, le=1)
 
 
+class MoteurAgents(StrEnum):
+    LLM = "llm"
+    REGLES = "regles"
+
+
 class AgentsConfig(_Section):
+    moteur: MoteurAgents = MoteurAgents.LLM
     seuil_adoption: SeuilConfig = Field(
         description="Loi du seuil d'adoption individuel (Granovetter), bornée à [0, 1]."
     )
     messages_par_semaine: dict[Role, NonNegativeInt] = Field(
         description="Messages qu'un agent LLM peut envoyer par semaine simulée, par rôle."
     )
+
+
+class MeteoConfig(_Section):
+    temperature_debut: float = Field(ge=-10, le=50)
+    temperature_plateau: float = Field(ge=-10, le=50)
+    montee_jours: PositiveInt
+    ecart_jour: float = Field(ge=0, le=10)
+    persistance: float = Field(ge=0, lt=1)
+    seuil_canicule: float = Field(ge=0, le=50)
+    beau_vers_mauvais: float = Field(ge=0, le=1)
+    mauvais_vers_beau: float = Field(ge=0, le=1)
+    duree_vague_chaleur: PositiveInt
+
+
+class CommerceConfig(_Section):
+    points_de_vente: list[Zone] = Field(min_length=1)
+    stock_initial_pour_100: NonNegativeInt
+    reassort_pour_100: NonNegativeInt
+    marge_commande: float = Field(ge=0, le=5)
+    jour_reassort: int = Field(ge=0, le=6)
+    duree_flacon_jours: PositiveInt
+
+
+class ReglesConfig(_Section):
+    bonus_fidelite: float = Field(ge=0, le=1)
+    bonus_promotion: float = Field(ge=0, le=1)
+    recul_abandon: float = Field(ge=0, le=1)
+    p_externe: float = Field(ge=0, le=1)
+    p_campagne: float = Field(ge=0, le=1)
+    q_message: float = Field(ge=0, le=1)
+    recul_mode: float = Field(ge=0, le=1)
+    p_abandon_recul: float = Field(ge=0, le=1)
+    p_abandon_polemique: float = Field(ge=0, le=1)
 
 
 class DeclencheursConfig(_Section):
@@ -151,6 +190,9 @@ class Config(_Section):
     simulation: SimulationConfig
     llm: LlmConfig
     agents: AgentsConfig
+    meteo: MeteoConfig
+    commerce: CommerceConfig
+    regles: ReglesConfig
     declencheurs: DeclencheursConfig
     reseau: ReseauConfig
     routines: RoutinesConfig

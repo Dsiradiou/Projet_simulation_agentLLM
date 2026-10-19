@@ -358,6 +358,10 @@ def test_same_seed_same_run_across_processes() -> None:
 
 def test_factice_population_follows_config() -> None:
     agents, acteurs = population_factice(load_config(DEFAULT))
-    assert len(agents) == 119 and len(acteurs) == 1  # la météo est un acteur du monde
+    # Météo et calendrier du concurrent sont des acteurs du monde, pas des agents.
+    assert len(agents) == 119 and [a.actor_id for a in acteurs] == [
+        "meteo",
+        "marque_concurrente_01",
+    ]
     assert sum(a.palier is not None for a in agents) == 84
     assert len({a.agent_id for a in agents}) == 119

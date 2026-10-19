@@ -54,6 +54,11 @@ func _initialize() -> void:
 	verifier(fiche.contains("qwen3:1.7b"), "la fiche montre le modèle et le coût")
 	verifier(fiche.contains("fiche-produit") and fiche.contains("J2"), "la fiche montre ce que l'agent avait lu et ses souvenirs")
 
+	monde._sur_message({"type": "monde.stock", "zone": "pharmacie", "payload": {"produit": "marque", "quantite": 0}})
+	verifier(monde.decor._stocks["pharmacie"].text == "Rupture de stock", "une rupture s'affiche au-dessus de la pharmacie")
+	monde._sur_message({"type": "monde.stock", "zone": "pharmacie", "payload": {"produit": "marque", "quantite": 7}})
+	verifier(monde.decor._stocks["pharmacie"].text.contains("7 flacons"), "le réassort s'affiche")
+
 	monde._sur_message({"type": "pont.nouveau_run", "run_id": "r2"})
 	verifier(monde.habitants.is_empty(), "un nouveau run repart d'un monde vide")
 

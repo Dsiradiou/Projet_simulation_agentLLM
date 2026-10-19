@@ -1,0 +1,8 @@
+# Baseline C0 (étape 13, exigence E1) : le même monde que default.yaml (population, réseau,
+# routines, météo, commerce, perturbations, déclencheurs, graine), où les rôles LLM décident par
+# règles (seuil + Bass + déclin, section `regles`). Aucun appel LLM : un run complet prend quelques
+# secondes. À comparer à la configuration mixte C1 sur les mêmes graines et les mêmes scénarios.
+herite_de: default.yaml
+
+agents:
+  moteur: regles

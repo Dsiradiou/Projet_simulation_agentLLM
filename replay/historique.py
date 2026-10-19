@@ -68,6 +68,23 @@ REQUETES = {
     "incidents_par_nature": """
         SELECT run_id, nature, count(*) AS incidents
         FROM incidents GROUP BY ALL ORDER BY run_id, nature""",
+    "adoption_par_jour": """
+        WITH jours AS (
+            SELECT run_id, unnest(range(1, max(jour) + 1)) AS jour FROM decisions GROUP BY run_id
+        ),
+        etat AS (  -- dernière décision de chaque agent à la fin de chaque jour
+            SELECT j.run_id, j.jour, d.agent_id,
+                   arg_max(d.porteur, d.sim_time_occurred) AS porteur,
+                   arg_max(d.sens, d.sim_time_occurred) AS sens
+            FROM jours j JOIN decisions d ON d.run_id = j.run_id AND d.jour <= j.jour
+            GROUP BY ALL
+        )
+        SELECT run_id, jour, count(*) FILTER (porteur) AS porteurs, count(*) AS agents,
+               count(*) FILTER (sens = 'efficace') AS efficace,
+               count(*) FILTER (sens = 'tendance') AS tendance,
+               count(*) FILTER (sens = 'banal') AS banal,
+               count(*) FILTER (sens = 'depasse') AS depasse
+        FROM etat GROUP BY run_id, jour ORDER BY run_id, jour""",
     "messages_par_role": """
         SELECT run_id, regexp_extract(agent_id, '^(.*)_[0-9]+$', 1) AS role, canal,
                count(*) AS messages

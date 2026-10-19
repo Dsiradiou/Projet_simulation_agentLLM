@@ -18,6 +18,8 @@ Déroulé d'un jour d :
 """
 
 import asyncio
+import dataclasses
+import random
 import time
 from collections import Counter
 from collections.abc import Awaitable, Callable
@@ -50,6 +52,7 @@ from bus.events import (
     Weather,
     WeatherPayload,
 )
+from sim.commerce import Commerce
 from sim.config import Config
 from sim.controle import SourceControle
 from sim.domaine import Canal
@@ -58,6 +61,8 @@ from sim.horloge import SimClock, ordre_paliers
 from sim.livraison import Boite
 from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import RunInfo
+
+HEURE_DU_SOIR = 18 * 60  # stocks et ruptures du jour, publiés après les décisions
 
 
 class Publisher(Protocol):
@@ -81,6 +86,11 @@ class Bilan:
     relances: int = 0  # tentatives au-delà de la première
     replis: int = 0  # décisions d'agents LLM prises par la règle de repli
     declenchements: dict[str, int] = field(default_factory=dict)  # décisions par motif
+    # Commerce (étape 13) : état du monde, pas recalculé par le rejeu (voir replay.bilan).
+    achats: int = 0
+    achats_manques: int = 0
+    ruptures: int = 0
+    reassorts: int = 0
     bascules_palier: int = 0
     tokens_entree: int = 0
     tokens_sortie: int = 0
@@ -128,6 +138,7 @@ class Orchestrateur:
         preparer: Callable[[Palier], Awaitable[float]] | None = None,
         controle: SourceControle | None = None,
         routines: Routines | None = None,
+        commerce: Commerce | None = None,
     ) -> None:
         self.config = config
         self.run = run
@@ -142,6 +153,11 @@ class Orchestrateur:
         self.preparer = preparer
         self.controle = controle
         self.routines = routines
+        self.commerce = commerce
+        # Ce qui réagit mécaniquement aux perturbations : météo, commerce (étape 13).
+        self._reactifs = [a for a in acteurs_monde if hasattr(a, "reagir")]
+        if commerce is not None:
+            self._reactifs.append(commerce)
         # Abonnés de chaque compte : destinataires de ses publications « réseaux ».
         self._abonnes = {
             emetteur: [
@@ -174,6 +190,10 @@ class Orchestrateur:
                 break
             await self.jour(jour)
         await self._statut("arrete" if self._arret else "termine")
+        if self.commerce is not None:
+            c = self.commerce
+            self.bilan.achats, self.bilan.achats_manques = c.achats, c.achats_manques
+            self.bilan.ruptures, self.bilan.reassorts = c.ruptures, c.reassorts
         self.bilan.duree_reelle_s = time.perf_counter() - debut
         self.bilan.duree_llm_s = round(self.bilan.duree_llm_s, 3)
         self.bilan.duree_chargement_s = round(self.bilan.duree_chargement_s, 3)
@@ -188,6 +208,8 @@ class Orchestrateur:
                 payload=ClockStepPayload(jour=jour),
             )
         )
+        # Les perturbations injectées agissent d'abord : une vague de chaleur fait la météo du jour.
+        await self._appliquer_injections(minute0, jour)
         for acteur in self.acteurs_monde:
             for event in acteur.evenements_du_jour(jour, minute0, self.run.run_id):
                 await self._publier(event)
@@ -197,7 +219,13 @@ class Orchestrateur:
                 elif isinstance(event, Disturbance):
                     self._perturbations.append(event)
                     self._perturbations_vues.add(event.event_id)
-        await self._appliquer_injections(minute0)
+                    self._reagir(event, jour)
+        if self.commerce is not None:  # réassort du vendredi, puis un jour d'usage des flacons
+            for event in self.commerce.debut_du_jour(jour, minute0, self.run.run_id):
+                await self._publier(event)
+            for agent in self.agents:
+                if agent.flacon_jours:
+                    agent.flacon_jours -= 1
         await self._deplacements_du_matin(minute0)
         await self._statut("en_cours")  # heure simulée courante, lue par le pont (C3)
 
@@ -222,10 +250,23 @@ class Orchestrateur:
                     self.bilan.duree_chargement_s += await self.preparer(palier)
                 resultats |= await self._decider_groupe(groupe, palier, perceptions)
 
+        achetes = self._acheter(resultats, jour) if self.commerce is not None else set()
         messages: list[AgentMessage] = []
         for agent_id in sorted(resultats):
-            agent = self._par_id[agent_id]
-            messages += await self._appliquer(agent, resultats[agent_id], t, perceptions[agent_id])
+            agent, decision = self._par_id[agent_id], resultats[agent_id]
+            messages += await self._appliquer(agent, decision, t, perceptions[agent_id])
+            if self.commerce and decision is not None and agent.derniere_decision is decision:
+                if agent_id in achetes:
+                    agent.flacon_jours = self.commerce.config.duree_flacon_jours
+                elif not decision.porteur:
+                    agent.flacon_jours = None
+        if self.commerce is not None:  # stocks du soir, ruptures perçues le lendemain
+            soir = minute0 + HEURE_DU_SOIR
+            for event in self.commerce.fin_du_jour(soir, self.run.run_id):
+                await self._publier(event)
+                if isinstance(event, Disturbance):
+                    self._perturbations.append(event)
+                    self._perturbations_vues.add(event.event_id)
         for message in messages:  # zones résolues après les déplacements du jour
             self.boite.deposer(message, self._destinataires(message))
 
@@ -260,7 +301,7 @@ class Orchestrateur:
             await self._statut("pause")
             await asyncio.sleep(0.2)
 
-    async def _appliquer_injections(self, minute0: int) -> None:
+    async def _appliquer_injections(self, minute0: int, jour: int) -> None:
         """Chaque injection devient une perturbation au début du jour : elle a été demandée la
         veille (`sim_time_occurred` de l'injection) et prend effet maintenant (C3, C6)."""
         for injection in self._injections:
@@ -276,6 +317,7 @@ class Orchestrateur:
             await self._publier(event)
             self._perturbations.append(event)
             self._perturbations_vues.add(event.event_id)
+            self._reagir(event, jour)
             self.bilan.injections += 1
         self._injections.clear()
 
@@ -302,9 +344,39 @@ class Orchestrateur:
                 ),
                 meteo=self.meteo,
                 part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone],
+                flacon_vide=agent.flacon_jours == 0
+                and bool(agent.derniere_decision and agent.derniere_decision.porteur),
+                achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),
+                promotion_concurrente=bool(
+                    self.commerce and self.commerce.promotion_concurrente(jour)
+                ),
             )
             for agent in self.agents
         }
+
+    def _acheter(self, resultats: dict[str, Decision | None], jour: int) -> set[str]:
+        """Achats du jour, dans un ordre tiré avec la graine (l'ordre alphabétique servirait
+        toujours les mêmes) : un nouveau porteur, ou un porteur dont le flacon est fini, doit
+        trouver un flacon en rayon. En rupture, sa décision est gardée mais il ne devient pas
+        porteur. Renvoie les agents qui ont acheté."""
+        assert self.commerce is not None
+        acheteurs = sorted(
+            agent_id
+            for agent_id, d in resultats.items()
+            if d is not None and d.porteur and not self._par_id[agent_id].porteur
+        )
+        random.Random(f"{self.run.seed}:achats:{jour}").shuffle(acheteurs)
+        achetes = set()
+        for agent_id in acheteurs:
+            if self.commerce.acheter(agent_id, self._par_id[agent_id].zone) is None:
+                resultats[agent_id] = dataclasses.replace(resultats[agent_id], porteur=False)
+            else:
+                achetes.add(agent_id)
+        return achetes
+
+    def _reagir(self, perturbation: Disturbance, jour: int) -> None:
+        for reactif in self._reactifs:
+            reactif.reagir(perturbation, jour)
 
     def _noter_palier(self, palier: Palier | None) -> None:
         if palier is None:

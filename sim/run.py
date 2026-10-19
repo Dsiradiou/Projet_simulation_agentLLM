@@ -23,6 +23,7 @@ if TYPE_CHECKING:  # imports de typage seulement : sim.run est importé par les 
     from agents.base import Agent, WorldActor
     from agents.roles import Palier
     from rag.recuperation import Recuperateur
+    from sim.commerce import Commerce
     from sim.orchestrateur import ResumeJour
     from sim.settings import Settings
 
@@ -102,6 +103,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Lance un run de simulation.")
     parser.add_argument("--config", default="configs/default.yaml")
     parser.add_argument("--jours", type=int, help="nombre de jours (défaut : durée configurée)")
+    parser.add_argument("--graine", type=int, help="graine du run (défaut : celle de la config)")
     parser.add_argument(
         "--factice", action="store_true", help="agents factices sans LLM (tests du moteur)"
     )
@@ -115,7 +117,7 @@ def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     try:
-        asyncio.run(_lancer(args.config, args.jours, args.factice, args.latence))
+        asyncio.run(_lancer(args.config, args.jours, args.factice, args.latence, args.graine))
     except OllamaIndisponible as exc:
         parser.exit(1, f"Erreur : {exc}\n")
 
@@ -165,23 +167,31 @@ async def _verifier_ollama(host: str, modeles: set[str]) -> None:
 
 
 async def _lancer(
-    config_path: str, jours: int | None, factice: bool, facteur_latence: float
+    config_path: str,
+    jours: int | None,
+    factice: bool,
+    facteur_latence: float,
+    graine: int | None = None,
 ) -> None:
     from agents.factices import population_factice
     from agents.population import construire_population
     from agents.roles import palier_du_role
     from llm.client import ClientOllama
     from llm.routeur import Routeur, options_de
-    from sim.config import load_config
+    from sim.config import MoteurAgents, load_config
     from sim.orchestrateur import ResumeJour
     from sim.settings import load_settings
 
     config = load_config(config_path)
+    if graine is not None:  # runs répétés d'une même configuration (E2)
+        config = config.model_copy(update={"run": config.run.model_copy(update={"seed": graine})})
     settings = load_settings()
     run = new_run(config, config_path)
     preparer = None
     if factice:
         agents, acteurs = population_factice(config, facteur_latence)
+    elif config.agents.moteur is MoteurAgents.REGLES:  # baseline C0 : ni Ollama ni RAG
+        agents, acteurs = construire_population(config, routeur=None)
     else:
         paliers = {palier_du_role(r) for r, n in config.population.items() if n} - {None}
         modeles = {config.llm.modeles[p] for p in paliers}
@@ -197,7 +207,7 @@ async def _lancer(
         preparer = routeur.preparer
     write_manifest(run, config)
     nb_llm = sum(a.palier is not None for a in agents)
-    mode = "factices" if factice else f"dont {nb_llm} LLM"
+    mode = "factices" if factice else f"dont {nb_llm} LLM" if nb_llm else "à règles, baseline C0"
     print(f"Run {run.run_id} : {len(agents)} agents ({mode}), graine {run.seed}")
 
     def afficher(r: ResumeJour) -> None:
@@ -208,9 +218,12 @@ async def _lancer(
             flush=True,
         )
 
+    from agents.population import construire_commerce
+
     resume = await executer_run(
-        config, run, agents, acteurs, settings, jours, afficher=afficher, preparer=preparer
-    )
+        config, run, agents, acteurs, settings, jours, afficher=afficher, preparer=preparer,
+        commerce=construire_commerce(config, agents),
+    )  # fmt: skip
     if resume["evenements_enregistres"] != resume["evenements_publies"]:
         print(
             f"ATTENTION : {resume['evenements_enregistres']} événements enregistrés "
@@ -234,6 +247,7 @@ async def executer_run(
     afficher: "Callable[[ResumeJour], None] | None" = None,
     preparer: "Callable[[Palier], Awaitable[float]] | None" = None,
     runs_dir: Path = RUNS_DIR,
+    commerce: "Commerce | None" = None,
 ) -> dict:
     """Exécute un run de bout en bout : Kafka, Redis, historique Parquet, `bilan.json`.
     Renvoie le bilan écrit. Utilisé par la commande et par les tests d'intégration."""
@@ -265,7 +279,7 @@ async def executer_run(
             try:
                 orchestrateur = Orchestrateur(
                     config, run, agents, acteurs, producer, etat, afficher, preparer, controle,
-                    Routines(config.routines, config.run.seed),
+                    Routines(config.routines, config.run.seed), commerce,
                 )  # fmt: skip
                 bilan = await orchestrateur.executer(jours)
             finally:

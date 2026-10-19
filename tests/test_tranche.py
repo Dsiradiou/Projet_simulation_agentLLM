@@ -9,7 +9,7 @@ from aiokafka import AIOKafkaConsumer
 from agents.agent_llm import AgentLLM
 from agents.factices import population_factice
 from agents.population import construire_population, identites
-from agents.regles import AgentSeuil
+from agents.regles import AgentAuSeuil
 from agents.roles import Palier, Role
 from bus import events as ev
 from bus.console import formater
@@ -33,7 +33,7 @@ def test_tranche_config_has_one_llm_agent_per_tier_and_one_rule_agent() -> None:
     agents, acteurs = construire_population(config, Routeur(ClientScripte(), config.llm))
     llm = [a for a in agents if isinstance(a, AgentLLM)]
     assert sorted(a.palier for a in llm) == sorted(Palier)
-    assert [type(a) for a in agents if a not in llm] == [AgentSeuil]
+    assert [type(a) for a in agents if a not in llm] == [AgentAuSeuil]  # fidèle, à règles
     assert [a.actor_id for a in acteurs] == ["meteo"]
 
 
@@ -44,11 +44,11 @@ def test_population_follows_roles_and_is_reproducible() -> None:
     assert len(agents) == config.nb_agents - config.population[Role.METEO]
     for agent in agents:
         assert isinstance(agent, AgentLLM) is (agent.palier is not None)
-        assert 0 <= agent.seuil <= 1
+        if agent.role is not Role.MARQUE_CONCURRENTE:  # la marque n'adopte pas, elle annonce
+            assert 0 <= agent.seuil <= 1
     encore, _ = construire_population(config, routeur)
-    assert [(a.agent_id, a.zone, a.seuil) for a in agents] == [
-        (a.agent_id, a.zone, a.seuil) for a in encore
-    ]
+    cles = lambda a: (a.agent_id, a.zone, getattr(a, "seuil", None))  # noqa: E731
+    assert [cles(a) for a in agents] == [cles(a) for a in encore]
     # Agents factices et réels partagent identités, zones et contacts : on teste le même monde.
     factices, _ = population_factice(config)
     assert [(a.agent_id, a.zone, a.contacts) for a in factices] == [

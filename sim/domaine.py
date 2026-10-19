@@ -33,6 +33,11 @@ class Canal(StrEnum):
     RESEAUX = "reseaux"  # publication sur les réseaux sociaux
 
 
+class Produit(StrEnum):
+    MARQUE = "marque"  # la crème de la marque fictive étudiée
+    CONCURRENT = "concurrent"  # celle de la marque concurrente
+
+
 class Action(StrEnum):
     """Action concrète décidée par un agent pour la journée."""
 

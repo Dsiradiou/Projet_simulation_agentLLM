@@ -19,7 +19,10 @@ sur des marques réelles.
 - **4 sens possibles**, en catégories fermées : `efficace`, `tendance`, `banal`, `depasse`.
 - **Un monde qui vit** : réseau social (abonnés, proches), déplacements quotidiens selon le rôle et
   la météo, et des agents qui ne reconsidèrent leur avis que lorsqu'il se passe quelque chose
-  (message, perturbation, porteurs autour d'eux, forte chaleur, lassitude).
+  (message, perturbation, porteurs autour d'eux, forte chaleur, lassitude, flacon fini).
+- **Des mécaniques à règles** : météo saisonnière, stocks par point de vente avec ruptures et
+  réassorts, flacons qui s'épuisent, marque concurrente au calendrier fixe, fidèles à une autre
+  marque.
 - **Population hybride** : agents LLM de trois tailles (Qwen3 1.7b, 4b, 8b), attribuées selon le
   rôle et l'expérience, plus des agents à règles (météo, vendeurs, marque concurrente, fidèles).
 
@@ -65,7 +68,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 10 | Scène Godot 3D | ✅ terminée |
 | 11 | Le monde : marque, population | ✅ terminée |
 | 12 | Corpus fictif et RAG | ✅ terminée |
-| 13 | Agents à règles et baseline | à venir |
+| 13 | Agents à règles et baseline | ✅ terminée |
 | 14 | Indicateurs d'émergence | à venir |
 | 15 | Mode asynchrone et cohérence temporelle | à venir |
 | 16 | Campagnes d'expériences | à venir |
@@ -240,8 +243,22 @@ déclencheurs, réseau social, routines de déplacement et noms fictifs du monde
 se règle rôle par rôle dans la section `population`, sans toucher au code.
 
 Une variante hérite de la configuration principale et ne précise que ce qui change
-(`herite_de: default.yaml`) : `configs/dev.yaml` (60 agents, 60 jours, pour le développement) et
-`configs/tranche.yaml` (4 agents, 5 jours).
+(`herite_de: default.yaml`) : `configs/dev.yaml` (60 agents, 60 jours, pour le développement),
+`configs/tranche.yaml` (4 agents, 5 jours), et les baselines `configs/baseline.yaml` et
+`configs/baseline-dev.yaml`.
+
+## Baseline à règles (C0)
+
+Pour démontrer ce que le LLM apporte (E1), la baseline fait tourner **le même monde** (mêmes
+agents, réseau, routines, météo, stocks, perturbations, graine) où les rôles LLM décident par
+règles : seuil d'adoption (Granovetter), influence externe les jours de communiqué (Bass p),
+pression des messages reçus (Bass q), abandon quand la mode recule (Berger et Le Mens). Aucun
+appel de modèle : un run de 60 jours prend quelques secondes.
+
+```powershell
+.venv\Scripts\python -m sim.run --config configs/baseline-dev.yaml --graine 7   # une graine
+.venv\Scripts\python -m replay.comparaison <run_c0> <run_c1> --titre "C0 contre C1"
+```
 
 ## Structure du dépôt
 

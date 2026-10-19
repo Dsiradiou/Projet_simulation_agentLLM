@@ -35,6 +35,9 @@ class Perception:
     evenements: tuple[Envelope, ...] = ()  # perturbations du monde survenues depuis
     meteo: WeatherPayload | None = None
     part_porteurs_zone: float = 0.0  # part de porteurs dans sa zone, état de la veille
+    flacon_vide: bool = False  # son flacon est fini (étape 13) : il doit racheter pour continuer
+    achat_rate: bool = False  # la veille, il a voulu acheter mais le rayon était vide
+    promotion_concurrente: bool = False  # le concurrent est en promotion (fait public du monde)
 
 
 @dataclass(frozen=True)
@@ -99,10 +102,15 @@ class Agent(ABC):
         self._jour_decision = 0
         self._delai = 0  # délai de réflexion tiré après la dernière décision
         self._meteo_forte_veille = False
+        # Jours d'usage restants dans son flacon (étape 13) ; None : pas de commerce simulé.
+        self.flacon_jours: int | None = None
 
     @property
     def porteur(self) -> bool:
-        return self.derniere_decision.porteur if self.derniere_decision else False
+        """Il utilise le produit : sa dernière décision le dit, et son flacon n'est pas fini."""
+        if self.derniere_decision is None or not self.derniere_decision.porteur:
+            return False
+        return self.flacon_jours is None or self.flacon_jours > 0
 
     @property
     def sens(self) -> Sens | None:
@@ -124,6 +132,8 @@ class Agent(ABC):
             return Motif.PREMIERE_DECISION
         if p.evenements:
             return Motif.PERTURBATION
+        if p.flacon_vide:  # besoin concret : pas de délai de réflexion
+            return Motif.FLACON_VIDE
         if d is not None and p.jour - self._jour_decision < self._delai:
             return None  # délai de réflexion : les messages attendent la prochaine décision
         if p.messages:

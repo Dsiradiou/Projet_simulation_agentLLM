@@ -47,7 +47,7 @@ une échelle inventée de 1 à 5), choisis le 18 oct. après un test de contamin
 | Orchestration | Python 3.12 `asyncio`, écrit à la main (pas de framework multi-agents) |
 | Visualisation | Godot 4.x en 3D low-poly, rendu léger, relié par un pont FastAPI (WebSocket + REST) |
 
-Machine de développement : HP Omen 16, RTX 5060 (8 Go de VRAM), Ryzen 9 8945HX, 32 Go de RAM.
+Machine de développement : HP Omen 16, RTX 5060 (8 Go de VRAM), Ryzen 9 8945HX, 16 Go de RAM (15,1 Go visibles par Windows) : lancer les longs runs depuis un terminal séparé, la mémoire vive est la ressource la plus juste.
 **Les trois modèles ne tiennent pas ensemble en VRAM** : `1.7b` et `4b` restent chargés, `8b` est
 chargé par phase. Grouper les appels par palier avant de les émettre. Mesuré (étape 3) : charger
 le `8b` décharge les deux autres, et un aller-retour de palier coûte environ 13 s. Réglages
@@ -125,6 +125,8 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Mesure couche LLM | `.venv\Scripts\python -m llm.validation` (résultats dans `docs/mesures/`) |
 | Run LLM (tranche) | `.venv\Scripts\python -m sim.run --config configs/tranche.yaml` |
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
+| Baseline C0 (sans LLM) | `.venv\Scripts\python -m sim.run --config configs/baseline.yaml [--graine 7]` |
+| Comparer des runs | `.venv\Scripts\python -m replay.comparaison <run_id> <run_id> ...` |
 | Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
 | Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
@@ -210,6 +212,22 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   météo marquée et lassitude. Chaque décision publie son `motif` ; le bilan les compte.
 - Budget de parole (`agents.messages_par_semaine`) : c'est le rôle qui décide de parler ; budget
   épuisé, le schéma JSON n'autorise plus que `message: null`.
+
+## Règles du monde et baseline (étape 13)
+
+- Météo saisonnière (`sim/meteo.py`, section `meteo`) : montée puis plateau, pas de rentrée
+  (décision du 19 oct.) ; conditions et indice UV toujours cohérents.
+- Commerce (`sim/commerce.py`) : stock par point de vente ; un nouveau porteur, ou un porteur dont
+  le flacon est fini (12 jours), doit acheter ; en rupture, l'achat échoue (décision publiée avec
+  `porteur: false`). Achats dans un ordre tiré avec la graine. Les vendeurs commandent selon les
+  ventes de la semaine. Le motif `flacon_vide` déclenche une décision sans délai de réflexion.
+- Les perturbations ont des effets mécaniques (`reagir`) : vague de chaleur, orage, rupture de
+  stock, promotion concurrente. Elles agissent avant la météo du jour.
+- Agents à règles (`agents/regles.py`) : fidèles et vendeurs (`AgentAuSeuil`), marque concurrente
+  (`AgentConcurrent`, calendrier jours 21 et 45), baseline C0 (`AgentRegleC0` : seuil + Bass +
+  déclin) quand `agents.moteur: regles`. Une même graine donne les mêmes agents, zones, seuils et
+  météo en C0 et en C1 : seule la décision change (E1).
+- Comparer des runs : `python -m replay.comparaison <run_id>...` (courbes, pic, déclin, dispersion).
 
 ## Décisions encore ouvertes
 

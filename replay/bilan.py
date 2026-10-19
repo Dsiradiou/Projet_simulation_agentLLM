@@ -57,8 +57,8 @@ def bilan_depuis(events: list[ev.Envelope], population: int) -> dict:
                 if event.payload.motif is not None:
                     motif = event.payload.motif.value
                     bilan.declenchements[motif] = bilan.declenchements.get(motif, 0) + 1
-            case ev.Disturbance() if event.caused_by:  # conséquence d'une injection (D3)
-                bilan.injections += 1
+            case ev.Disturbance() if event.source_agent_id == "orchestrateur":
+                bilan.injections += 1  # conséquence d'une injection (D3)
             case ev.AgentMessage():
                 bilan.messages += 1
             case ev.AgentMove():

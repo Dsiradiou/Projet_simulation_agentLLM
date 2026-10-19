@@ -1,0 +1,5 @@
+# Baseline C0 sur la population de développement (60 agents), pour comparer à configs/dev.yaml.
+herite_de: dev.yaml
+
+agents:
+  moteur: regles

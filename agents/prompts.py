@@ -104,6 +104,7 @@ MOTIFS_LISIBLES: dict[Motif, str] = {
     Motif.EXPOSITION: "autour de toi, la part de gens qui l'utilisent a nettement changé",
     Motif.METEO: "le soleil tape fort aujourd'hui",
     Motif.LASSITUDE: "cela fait longtemps que tu n'y as pas repensé",
+    Motif.FLACON_VIDE: "ton flacon est fini",
 }
 
 _SYSTEME = """\
@@ -176,6 +177,12 @@ def prompt_jour(
             f"Jusqu'ici, {marque} te semblait « {MOT_DU_SENS[precedente.sens]} » "
             f"(dernière action : {precedente.action.value}) ; {usage}."
         )
+    if perception.flacon_vide:
+        lignes.append(
+            f"Ton flacon de {marque} est fini : pour continuer, il faut en racheter (acheter)."
+        )
+    if perception.achat_rate:
+        lignes.append(f"Hier, tu as voulu acheter {marque}, mais il n'y en avait plus en rayon.")
     if motif is not None:
         lignes.append(f"Tu y repenses aujourd'hui parce que {MOTIFS_LISIBLES[motif]}.")
 

@@ -38,6 +38,7 @@ var _soleil: DirectionalLight3D
 var _ciel: ProceduralSkyMaterial
 var _ecran: Label3D
 var _halos := {}  # zone -> anneau de mise en évidence (perturbation)
+var _stocks := {}  # point de vente -> étiquette du stock de la marque (étape 13)
 
 
 func construire() -> void:
@@ -53,6 +54,8 @@ func construire() -> void:
 	_arbres()
 	for zone in AIRES:
 		_halos[zone] = _halo(zone)
+	_stocks["pharmacie"] = etiquette("", Vector3(-2, 5.4, -11), 64)
+	_stocks["centre_commercial"] = etiquette("", Vector3(16, 8.4, -12), 64)
 
 
 # --- emplacements -------------------------------------------------------------------------------
@@ -106,6 +109,15 @@ func afficher_publication(auteur: String, texte: String) -> void:
 	## Affiche la dernière publication des réseaux sociaux sur l'écran de la place.
 	_ecran.text = "%s
 « %s »" % [auteur, texte.left(140)]
+
+
+func afficher_stock(zone: String, quantite: int) -> void:
+	## Stock de flacons en rayon au point de vente ; rouge en rupture.
+	if not _stocks.has(zone):
+		return
+	var l: Label3D = _stocks[zone]
+	l.text = "En rayon : %d flacon%s" % [quantite, "s" if quantite > 1 else ""] if quantite > 0 else "Rupture de stock"
+	l.modulate = Color("ffffff") if quantite > 0 else Color("ff8a80")
 
 
 func signaler_zone(zone: String, couleur: Color, duree := 6.0) -> void:

@@ -75,7 +75,7 @@ exigences de l'énoncé.</p>
   <tr><td colspan="4"><strong>Phase 4 — Le monde et ses agents</strong></td></tr>
   <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="ok">terminée</td></tr>
   <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="ok">terminée</td></tr>
-  <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="todo">à venir</td></tr>
+  <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="ok">terminée</td></tr>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="todo">à venir</td></tr>
   <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
@@ -1840,6 +1840,144 @@ Dépendance ajoutée : <code>chromadb 1.5.9</code> ; modèle : <code>bge-m3</cod
 <p>Étape 13 — Agents à règles et baseline : vraie météo saisonnière, vendeurs et stocks, marque
 concurrente, fidèles ; effets mécaniques des perturbations ; baseline C0 sans LLM avec la même
 saisonnalité (A6, E1). Les constats d'adoption trop rapide y sont traités.</p>
+</section>
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 13 — Agents à règles et baseline</h2>
+<p class="meta">19 octobre 2026 · Exigences concernées : A6 (agents à règles avec les agents LLM, répartition
+justifiée), E1 (comparaison à une version à règles fixes du même monde), E2 (plusieurs graines,
+dispersion), D3 (effets réels des perturbations). Constats traités : météo incohérente (étape 7),
+perturbations sans effet (étape 9), adoption qui sature (étapes 11 et 12).</p>
+
+<h3>Objectif</h3>
+<p>Donner au monde ses mécaniques (météo, commerce, concurrent, fidèles), et construire la
+<strong>baseline C0</strong> : le même monde, soumis aux mêmes scénarios, où les rôles LLM décident par
+règles. C'est la référence qui permettra de dire ce que le LLM apporte (E1). Piège identifié dès la
+conception : si le déclin ne s'explique que par la saison, la baseline le reproduit aussi ; il faut donc la
+même saisonnalité dans les deux, et chercher un déclin en cours de saison.</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Règles de la baseline C0</td><td><strong>Seuil + Bass + déclin</strong> : imitation au seuil (Granovetter), influence externe les jours de communiqué (Bass p), pression des messages reçus (Bass q), abandon quand la mode recule (Berger et Le Mens), messages types sur le même réseau</td></tr>
+  <tr><td>Renouvellement</td><td><strong>Le flacon s'épuise</strong> (12 jours) : il faut décider de racheter ou non, nouveau motif <code>flacon_vide</code> (agent.decision 1.3)</td></tr>
+  <tr><td>Stocks</td><td><strong>Un stock par point de vente</strong> (pharmacie, centre commercial)</td></tr>
+  <tr><td>Fin de saison</td><td><strong>Pas de rentrée</strong> : le monde reste estival jusqu'au jour 90</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>sim/meteo.py</code></td><td>Météo saisonnière : température qui monte puis se stabilise, temps beau ou mauvais en chaîne de Markov, conditions et UV toujours cohérents. Une vague de chaleur impose 3 jours de canicule, un orage un jour de pluie, et le bulletin cite sa cause.</td></tr>
+  <tr><td><code>sim/commerce.py</code></td><td>Stocks par point de vente, achats, ruptures (publiées dans la zone), réassort du vendredi commandé par les vendeurs selon les ventes de la semaine. Une rupture injectée vide réellement le rayon ; une promotion concurrente dure une semaine.</td></tr>
+  <tr><td><code>sim/calendrier.py</code></td><td>Calendrier de Zelvane, cohérent avec le corpus : promotion aux jours 21 à 27, nouvelle formule annoncée au jour 45.</td></tr>
+  <tr><td><code>agents/regles.py</code></td><td>Fidèles (seuil relevé, et plus encore pendant une promotion concurrente ; retour à leur marque si la mode recule), vendeurs, marque concurrente (publie à ses dates), agent de la baseline C0.</td></tr>
+  <tr><td><code>sim/orchestrateur.py</code></td><td>Les perturbations agissent avant la météo du jour ; usure des flacons ; achats dans un ordre tiré avec la graine ; stocks et ruptures publiés le soir.</td></tr>
+  <tr><td><code>configs/baseline.yaml</code>, <code>baseline-dev.yaml</code></td><td>La baseline C0 : héritent de default et dev, avec <code>agents.moteur: regles</code>.</td></tr>
+  <tr><td><code>replay/comparaison.py</code></td><td>Comparaison de runs depuis l'historique : courbes de porteurs, pic, déclin, sens final, moyenne et écart-type entre graines (E2).</td></tr>
+</table>
+
+<h3>Le flacon et le commerce</h3>
+<p>Un nouveau porteur, ou un porteur dont le flacon est fini, doit acheter : là où il se trouve si c'est un
+point de vente fourni, sinon au mieux fourni. En rupture, sa décision est publiée mais il ne devient pas
+porteur, et le lendemain son prompt lui dit « tu as voulu acheter, il n'y en avait plus ». Les achats d'un
+même jour passent dans un ordre tiré avec la graine : par ordre alphabétique, les mêmes agents seraient
+toujours servis.</p>
+<div class="box">
+  <strong>Deux calibrages en cours d'étape.</strong> Avec les premiers stocks, les ruptures étouffaient
+  tout (239 achats manqués pour 112 réussis sur 60 jours). Avec un réassort fixe plus généreux, chaque
+  flacon livré était vendu : 222 achats exactement sur 5 graines, l'offre bornait l'adoption au lieu de la
+  dynamique sociale. Les vendeurs commandent désormais ce qu'ils ont vendu dans la semaine, avec 20 % de
+  marge : l'offre suit la demande, et une rupture signale une demande qui s'emballe.
+</div>
+<p>Un autre défaut a été corrigé : les agents de la baseline gardaient le palier de leur rôle, si bien que
+l'orchestrateur chargeait les modèles chaque jour pour rien. Un run C0 de 60 jours est passé de 7 min 35 s à
+<strong>7 secondes</strong>.</p>
+
+<h3>La comparaison C0 contre C1 (60 agents, 30 premiers jours)</h3>
+<p>C1 : un run mixte LLM (graine 42, 445 appels, 19 min). C0 : 5 runs de la baseline (graines 42, 7, 13,
+21, 99, 7 secondes chacun). Même monde, même scénario, mêmes graines de population : seule la décision
+change. Détail : <code>docs/mesures/comparaison_2026-10-19_1446.md</code>.</p>
+<table>
+  <tr><th>Mesure</th><th>C0 (5 graines)</th><th>C1 (mixte LLM)</th></tr>
+  <tr><td>Porteurs au jour 1</td><td>3,6 ± 0,9</td><td><strong>22</strong></td></tr>
+  <tr><td>Pic</td><td>52 à 58, entre les jours 16 et 28</td><td>49 au jour 21</td></tr>
+  <tr><td>Creux en cours de saison</td><td>faible (−3 à −6)</td><td><strong>49 → 38 au jour 25</strong>, puis 45</td></tr>
+  <tr><td>Sens en fin de période (efficace / tendance / banal / dépassé)</td><td>~3 / 48 / 8 / 1</td><td><strong>33 / 15 / 12 / 0</strong></td></tr>
+  <tr><td>Messages</td><td>47 à 64</td><td>78</td></tr>
+  <tr><td>Appels LLM, durée</td><td>0, 7 s</td><td>445, 19 min</td></tr>
+</table>
+<p><strong>Ce qu'on lit.</strong> La baseline trace une courbe en S classique (Bass) et sature vers 58 sur
+60 sans redescendre : à saturation, la mode ne recule plus autour de personne. C1 diffère sur trois points.
+Ses agents adoptent beaucoup plus tôt : 22 sur 42 dès la première rencontre, signe d'un enthousiasme
+d'« assistant » plutôt que d'habitant (nouveau constat). Il culmine plus bas et connaît un creux en cours
+de saison : 19 flacons achetés vers le jour 13 se finissent au jour 25, 4 ne sont pas rachetés, et la baisse
+visible des porteurs déclenche 4 abandons par exposition, une petite cascade de déclin. Enfin et surtout,
+<strong>le sens diffère</strong> : les agents LLM jugent majoritairement le produit « efficace » (33 sur
+60), quand la baseline reste sur « tendance », que ses règles attribuent à toute imitation. Ces écarts
+sont des pistes, pas encore des conclusions : il faudra 5 runs C1 et les indicateurs de l'étape 14 pour
+les établir (E2).</p>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>Le rejeu du run C1 est fidèle (bilan identique) ; aucune source lue avant sa date ni hors de son rôle
+    (2 420 sources contrôlées).</li>
+  <li>0 incident, 0 relance, 0 repli ; 1 450 événements publiés, 1 450 enregistrés.</li>
+  <li>Le run a été suivi en direct dans Godot, où les stocks s'affichent désormais au-dessus de la
+    pharmacie et du centre commercial (« Rupture de stock » en rouge).</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li><strong>Réglés</strong> : la météo incohérente (étape 7) ; les perturbations sans effet mécanique
+    (étape 9).</li>
+  <li><strong>Mis à jour</strong> : l'adoption sature encore (C0 sans déclin, C1 avec un creux puis une
+    remontée) : il faut des runs de 90 jours (étape 16).</li>
+  <li><strong>Nouveaux</strong> : l'adoption des agents LLM dès le premier contact (étape 14 : posture
+    d'assistant) ; les renouvellements synchronisés par un flacon de durée fixe, qui creusent un déficit
+    artificiel (étape 16 : tirer la durée de 10 à 14 jours, comme le délai de réflexion) ; la durée d'un
+    run C1 (19 min pour 60 agents et 30 jours, environ 1 h 50 projetées pour 120 agents et 90 jours), à
+    planifier pour les campagnes de l'étape 16.</li>
+  <li><strong>Machine</strong> : 16 Go de mémoire vive (15,1 Go visibles par Windows ; CLAUDE.md, qui annonçait 32 Go, est corrigé) ; un run lancé en
+    arrière-plan par l'assistant a été interrompu par manque de mémoire. Les longs runs se lancent
+    désormais depuis un terminal PowerShell séparé.</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Météo</strong> : cohérente (pas de canicule à UV 6), saisonnière, reproductible ; vague de
+    chaleur et orage changent réellement le temps et sont cités en cause.</li>
+  <li><strong>Commerce</strong> : achats, repli sur le point de vente le mieux fourni, rupture annoncée une
+    seule fois et rattachée à son niveau de stock, commande selon les ventes, rupture injectée.</li>
+  <li><strong>Flacons</strong> : un flacon fini déclenche une décision au bon jour ; un achat raté garde la
+    décision sans le produit, et l'agent le sait le lendemain ; le prompt le lui dit.</li>
+  <li><strong>Agents à règles</strong> : fidèles plus exigeants, encore plus pendant une promotion, et
+    retour en cas de recul ; le concurrent ne parle qu'à ses dates.</li>
+  <li><strong>Baseline</strong> : adoption par imitation et par influence externe, abandon quand la mode
+    recule ; même monde, aucun modèle à charger ; mêmes seuils qu'en C1 à graine égale ; run
+    reproductible et rejeu identique.</li>
+</ul>
+<p>Résultat : <span class="ok">202 tests réussis</span>, aucun ignoré, aucune remarque de ruff.
+Un test du RAG (le premier échec venait du test de mémoire, A1) a échoué deux fois sur 8 lancements,
+puis n'a plus échoué en 27 lancements : il reste sous surveillance.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>La baseline n'est pas un épouvantail : c'est le même monde, avec des règles reconnues (Granovetter,
+    Bass, Berger et Le Mens), soumis aux mêmes scénarios et aux mêmes graines.</li>
+  <li>Les perturbations ont maintenant des effets réels : une rupture vide les rayons, une vague de
+    chaleur fait la canicule, une promotion détourne les fidèles.</li>
+  <li>Un flacon s'épuise : l'adoption n'est plus définitive, et le déclin devient possible en pleine
+    saison.</li>
+  <li>Premiers écarts entre C0 et C1 : départ plus rapide, pic plus bas, creux en cours de saison, et
+    surtout un sens différent (« efficace » contre « tendance ») — à confirmer sur 5 runs.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 14 — Indicateurs d'émergence : formule de l'indicateur de sens partagé (décision ouverte), adoption,
+traçabilité vers les événements bruts (F6), run témoin sans diffusion (B3), taux de sortie de rôle et
+détection des inventions ; jauge des sens par zone dans Godot.</p>
 </section>
 
 </body>

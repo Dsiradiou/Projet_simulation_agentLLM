@@ -31,7 +31,7 @@ from pydantic import (
 
 from agents.roles import Palier
 from bus.topics import Topic
-from sim.domaine import Action, Canal, Sens, SimMinute, Zone
+from sim.domaine import Action, Canal, Produit, Sens, SimMinute, Zone
 
 
 class _Strict(BaseModel):
@@ -94,11 +94,6 @@ class Envelope(_Strict):
 # --- sim.world.events -----------------------------------------------------------------------
 
 
-class Produit(StrEnum):
-    MARQUE = "marque"  # le produit de la marque fictive étudiée
-    CONCURRENT = "concurrent"
-
-
 class Perturbation(StrEnum):
     """Événements que l'observateur peut injecter en direct (D3). Les quatre dernières natures
     arrivent avec la version 1.1 des schémas `monde.perturbation` et `controle.injection`."""
@@ -116,6 +111,7 @@ class Perturbation(StrEnum):
 # dans une version antérieure restent lisibles (rejeu, E3). Une version n'est jamais retirée.
 VERSIONS_1_1 = Literal["1.0", "1.1"]
 VERSIONS_1_2 = Literal["1.0", "1.1", "1.2"]
+VERSIONS_1_3 = Literal["1.0", "1.1", "1.2", "1.3"]
 
 
 class ClockStepPayload(_Strict):
@@ -226,6 +222,7 @@ class Motif(StrEnum):
     EXPOSITION = "exposition"  # la part de porteurs autour de lui a nettement changé
     METEO = "meteo"  # début d'une journée de canicule ou d'UV fort
     LASSITUDE = "lassitude"  # pas reconsidéré depuis longtemps
+    FLACON_VIDE = "flacon_vide"  # son flacon est fini : racheter ou non (version 1.3)
 
 
 class LlmCall(_Strict):
@@ -259,7 +256,7 @@ class AgentDecision(Envelope):
     TOPIC = Topic.AGENT_DECISIONS
     DESCRIPTION = "Décision d'un agent : action, sens attribué au produit, justification (D2)."
     type: Literal["agent.decision"] = "agent.decision"
-    schema_version: VERSIONS_1_2 = "1.2"  # 1.1 : motif ; 1.2 : sources (RAG)
+    schema_version: VERSIONS_1_3 = "1.3"  # 1.1 : motif ; 1.2 : sources ; 1.3 : flacon vide
     payload: AgentDecisionPayload
 
     @model_validator(mode="after")

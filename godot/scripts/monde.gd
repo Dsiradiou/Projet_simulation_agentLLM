@@ -131,6 +131,8 @@ func _sur_message(d: Dictionary) -> void:
 			_decision(qui, d.get("zone"), p)
 		"agent.deplacement":
 			_installer(qui, p["vers"], false)
+		"monde.stock":
+			decor.afficher_stock(d.get("zone", ""), int(p["quantite"]))
 		"agent.message":
 			_message(qui, p)
 		"monde.perturbation":
