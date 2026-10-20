@@ -1980,5 +1980,67 @@ traçabilité vers les événements bruts (F6), run témoin sans diffusion (B3),
 détection des inventions ; jauge des sens par zone dans Godot.</p>
 </section>
 
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Note — Colibrì, l'inférence depuis le SSD (étudiée et écartée)</h2>
+<p class="meta">20 octobre 2026 · Entre les étapes 13 et 14 · Exigences concernées : A5 (une seule famille,
+plusieurs tailles), A4 et B1 (sortie structurée), E4 (coût), C7 (limites de la machine).</p>
+
+<h3>La question</h3>
+<p>On nous a suggéré Colibrì, un outil qui « fait tourner le modèle sur le SSD ». Avant d'avancer, le binôme
+a voulu savoir s'il pouvait servir au projet : faire tourner un modèle plus grand, ou soulager la carte
+graphique.</p>
+
+<h3>Ce qu'est Colibrì</h3>
+<p>Un moteur d'inférence open source écrit en C (Apache 2.0), pensé pour les très grands modèles
+<em>Mixture-of-Experts</em> (MoE). Un tel modèle est découpé en centaines d'« experts », dont quelques-uns
+seulement servent à chaque token : Colibrì garde la partie commune en mémoire vive et <strong>lit les experts
+sur le SSD au moment où ils sont choisis</strong>. Il fonctionne sous Windows, avec CUDA en option, une API
+compatible OpenAI et jusqu'à 16 conversations en parallèle. Le projet se présente lui-même comme une
+plateforme de recherche.</p>
+<table>
+  <tr><th>Modèle</th><th>Fichiers</th><th>Mémoire vive conseillée</th><th>Vitesse annoncée</th></tr>
+  <tr><td>Qwen3.6-35B-A3B</td><td>23 Go</td><td>20 Go</td><td>6 tok/s sur processeur, 30 tok/s sur RTX 3070</td></tr>
+  <tr><td>DeepSeek V4 Flash (284B)</td><td>167 Go</td><td>32 Go</td><td>environ 1 tok/s</td></tr>
+  <tr><td>GLM-5.2 (744B)</td><td>429 Go</td><td>24 Go</td><td>0,05 à 0,1 tok/s sur un portable de 25 Go</td></tr>
+</table>
+
+<h3>Confronté au projet</h3>
+<table>
+  <tr><th>Critère</th><th>Constat</th></tr>
+  <tr><td>Nos modèles</td><td>Qwen3 1.7b, 4b et 8b sont <strong>denses</strong> et tiennent déjà dans la carte graphique : Colibrì ne les accélère pas.</td></tr>
+  <tr><td>Volume d'appels</td><td>Environ 2 500 décisions par run. À 30 tok/s, 4 à 5 s par décision (plus lent que le 8b) ; à 1 tok/s, environ 2 minutes : un run deviendrait impossible.</td></tr>
+  <tr><td>Mémoire vive</td><td>16 Go ici, deux processus déjà arrêtés par manque de mémoire ; le plus petit modèle utile en conseille 20.</td></tr>
+  <tr><td>Exigence A5</td><td>Une autre famille de modèles à côté de Qwen3 brouillerait la comparaison des tailles.</td></tr>
+  <tr><td>Sortie JSON imposée</td><td>Annoncée, mais son usage par l'API n'est pas documenté : risque direct sur A4 et B1.</td></tr>
+  <tr><td>Calendrier</td><td>Un moteur de recherche, 23 à 167 Go de poids et un nouvel adaptateur, à quelques semaines de la soutenance.</td></tr>
+</table>
+
+<div class="box">
+  <strong>Décision : Colibrì n'est pas intégré à la simulation.</strong> Il est inscrit dans les alternatives
+  écartées de <code>docs/contexte-projet.md</code>, avec ses raisons chiffrées, pour le rapport. Il pourrait
+  servir hors de la boucle, pour quelques dizaines d'appels où la lenteur ne gêne pas : un juge de référence
+  plus grand (pré-annotation du RAG ou des sorties de rôle, vérifiée par le binôme), ou un test de
+  contamination plus exigeant. Ce sera un essai isolé, seulement si le besoin apparaît aux étapes 14 ou 16.
+</div>
+
+<h3>Sources</h3>
+<ul>
+  <li>Dépôt du projet : <a href="https://github.com/JustVugg/colibri">github.com/JustVugg/colibri</a>
+    (vitesses et besoins cités depuis son README, non mesurés par nous).</li>
+  <li><a href="https://jacar.es/en/colibri-giant-moe-models-from-disk/">Colibri: giant MoE models streamed
+    from disk</a> ; <a href="https://gigazine.net/gsc_news/en/20260710-colibri-glm/">article de Gigazine</a>.</li>
+</ul>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Lire les poids sur le SSD ne sert que pour les modèles MoE trop grands pour la machine ; nos modèles
+    tiennent déjà en VRAM.</li>
+  <li>Le facteur limitant d'un run est le nombre de décisions : un modèle plus grand mais plus lent rendrait
+    les campagnes de l'étape 16 impossibles.</li>
+</ul>
+</section>
+
 </body>
 </html>
