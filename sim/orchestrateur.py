@@ -1,4 +1,5 @@
-"""Orchestrateur, mode synchrone (C4) : fait avancer le temps jour par jour et déclenche les agents.
+"""Orchestrateur (C4) : fait avancer le temps jour par jour et déclenche les agents, en mode
+synchrone ou asynchrone (`simulation.mode`).
 
 Avant chaque jour, l'orchestrateur relève les commandes et injections de l'interface (D3) :
 pause et reprise, arrêt propre, perturbations à appliquer ce jour-là.
@@ -7,14 +8,33 @@ Déroulé d'un jour d :
 1. début du jour (00:00) : `horloge.pas`, les événements des acteurs du monde (météo...), puis
    les perturbations injectées depuis la veille, éventuellement limitées à une zone ; à 08:00,
    les déplacements de routine (règles, selon le rôle et le temps) ;
-2. perception de chaque agent, construite sur l'état de la veille : c'est la barrière
-   synchrone, aucun agent ne voit ce que les autres décident le jour même ;
-3. décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
-   agents LLM regroupés par palier dans l'ordre de `ordre_paliers` ; le modèle d'un palier est
-   chargé avant son groupe (`preparer`), pour mesurer la bascule à part ;
-4. publication, dans l'ordre des identifiants d'agents pour un run reproductible : décisions,
-   incidents de la décision (relance, repli), déplacements, messages (datés de leur livraison) ;
-5. écriture de l'état courant dans Redis.
+2. les décisions, selon le mode (ci-dessous) ;
+3. stocks du soir, écriture de l'état courant dans Redis, puis `horloge.fin_jour`.
+
+Mode synchrone :
+- perception de chaque agent à 10:00, construite sur l'état de la veille : c'est la barrière
+  synchrone, aucun agent ne voit ce que les autres décident le jour même ;
+- décision des seuls agents déclenchés (règle 10), les agents à règles d'abord, puis les
+  agents LLM regroupés par palier dans l'ordre de `ordre_paliers` ; le modèle d'un palier est
+  chargé avant son groupe (`preparer`), pour mesurer la bascule à part ;
+- publication, dans l'ordre des identifiants d'agents pour un run reproductible : décisions,
+  incidents de la décision (relance, repli), déplacements, messages (datés de leur livraison).
+
+Mode asynchrone (étape 15) : pas de barrière, chacun décide à son rythme.
+- Le 8b ne tient pas en VRAM avec les deux autres : la journée garde deux phases, 1.7b et 4b
+  ensemble puis 8b (ordre alterné chaque jour). L'heure de chaque phase part de 08:30 et suit
+  le temps réel de calcul, hors chargement de modèle (`HorlogePhase`).
+- Dans une phase, chaque agent LLM passe quand une place se libère pour son modèle, dans un
+  ordre tiré avec la graine. Sa perception est prise à cet instant (`sim_time_occurred`) ; sa
+  décision est datée de la fin de son appel (`sim_time_processed`) et s'applique aussitôt :
+  achat, messages livrés le jour même si leur délai le permet.
+- Les agents à règles passent à une heure tirée dans la matinée, pendant la première phase.
+- Un agent ne voit que ce qui est daté avant son passage, quelle que soit la phase qui l'a
+  calculé (C6). Un message calculé dans une phase suivante mais livré avant son passage est une
+  « information manquée » : il la lira à sa prochaine décision. Ces cas sont comptés et cités
+  par `horloge.fin_jour`.
+- Une seule décision par agent et par jour, comme en synchrone : seul le modèle de temps change.
+- Les événements de la journée sont publiés à sa fin, dans l'ordre de leur heure simulée.
 """
 
 import asyncio
@@ -39,6 +59,7 @@ from bus.events import (
     AgentMove,
     AgentMovePayload,
     ClockEnd,
+    ClockEndPayload,
     ClockStep,
     ClockStepPayload,
     Disturbance,
@@ -54,11 +75,11 @@ from bus.events import (
     WeatherPayload,
 )
 from sim.commerce import Commerce
-from sim.config import Config
+from sim.config import Config, Mode
 from sim.controle import SourceControle
-from sim.domaine import MINUTES_PAR_JOUR, Canal
+from sim.domaine import MINUTES_PAR_JOUR, Canal, Zone
 from sim.etat import EtatMonde
-from sim.horloge import SimClock, ordre_paliers
+from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.livraison import Boite
 from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import RunInfo
@@ -82,6 +103,7 @@ class Bilan:
     deplacements: int = 0
     incidents: int = 0
     violations_temporelles: int = 0
+    informations_manquees: int = 0  # mode asynchrone : calculées trop tard pour leur lecteur
     incidents_par_nature: dict[str, int] = field(default_factory=dict)
     injections: int = 0  # perturbations appliquées à la demande de l'interface (D3)
     relances: int = 0  # tentatives au-delà de la première
@@ -114,6 +136,38 @@ class Bilan:
         cout["tokens_entree"] += appel.tokens_entree
         cout["tokens_sortie"] += appel.tokens_sortie
         cout["duree_s"] = round(cout["duree_s"] + appel.duree_s, 3)
+
+
+@dataclass
+class Journee:
+    """Ce que la phase de décision d'un jour laisse au reste du jour."""
+
+    fin: int  # heure simulée de la dernière décision
+    decisions: int  # agents déclenchés
+    perceptions: dict[str, Perception]
+    manquees: list[UUID] = field(default_factory=list)  # mode asynchrone, un par lecteur
+
+
+@dataclass
+class _JourneeAsync:
+    """État d'une journée asynchrone : ce que chacun était au début des décisions, et ce qui a
+    changé depuis, daté. La perception à l'heure s ne retient que les changements datés de s
+    ou avant, même si une phase de modèles les a calculés plus tard (C6)."""
+
+    matin: dict[str, tuple[Zone, bool]]  # zone et porteur de chacun au début des décisions
+    regles: list[tuple[int, str]]  # agents à règles pas encore passés : (heure, identifiant)
+    changements: dict[str, tuple[int, Zone, bool]] = field(default_factory=dict)
+    passages: dict[str, int] = field(default_factory=dict)  # heure de passage de chacun
+    perceptions: dict[str, Perception] = field(default_factory=dict)
+    manquees: list[UUID] = field(default_factory=list)
+    declenches: int = 0
+    fin: int = 0
+
+    def etat_a(self, agent_id: str, minute: int) -> tuple[Zone, bool]:
+        change = self.changements.get(agent_id)
+        if change is not None and change[0] <= minute:
+            return change[1], change[2]
+        return self.matin[agent_id]
 
 
 @dataclass(frozen=True)
@@ -180,6 +234,8 @@ class Orchestrateur:
         self._meteo_event: Weather | None = None
         self._non_lus: dict[str, tuple[AgentMessage, ...]] = {}  # reçus, pas encore lus
         self._phase: str | None = None  # "A" (petit + moyen) ou "B" (grand) : modèles chargés
+        # Mode asynchrone : événements de la journée, publiés à sa fin dans l'ordre de leur heure.
+        self._tampon: list[Envelope] | None = None
 
     # --- boucle principale ------------------------------------------------------------------
 
@@ -230,6 +286,38 @@ class Orchestrateur:
         await self._deplacements_du_matin(minute0)
         await self._statut("en_cours")  # heure simulée courante, lue par le pont (C3)
 
+        if self.config.simulation.mode is Mode.ASYNCHRONE:
+            journee = await self._decisions_asynchrones(jour, minute0)
+        else:
+            journee = await self._decisions_synchrones(jour, minute0)
+
+        if self.commerce is not None:  # stocks du soir, ruptures perçues le lendemain
+            soir = max(minute0 + HEURE_DU_SOIR, journee.fin + 1)
+            for event in self.commerce.fin_du_jour(soir, self.run.run_id):
+                await self._publier(event)
+                if isinstance(event, Disturbance):
+                    self._perturbations.append(event)
+                    self._perturbations_vues.add(event.event_id)
+
+        self.bilan.jours = jour
+        self.bilan.informations_manquees += len(journee.manquees)
+        if self.etat:
+            await self.etat.ecrire_jour(
+                jour, journee.fin, self.agents, self.meteo, journee.perceptions
+            )
+        # Tous les faits du jour sont publiés : les indicateurs du jour peuvent être calculés.
+        await self._publier(
+            ClockEnd(
+                **self._dates(minute0 + MINUTES_PAR_JOUR - 1),
+                source_agent_id="horloge",
+                caused_by=tuple(dict.fromkeys(journee.manquees)),
+                payload=ClockEndPayload(jour=jour, informations_manquees=len(journee.manquees)),
+            )
+        )
+        if self.on_jour:
+            self.on_jour(self._resume(jour, journee.decisions))
+
+    async def _decisions_synchrones(self, jour: int, minute0: int) -> Journee:
         t = self.horloge.heure_decision()
         perceptions = self._percevoir(jour, t, barriere=minute0)
         self._perturbations.clear()
@@ -256,35 +344,174 @@ class Orchestrateur:
         for agent_id in sorted(resultats):
             agent, decision = self._par_id[agent_id], resultats[agent_id]
             messages += await self._appliquer(agent, decision, t, perceptions[agent_id])
-            if self.commerce and decision is not None and agent.derniere_decision is decision:
-                if agent_id in achetes:
-                    agent.flacon_jours = self.commerce.config.duree_flacon_jours
-                elif not decision.porteur:
-                    agent.flacon_jours = None
-        if self.commerce is not None:  # stocks du soir, ruptures perçues le lendemain
-            soir = minute0 + HEURE_DU_SOIR
-            for event in self.commerce.fin_du_jour(soir, self.run.run_id):
-                await self._publier(event)
-                if isinstance(event, Disturbance):
-                    self._perturbations.append(event)
-                    self._perturbations_vues.add(event.event_id)
+            self._regler_flacon(agent, decision, agent_id in achetes)
         if self.config.simulation.diffusion:  # run témoin (B3) : personne ne les reçoit
             for message in messages:  # zones résolues après les déplacements du jour
                 self.boite.deposer(message, self._destinataires(message))
+        return Journee(fin=t, decisions=len(resultats), perceptions=perceptions)
 
-        self.bilan.jours = jour
-        if self.etat:
-            await self.etat.ecrire_jour(jour, t, self.agents, self.meteo, perceptions)
-        # Tous les faits du jour sont publiés : les indicateurs du jour peuvent être calculés.
-        await self._publier(
-            ClockEnd(
-                **self._dates(minute0 + MINUTES_PAR_JOUR - 1),
-                source_agent_id="horloge",
-                payload=ClockStepPayload(jour=jour),
-            )
+    # --- mode asynchrone (étape 15) -----------------------------------------------------------
+
+    async def _decisions_asynchrones(self, jour: int, minute0: int) -> Journee:
+        reglages = self.config.simulation.asynchrone
+        debut = minute0 + reglages.debut_min
+        limite = minute0 + MINUTES_PAR_JOUR - 2  # avant les stocks du soir et la fin du jour
+        regles = []
+        for agent in self.agents:
+            if agent.palier is None:
+                tirage = random.Random(f"{self.run.seed}:reveil:{jour}:{agent.agent_id}")
+                heure = debut + tirage.randint(0, reglages.fenetre_regles_min)
+                regles.append((heure, agent.agent_id))
+        journee = _JourneeAsync(
+            matin={a.agent_id: (a.zone, a.porteur) for a in self.agents},
+            regles=sorted(regles),
+            fin=debut,
         )
-        if self.on_jour:
-            self.on_jour(self._resume(jour, len(resultats)))
+        self._tampon = []
+
+        ordre = ordre_paliers(jour)
+        phases = [[p for p in ordre if p is not Palier.GRAND], [Palier.GRAND]]
+        if ordre[0] is Palier.GRAND:
+            phases.reverse()
+        verrou = asyncio.Lock()  # perceptions et applications : jamais au milieu d'une autre
+        for numero, paliers in enumerate(phases):
+            horloge = HorlogePhase(debut, reglages.minutes_par_seconde, limite)
+            await self._phase_de_modeles(
+                jour, paliers, horloge, journee, verrou, premiere=numero == 0
+            )
+            if numero == 0:  # agents à règles dont l'heure n'a pas été atteinte pendant la phase
+                await self._regles_jusqu_a(limite, jour, journee)
+
+        self._perturbations.clear()
+        tampon, self._tampon = self._tampon, None
+        tampon.sort(key=lambda e: e.sim_time_processed)  # tri stable : une décision et ses suites
+        for event in tampon:
+            await self._publier(event)
+        self.horloge.minute = journee.fin
+        return Journee(
+            fin=journee.fin,
+            decisions=journee.declenches,
+            perceptions=journee.perceptions,
+            manquees=journee.manquees,
+        )
+
+    async def _phase_de_modeles(
+        self,
+        jour: int,
+        paliers: list[Palier],
+        horloge: HorlogePhase,
+        journee: _JourneeAsync,
+        verrou: asyncio.Lock,
+        premiere: bool,
+    ) -> None:
+        """Une phase de modèles : pour chaque palier, autant d'ouvriers que de requêtes
+        simultanées permises ; chaque ouvrier fait passer les agents de sa file un par un."""
+        prets: set[Palier] = set()
+        chargement = asyncio.Lock()
+
+        async def preparer(palier: Palier) -> None:
+            async with chargement:
+                if palier in prets:
+                    return
+                prets.add(palier)
+                self._noter_palier(palier)
+                if self.preparer:
+                    duree = await self.preparer(palier)
+                    self.bilan.duree_chargement_s += duree
+                    horloge.decaler(duree)  # le chargement ne compte pas dans l'heure
+
+        async def ouvrier(file: list[Agent]) -> None:
+            while file:
+                agent = file.pop(0)
+                async with verrou:
+                    s = horloge.maintenant()
+                    if premiere:
+                        await self._regles_jusqu_a(s, jour, journee)
+                    perception = self._passer(agent, jour, s, journee)
+                if perception is None:
+                    continue
+                assert agent.palier is not None
+                await preparer(agent.palier)
+                decision = await self._decider_un(agent, perception, s)
+                async with verrou:
+                    t = max(s, horloge.maintenant())
+                    await self._appliquer_async(agent, decision, s, t, perception, journee)
+
+        ouvriers = []
+        for palier in paliers:
+            file = [a for a in self.agents if a.palier is palier]
+            random.Random(f"{self.run.seed}:file:{jour}:{palier.value}").shuffle(file)
+            nombre = min(self.config.llm.parallelisme[palier], len(file))
+            ouvriers += [ouvrier(file) for _ in range(nombre)]
+        await asyncio.gather(*ouvriers)
+
+    async def _regles_jusqu_a(self, minute: int, jour: int, journee: _JourneeAsync) -> None:
+        """Fait passer, dans l'ordre de leur heure, les agents à règles dont l'heure est atteinte.
+        Ils ne coûtent aucun temps de calcul : leur décision est datée de leur heure."""
+        while journee.regles and journee.regles[0][0] <= minute:
+            heure, agent_id = journee.regles.pop(0)
+            agent = self._par_id[agent_id]
+            perception = self._passer(agent, jour, heure, journee)
+            if perception is not None:
+                decision = await self._decider_un(agent, perception, heure)
+                await self._appliquer_async(agent, decision, heure, heure, perception, journee)
+
+    def _passer(
+        self, agent: Agent, jour: int, minute: int, journee: _JourneeAsync
+    ) -> Perception | None:
+        """Passage d'un agent à `minute` : sa perception, et s'il doit décider (règle 10)."""
+        presents, porteurs = Counter(), Counter()
+        for autre in self.agents:
+            zone, porteur = journee.etat_a(autre.agent_id, minute)
+            presents[zone] += 1
+            porteurs[zone] += int(porteur)
+        perception = self._perception(agent, jour, minute, minute + 1, presents, porteurs)
+        journee.perceptions[agent.agent_id] = perception
+        journee.passages[agent.agent_id] = minute
+        if not agent.doit_decider(perception):
+            if perception.messages:  # ils attendent sa prochaine décision
+                self._non_lus[agent.agent_id] = perception.messages
+            self.bilan.decisions_conservees += 1
+            return None
+        journee.declenches += 1
+        return perception
+
+    async def _appliquer_async(
+        self,
+        agent: Agent,
+        decision: Decision | None,
+        debut: int,
+        t: int,
+        perception: Perception,
+        journee: _JourneeAsync,
+    ) -> None:
+        """Applique une décision dès qu'elle est prise : achat, état daté, messages déposés
+        (lisibles le jour même si leur délai de livraison le permet)."""
+        journee.fin = max(journee.fin, t)
+        if decision is None:
+            return
+        achete = False
+        if self.commerce is not None:
+            resultats: dict[str, Decision | None] = {agent.agent_id: decision}
+            achete = bool(self._acheter(resultats, perception.jour))
+            decision = resultats[agent.agent_id]
+        self.horloge.minute = t  # incidents de la décision datés avec elle
+        messages = await self._appliquer(agent, decision, t, perception, debut=debut)
+        self._regler_flacon(agent, decision, achete)
+        journee.changements[agent.agent_id] = (t, agent.zone, agent.porteur)
+        if not self.config.simulation.diffusion:
+            return
+        for message in messages:
+            destinataires = self._destinataires(message)
+            self.boite.deposer(message, destinataires)
+            for lecteur in destinataires:
+                passage = journee.passages.get(lecteur)
+                if (
+                    lecteur != message.source_agent_id
+                    and passage is not None
+                    and message.payload.livraison < passage  # simultanés : pas un retard
+                ):
+                    journee.manquees.append(message.event_id)
 
     # --- contrôle depuis l'interface (D3) ------------------------------------------------------
 
@@ -343,29 +570,48 @@ class Orchestrateur:
             presents[agent.zone] += 1
             porteurs[agent.zone] += int(agent.porteur)
         return {
-            agent.agent_id: Perception(
-                jour=jour,
-                minute=t,
-                zone=agent.zone,
-                messages=self._non_lus.pop(agent.agent_id, ())
-                + self.boite.relever(agent.agent_id, t, barriere),
-                evenements=tuple(
-                    e for e in self._perturbations if e.zone is None or e.zone is agent.zone
-                ),
-                meteo=self.meteo,
-                # Run témoin (B3) : l'agent ne voit pas qui utilise le produit autour de lui.
-                part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone]
-                if self.config.simulation.diffusion
-                else None,
-                flacon_vide=agent.flacon_jours == 0
-                and bool(agent.derniere_decision and agent.derniere_decision.porteur),
-                achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),
-                promotion_concurrente=bool(
-                    self.commerce and self.commerce.promotion_concurrente(jour)
-                ),
-            )
+            agent.agent_id: self._perception(agent, jour, t, barriere, presents, porteurs)
             for agent in self.agents
         }
+
+    def _perception(
+        self,
+        agent: Agent,
+        jour: int,
+        t: int,
+        barriere: int,
+        presents: Counter,
+        porteurs: Counter,
+    ) -> Perception:
+        """Ce que l'agent sait à `t` : messages livrés et émis avant `barriere`, perturbations du
+        jour dans sa zone, météo, part de porteurs autour de lui (`presents`, `porteurs`)."""
+        return Perception(
+            jour=jour,
+            minute=t,
+            zone=agent.zone,
+            messages=self._non_lus.pop(agent.agent_id, ())
+            + self.boite.relever(agent.agent_id, t, barriere),
+            evenements=tuple(
+                e for e in self._perturbations if e.zone is None or e.zone is agent.zone
+            ),
+            meteo=self.meteo,
+            # Run témoin (B3) : l'agent ne voit pas qui utilise le produit autour de lui.
+            part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone]
+            if self.config.simulation.diffusion
+            else None,
+            flacon_vide=agent.flacon_jours == 0
+            and bool(agent.derniere_decision and agent.derniere_decision.porteur),
+            achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),
+            promotion_concurrente=bool(self.commerce and self.commerce.promotion_concurrente(jour)),
+        )
+
+    def _regler_flacon(self, agent: Agent, decision: Decision | None, achete: bool) -> None:
+        """Un achat remplit le flacon ; une décision qui n'utilise plus le produit le retire."""
+        if self.commerce and decision is not None and agent.derniere_decision is decision:
+            if achete:
+                agent.flacon_jours = self.commerce.config.duree_flacon_jours
+            elif not decision.porteur:
+                agent.flacon_jours = None
 
     def _acheter(self, resultats: dict[str, Decision | None], jour: int) -> set[str]:
         """Achats du jour, dans un ordre tiré avec la graine (l'ordre alphabétique servirait
@@ -408,16 +654,24 @@ class Orchestrateur:
 
         async def decider(agent: Agent) -> Decision | None:
             async with semaphore:
-                try:
-                    return await agent.decider(perceptions[agent.agent_id])
-                except Exception as exc:  # un agent en panne ne doit pas arrêter le monde (A4)
-                    await self._incident(
-                        NatureIncident.SANS_REPONSE, agent.agent_id, f"{type(exc).__name__}: {exc}"
-                    )
-                    return None
+                return await self._decider_un(agent, perceptions[agent.agent_id])
 
         decisions = await asyncio.gather(*(decider(agent) for agent in groupe))
         return {agent.agent_id: d for agent, d in zip(groupe, decisions, strict=True)}
+
+    async def _decider_un(
+        self, agent: Agent, perception: Perception, minute: int | None = None
+    ) -> Decision | None:
+        try:
+            return await agent.decider(perception)
+        except Exception as exc:  # un agent en panne ne doit pas arrêter le monde (A4)
+            await self._incident(
+                NatureIncident.SANS_REPONSE,
+                agent.agent_id,
+                f"{type(exc).__name__}: {exc}",
+                minute=minute,
+            )
+            return None
 
     async def _deplacements_du_matin(self, minute0: int) -> None:
         """Routines (règles) : chacun gagne la zone du jour avant de décider. La décision du
@@ -443,13 +697,21 @@ class Orchestrateur:
             self.bilan.deplacements += 1
 
     async def _appliquer(
-        self, agent: Agent, decision: Decision | None, t: int, perception: Perception
+        self,
+        agent: Agent,
+        decision: Decision | None,
+        t: int,
+        perception: Perception,
+        debut: int | None = None,
     ) -> list[AgentMessage]:
+        """Publie une décision prise à `t` et ce qui en découle. `debut` : moment de la perception,
+        quand l'agent a commencé à réfléchir (mode asynchrone) ; sinon `t`."""
         if decision is None:  # l'agent garde sa décision précédente
             return []
+        debut = t if debut is None else debut
         try:
             event = AgentDecision(
-                **self._dates(t),
+                **self._dates(t, debut),
                 source_agent_id=agent.agent_id,
                 zone=agent.zone,
                 caused_by=decision.caused_by,
@@ -471,7 +733,7 @@ class Orchestrateur:
             await self._incident(NatureIncident.SORTIE_INVALIDE, agent.agent_id, str(exc))
             return []
 
-        await self._controler_c6(agent, event, t)
+        await self._controler_c6(agent, event, debut)
         await self._publier(event)
         await self._incidents_agent(agent, decision, caused_by=(event.event_id,))
         agent.noter_decision(decision, perception)
@@ -555,15 +817,20 @@ class Orchestrateur:
 
     # --- utilitaires ------------------------------------------------------------------------
 
-    def _dates(self, minute: int) -> dict:
+    def _dates(self, minute: int, debut: int | None = None) -> dict:
         # En mode synchrone, le temps est figé pendant le pas : traité au moment où il se produit.
+        # En mode asynchrone, une décision commence à la perception (`debut`) et se termine à la
+        # fin de l'appel au modèle (C3).
         return {
             "run_id": self.run.run_id,
-            "sim_time_occurred": minute,
+            "sim_time_occurred": minute if debut is None else debut,
             "sim_time_processed": minute,
         }
 
     async def _publier(self, event: Envelope) -> None:
+        if self._tampon is not None:  # journée asynchrone : publiée à sa fin, dans l'ordre
+            self._tampon.append(event)
+            return
         await self.publisher.publish(event)
 
     async def _incidents_agent(
@@ -581,13 +848,14 @@ class Orchestrateur:
         detail: str,
         caused_by: tuple[UUID, ...] = (),
         tentative: int = 0,
+        minute: int | None = None,
     ) -> None:
         self.bilan.incidents += 1
         par_nature = self.bilan.incidents_par_nature
         par_nature[nature.value] = par_nature.get(nature.value, 0) + 1
         await self._publier(
             Incident(
-                **self._dates(self.horloge.maintenant()),
+                **self._dates(self.horloge.maintenant() if minute is None else minute),
                 source_agent_id="orchestrateur",
                 caused_by=caused_by,
                 payload=IncidentPayload(

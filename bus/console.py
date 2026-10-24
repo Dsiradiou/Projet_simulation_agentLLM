@@ -74,7 +74,9 @@ def formater(event: ev.Envelope) -> str | None:
         case ev.Command():
             return f"{quand}  COMMANDE    {event.payload.commande}"
         case ev.ClockEnd():
-            return f"{quand}  fin du jour {event.payload.jour}"
+            n = event.payload.informations_manquees
+            manquees = f" ({n} information(s) manquée(s))" if n else ""
+            return f"{quand}  fin du jour {event.payload.jour}{manquees}"
         case ev.Indicator():
             p = event.payload
             groupe = f" [{p.groupe}]" if p.groupe else ""

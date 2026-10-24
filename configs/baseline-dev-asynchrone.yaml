@@ -1,0 +1,6 @@
+# Baseline C0 en mode asynchrone (étape 15) : les agents à règles décident à une heure tirée
+# dans la matinée et voient les décisions déjà prises le jour même. Aucun appel LLM.
+herite_de: baseline-dev.yaml
+
+simulation:
+  mode: asynchrone

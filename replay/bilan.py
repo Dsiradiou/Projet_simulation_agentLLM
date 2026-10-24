@@ -23,6 +23,7 @@ COMPARABLES = (
     "deplacements",
     "incidents",
     "violations_temporelles",
+    "informations_manquees",
     "incidents_par_nature",
     "injections",
     "declenchements",
@@ -48,6 +49,8 @@ def bilan_depuis(events: list[ev.Envelope], population: int) -> dict:
         match event:
             case ev.ClockStep():
                 bilan.jours = max(bilan.jours, event.payload.jour)
+            case ev.ClockEnd():  # mode asynchrone (étape 15) ; 0 en synchrone et avant 1.1
+                bilan.informations_manquees += event.payload.informations_manquees
             case ev.AgentDecision():
                 bilan.decisions += 1
                 if event.payload.appel_llm:

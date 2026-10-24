@@ -125,6 +125,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Mesure couche LLM | `.venv\Scripts\python -m llm.validation` (résultats dans `docs/mesures/`) |
 | Run LLM (tranche) | `.venv\Scripts\python -m sim.run --config configs/tranche.yaml` |
 | Run factice (sans LLM) | `.venv\Scripts\python -m sim.run --factice --jours 5` |
+| Run asynchrone (C4) | `.venv\Scripts\python -m sim.run --config configs/dev-asynchrone.yaml` (C0 : `baseline-dev-asynchrone.yaml`) |
 | Baseline C0 (sans LLM) | `.venv\Scripts\python -m sim.run --config configs/baseline.yaml [--graine 7]` |
 | Comparer des runs | `.venv\Scripts\python -m replay.comparaison <run_id> <run_id> ...` |
 | Console en direct | `.venv\Scripts\python -m bus.console` (avant le run, second terminal) |
@@ -134,6 +135,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Indicateurs | `.venv\Scripts\python -m indicators.rapport <run_id> ...` ; `indicators.trace <run_id> --variation` |
+| Deux horloges (C5) | `.venv\Scripts\python -m replay.horloges <run_id> ...` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama and not godot"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
@@ -241,6 +243,28 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 - Dérives des décisions LLM (`indicators/derives.py`) : heuristiques, taux = borne basse.
 - Run témoin B3 : `simulation.diffusion: false` (aucun message remis, part de porteurs masquée) ;
   `configs/temoin*.yaml`.
+
+## Mode asynchrone (étape 15, décidé le 24 oct.)
+
+- `simulation.mode: asynchrone` ; réglages dans `simulation.asynchrone` (`sim/orchestrateur.py`,
+  `sim/horloge.HorlogePhase`). Une décision porte deux heures : perception (`sim_time_occurred`)
+  et fin de l'appel (`sim_time_processed`).
+- Le 8b garde sa phase (1.7b et 4b, puis 8b, ordre alterné) ; l'heure de chaque phase repart de
+  08:30 et le chargement d'un modèle n'y compte pas. Agents à règles : heure tirée dans la matinée.
+- Une perception à l'heure s ne voit que ce qui est daté de s ou avant, quelle que soit la phase
+  qui l'a calculé (C6). Ce qui était livré avant le passage d'un agent mais calculé après lui est
+  une information manquée : comptée (`Bilan.informations_manquees`) et citée par
+  `horloge.fin_jour` 1.1.
+- Une décision par agent et par jour, délai de réflexion inchangé : seul le modèle de temps change
+  entre les deux modes (C5). Les événements d'une journée sont publiés à sa fin, triés par heure.
+- Hypothèse du binôme (C5), formulée avant de mesurer : les agents rapides (petits modèles,
+  règles) donnent le ton ; l'adoption monte plus vite au début ; le résultat principal tient
+  dans les deux modes.
+- Deux runs asynchrones LLM de même graine diffèrent (latences réelles) ; le rejeu reste exact.
+  La baseline C0 asynchrone, sans latence, reste reproductible.
+- Mesuré le 24 oct. : l'hypothèse tient pour la baseline, pas pour les agents LLM (le 1.7b décide le
+  plus tard à cause de sa file, les 4b et 8b sont les voix) ; le sens par rôle tient dans les deux
+  modes. Analyse des heures : `python -m replay.horloges <run_id>...`.
 
 ## Décisions encore ouvertes
 

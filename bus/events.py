@@ -126,6 +126,16 @@ class ClockStep(Envelope):
     payload: ClockStepPayload
 
 
+class ClockEndPayload(_Strict):
+    jour: PositiveInt
+    informations_manquees: NonNegativeInt = Field(
+        default=0,
+        description="Mode asynchrone : messages livrés à un agent avant son passage du jour, mais "
+        "calculés après lui (phase de modèles suivante) ; il les lira à sa prochaine décision. "
+        "`caused_by` liste ces messages (version 1.1).",
+    )
+
+
 class ClockEnd(Envelope):
     TOPIC = Topic.WORLD_EVENTS
     DESCRIPTION = (
@@ -133,8 +143,8 @@ class ClockEnd(Envelope):
         "sont calculés à sa réception (étape 14)."
     )
     type: Literal["horloge.fin_jour"] = "horloge.fin_jour"
-    schema_version: Literal["1.0"] = "1.0"
-    payload: ClockStepPayload
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : informations manquées (mode asynchrone)
+    payload: ClockEndPayload
 
 
 class WeatherPayload(_Strict):

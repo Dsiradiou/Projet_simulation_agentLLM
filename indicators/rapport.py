@@ -113,7 +113,7 @@ def _fin(run_id: str, j: int) -> ev.ClockEnd:
         sim_time_occurred=minute,
         sim_time_processed=minute,
         source_agent_id="horloge",
-        payload=ev.ClockStepPayload(jour=j),
+        payload=ev.ClockEndPayload(jour=j),
     )
 
 

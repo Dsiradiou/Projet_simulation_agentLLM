@@ -34,7 +34,7 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | Type | Topic | Version | Description |
 | --- | --- | --- | --- |
 | [`horloge.pas`](#horlogepas) | `sim.world.events` | 1.0 | Début d'un pas de simulation (un jour). Synchronise les consommateurs. |
-| [`horloge.fin_jour`](#horlogefin_jour) | `sim.world.events` | 1.0 | Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). |
+| [`horloge.fin_jour`](#horlogefin_jour) | `sim.world.events` | 1.1 | Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). |
 | [`monde.meteo`](#mondemeteo) | `sim.world.events` | 1.0 | Météo du jour, produite par l'agent à règles météo. |
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
@@ -61,13 +61,14 @@ Payload :
 
 ### horloge.fin_jour
 
-Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). Version 1.0.
+Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). Version 1.1.
 
 Payload :
 
 | Champ | Type | Obligatoire | Contraintes | Description |
 | --- | --- | --- | --- | --- |
 | `jour` | integer | oui |  |  |
+| `informations_manquees` | integer | non | ≥ 0 | Mode asynchrone : messages livrés à un agent avant son passage du jour, mais calculés après lui (phase de modèles suivante) ; il les lira à sa prochaine décision. `caused_by` liste ces messages (version 1.1). |
 
 ### monde.meteo
 

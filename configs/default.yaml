@@ -7,6 +7,13 @@ run:
 simulation:
   duree_jours: 90          # un pas = un jour simulé
   mode: synchrone          # synchrone | asynchrone
+  # Mode asynchrone (étape 15) : chaque agent décide quand une place se libère pour son modèle,
+  # et voit ce qui a déjà été décidé ce jour-là. L'heure simulée de la journée suit le temps
+  # réel de calcul ; les phases de modèles (1.7b et 4b, puis 8b) repartent chacune de debut_min.
+  asynchrone:
+    debut_min: 510           # 08:30
+    minutes_par_seconde: 15  # une seconde de calcul = 15 minutes simulées
+    fenetre_regles_min: 210  # agents à règles : heure tirée entre 08:30 et 12:00
   # Délai avant qu'un message soit lisible par son destinataire, en minutes simulées.
   # En mode synchrone, tout délai inférieur à 24 h revient à une lecture le lendemain.
   delais_livraison_min:

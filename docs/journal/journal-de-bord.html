@@ -77,7 +77,7 @@ exigences de l'énoncé.</p>
   <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="ok">terminée</td></tr>
   <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="ok">terminée</td></tr>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="ok">terminée</td></tr>
-  <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="todo">à venir</td></tr>
+  <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
   <tr><td>16</td><td>Expériences</td><td>Configurations C0 à C3, au moins 5 runs chacune, Bass, synchrone/asynchrone, coûts (E1, E2, E4, E5, C5)</td><td class="todo">à venir</td></tr>
   <tr><td>17</td><td>Charge et pannes</td><td>Agent muet, pic d'événements, latence jusqu'aux indicateurs (O4, C7)</td><td class="todo">à venir</td></tr>
@@ -2207,6 +2207,188 @@ baseline.</p>
 modèles comprises (C4) ; place des chargements de modèles dans le temps simulé ; violations temporelles
 détectées et comptées sans barrière (C6) ; même scénario dans les deux modes et hypothèse formulée avant de
 mesurer (C5).</p>
+</section>
+
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 15 — Mode asynchrone et cohérence temporelle</h2>
+<p class="meta">24 octobre 2026 · Exigences concernées : C3 (deux horloges), C4 (deux modes sélectionnables
+au lancement), C5 (comparer les deux modes, hypothèse avant la mesure), C6 (aucune information du futur,
+violations comptées), O10 (effet du modèle de temps sur le phénomène).</p>
+
+<h3>Objectif</h3>
+<p>Ajouter le second mode d'exécution demandé par C4 : sans barrière, chaque agent agit à son rythme, latences
+réelles des modèles comprises. Il faut garder la cohérence temporelle (C6) alors que les agents ne décident
+plus au même instant, puis comparer les deux modes sur le même scénario (C5).</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Le 8b, qui ne tient pas en VRAM avec les deux autres</td><td><strong>Neutraliser</strong> : la journée garde deux phases (1.7b et 4b ensemble, puis 8b, ordre alterné chaque jour). L'heure de chaque phase repart de 08:30 et le chargement d'un modèle n'y compte pas. Un agent ne voit que ce qui est daté avant son passage ; ce qu'une phase suivante calcule trop tard pour lui est une <strong>information manquée</strong>, comptée, pas une violation.</td></tr>
+  <tr><td>Rythme</td><td><strong>Une décision par agent et par jour</strong>, délai de réflexion inchangé : seul le modèle de temps change entre les deux modes, et le budget d'appels reste le même.</td></tr>
+  <tr><td>Agents à règles (sans latence)</td><td><strong>Heure tirée</strong> avec la graine entre 08:30 et 12:00.</td></tr>
+  <tr><td>Hypothèse (C5), formulée avant de mesurer</td><td><strong>Les rapides donnent le ton</strong> : petits modèles et agents à règles décident plus tôt, leurs messages touchent les autres le jour même ; l'adoption monte plus vite au début ; le sens penche vers celui des petits modèles ; le résultat principal tient dans les deux modes.</td></tr>
+</table>
+
+<h3>Comment marche une journée asynchrone</h3>
+<ul>
+  <li><strong>L'heure suit le calcul.</strong> Pendant une phase, l'heure simulée avance avec le temps réel de
+    calcul : 15 minutes simulées par seconde (<code>simulation.asynchrone.minutes_par_seconde</code>). Une seconde
+    de chargement de modèle en est retirée (<code>HorlogePhase</code>), et l'heure ne recule jamais.</li>
+  <li><strong>Chacun passe quand une place se libère.</strong> Pour chaque palier, autant d'« ouvriers » que de
+    requêtes simultanées permises font passer les agents un par un, dans un ordre tiré avec la graine (l'ordre
+    alphabétique favoriserait toujours les mêmes). Au passage, l'agent perçoit le monde ; s'il n'est pas
+    déclenché, il garde sa décision.</li>
+  <li><strong>Deux heures par décision (C3).</strong> <code>sim_time_occurred</code> est l'heure où l'agent
+    commence à réfléchir, <code>sim_time_processed</code> celle où son modèle répond. Jusqu'ici, les deux étaient
+    toujours égales.</li>
+  <li><strong>La décision s'applique aussitôt.</strong> Achat (premier arrivé, premier servi), changement de
+    porteur, messages déposés : un message de zone (sans délai) ou direct (2 h) peut être lu le jour même par
+    quelqu'un qui passe après.</li>
+  <li><strong>Pas d'information du futur (C6).</strong> La perception à l'heure s ne compte que les décisions et
+    les messages datés de s ou avant, même si une phase les a calculés plus tard. Le contrôle des causes citées
+    reste actif.</li>
+  <li><strong>Publication en fin de journée</strong>, triée par heure simulée : la console, l'historique et
+    Godot voient le jour dans l'ordre de ses heures.</li>
+</ul>
+<div class="box">
+  <strong>Une information manquée</strong>, c'est un message livré à un agent <em>avant</em> son passage, mais
+  calculé <em>après</em> lui, parce qu'il vient de la phase suivante. L'agent le lira à sa prochaine décision.
+  C'est le prix de la contrainte de VRAM, et il est mesuré : <code>horloge.fin_jour</code> (version 1.1) en donne le
+  nombre et cite les messages concernés ; le bilan le totalise et le rejeu le recalcule. En cours d'étape, un test
+  a montré qu'une égalité à la minute près (deux agents à 08:30) comptait à tort comme un retard : la condition
+  est désormais stricte.
+</div>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>sim/orchestrateur.py</code></td><td>La journée se partage entre un début et une fin communs, et deux façons de décider : synchrone (inchangée) ou asynchrone (phases, ouvriers par palier, perception datée, application immédiate, informations manquées, publication triée).</td></tr>
+  <tr><td><code>sim/horloge.py</code></td><td><code>HorlogePhase</code> : heure d'une phase, liée au temps réel, hors chargements, jamais en recul, bornée avant le soir.</td></tr>
+  <tr><td><code>sim/config.py</code>, <code>configs/default.yaml</code></td><td>Section <code>simulation.asynchrone</code> (début, minutes par seconde, fenêtre des agents à règles), avec des valeurs par défaut pour relire les anciens manifestes.</td></tr>
+  <tr><td><code>configs/dev-asynchrone.yaml</code>, <code>baseline-dev-asynchrone.yaml</code></td><td>Les mêmes mondes que <code>dev</code> et <code>baseline-dev</code>, en mode asynchrone.</td></tr>
+  <tr><td><code>bus/events.py</code></td><td><code>horloge.fin_jour</code> 1.1 : informations manquées, et les messages concernés dans <code>caused_by</code> (F6).</td></tr>
+  <tr><td><code>replay/bilan.py</code>, <code>replay/rejeu.py</code></td><td>Le rejeu recalcule les informations manquées ; un compteur absent d'un ancien bilan vaut sa valeur initiale.</td></tr>
+  <tr><td><code>replay/horloges.py</code></td><td>Les deux horloges d'un run : heure de décision et durée de réflexion par palier, messages lus le jour même et par qui, délai entre émission et lecture, informations manquées par rôle.</td></tr>
+</table>
+
+<h3>Résultat 1 — la baseline C0 (5 graines, 60 agents, 60 jours)</h3>
+<p>Sans modèle de langage, l'effet du seul modèle de temps se mesure proprement, et la baseline asynchrone reste
+reproductible (deux runs de même graine identiques). Détail : <code>docs/mesures/comparaison_2026-10-24_1800.md</code>.</p>
+<table>
+  <tr><th>Porteurs (moyenne ± écart-type)</th><th>Jour 1</th><th>Jour 5</th><th>Jour 12</th><th>Jour 20</th><th>Jour 30</th></tr>
+  <tr><td>C0 synchrone</td><td>3,6 ± 0,9</td><td>6,8 ± 2,9</td><td>24,2 ± 15,9</td><td>50,2 ± 7,2</td><td>50,8 ± 2,8</td></tr>
+  <tr><td>C0 asynchrone</td><td>4,8 ± 2,2</td><td><strong>12,6 ± 14,8</strong></td><td><strong>36,6 ± 20,2</strong></td><td>55,4 ± 3,0</td><td>57,0 ± 2,3</td></tr>
+</table>
+<p>Sans barrière, ceux qui passent tard dans la matinée imitent ceux qui ont adopté plus tôt le jour même : la
+courbe se décale de 3 à 4 jours vers le début, le pic arrive plus tôt (jours 15 à 25 contre 32 à 45) et l'écart
+entre graines grandit au démarrage. L'état final est le même : la saturation, déjà connue.</p>
+
+<h3>Résultat 2 — C1, les agents LLM (graine 42, même scénario)</h3>
+<p>Détail : <code>docs/mesures/indicateurs_2026-10-24_1836.md</code>,
+<code>comparaison_2026-10-24_1836.md</code> et <code>horloges_2026-10-24_1838.md</code>.</p>
+<table>
+  <tr><th>Mesure</th><th>Synchrone</th><th>Asynchrone</th></tr>
+  <tr><td>Porteurs aux jours 5, 12, 20, 30, 60</td><td>22, 40, 42, 45, 49</td><td>23, 42, 34, 41, 46</td></tr>
+  <tr><td>Convergence C, jour 1 → jour 60</td><td>0,46 → 0,25</td><td>0,45 → 0,14</td></tr>
+  <tr><td>Information mutuelle, fin (p)</td><td>0,48 (0,005)</td><td>0,46 (0,005)</td></tr>
+  <tr><td>Messages, dont lus le jour même</td><td>110, 0</td><td>131, <strong>29</strong></td></tr>
+  <tr><td>Délai médian émission → lecture</td><td>48 h</td><td>45 h</td></tr>
+  <tr><td>Informations manquées</td><td>–</td><td><strong>42</strong> (22 messages, dont 14 de pharmaciens)</td></tr>
+  <tr><td>Appels, durée réelle, chargements</td><td>870, 1 525 s, 498 s</td><td>867, 1 545 s, 476 s</td></tr>
+  <tr><td>Durée cumulée des appels</td><td>2 150 s</td><td><strong>3 662 s</strong></td></tr>
+  <tr><td>Dérives des décisions LLM</td><td>36 (4,1 %)</td><td>55 (6,3 %), dont 32 personnes inventées</td></tr>
+</table>
+<table>
+  <tr><th>Palier (asynchrone)</th><th>Heure médiane de décision (p10 – p90)</th><th>Réflexion médiane</th><th>Messages émis</th></tr>
+  <tr><td>Règles</td><td>10:12 (08:48 – 11:36)</td><td>0 min</td><td>2</td></tr>
+  <tr><td>1.7b</td><td><strong>10:42</strong> (09:10 – 13:30)</td><td>37 min</td><td>4</td></tr>
+  <tr><td>4b</td><td>10:27 (09:24 – 12:31)</td><td>99 min</td><td>68</td></tr>
+  <tr><td>8b</td><td>10:15 (09:15 – 12:28)</td><td>105 min</td><td>57</td></tr>
+</table>
+
+<h3>L'hypothèse confrontée aux mesures</h3>
+<ul>
+  <li><strong>« Les rapides donnent le ton » : non, pour deux raisons que l'hypothèse ignorait.</strong> D'abord,
+    le rythme réel d'un agent, c'est sa latence <em>plus la file d'attente</em> de son modèle : le 1.7b répond
+    vite, mais une trentaine d'agents se partagent 2 places, si bien qu'il décide le plus tard (10:42 en
+    médiane). Ensuite, les agents rapides ne parlent presque pas (4 messages en 60 jours) : les voix du monde
+    sont les créateurs et journalistes (4b) et les pharmaciens (8b). Les 29 lectures du jour même vont surtout
+    des créateurs vers les baigneurs (26).</li>
+  <li><strong>« L'adoption monte plus vite au début » : oui pour la baseline, pas visible chez les agents
+    LLM.</strong> C0 gagne 3 à 4 jours sur 5 graines. En C1, l'avance se limite à 1 ou 2 porteurs aux jours 5 et
+    12, puis l'asynchrone passe en dessous ; sur une seule graine, ces écarts restent dans le bruit d'un run LLM.
+    La raison tient au délai de réflexion : un message attend le plus souvent 2 à 3 jours avant de compter
+    (délai médian 45 h contre 48 h), quelques heures de plus ou de moins dans la journée n'y changent presque
+    rien.</li>
+  <li><strong>« Le résultat principal tient dans les deux modes » : oui pour le sens.</strong> Rôle par rôle, le
+    sens final est le même : baigneurs « efficace » 12 sur 17 dans les deux modes, sceptiques « banal » 5 sur 8,
+    habitués « efficace » 6 sur 8 contre 7 sur 8. L'information mutuelle finit à 0,46 contre 0,48. Pour
+    l'adoption, il faudrait un témoin asynchrone pour le dire (étape 16).</li>
+  <li><strong>Le coût caché de l'asynchrone</strong> : même nombre d'appels et même durée réelle, mais chaque
+    appel dure 70 % de plus, parce que le 1.7b et le 4b se partagent la carte graphique au même moment. La
+    « latence réelle » mesurée en asynchrone inclut donc cette concurrence.</li>
+  <li><strong>Le prix des phases</strong> : 42 informations manquées contre 29 lectures du jour même. La
+    séparation du 8b retarde plus de messages que l'asynchronisme n'en accélère ; 14 des 22 messages concernés
+    viennent des pharmaciens.</li>
+</ul>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>0 incident, 0 relance de modèle, 0 repli, 0 violation temporelle ; 2 961 événements publiés et enregistrés ;
+    rejeu fidèle (bilan identique).</li>
+  <li>Le 42 a été compté avec la règle du run (livré au plus tard au passage) ; la règle stricte, corrigée après
+    ce run, peut donner un peu moins si des cas étaient simultanés à la minute près.</li>
+  <li>6 relances d'embedding en asynchrone, contre 0 en synchrone : 1.7b, 4b et bge-m3 travaillent en même
+    temps, Ollama est plus chargé (constat de l'étape 17).</li>
+  <li>Une tranche LLM asynchrone (4 agents, 5 jours) : 12,6 s de chargement du 8b exclues de l'heure, rejeu
+    fidèle.</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li><strong>Nouveaux</strong> : le rythme réel est fixé par la file d'attente autant que par la taille du
+    modèle (le 1.7b décide le plus tard) ; les appels durent 70 % de plus en asynchrone (concurrence sur la carte
+    graphique) ; plus de personnes inventées en asynchrone (32 contre 13, une seule graine) ; 42 informations
+    manquées, surtout des messages de pharmaciens. Tous à mesurer sur 5 graines à l'étape 16.</li>
+  <li><strong>Mis à jour</strong> : Ollama sous charge (6 relances d'embedding en asynchrone) ; deux tests du RAG
+    échouent parfois dans la suite complète avec les tests Ollama, jamais seuls ni sans eux (étape 17).</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Horloge de phase</strong> : suit le temps réel, ignore les chargements, ne recule jamais, bornée
+    avant le soir.</li>
+  <li><strong>Lecture le jour même</strong> d'un message de zone par un agent de l'autre phase ; un message daté
+    de la fin d'un long appel attend le lendemain.</li>
+  <li><strong>Deux heures par décision</strong> et publication du jour dans l'ordre de ses heures.</li>
+  <li><strong>Perception datée</strong> : un agent ne voit un porteur que si sa décision est datée d'avant son
+    passage, même calculée plus tôt (C6) ; une cause jamais reçue est toujours détectée.</li>
+  <li><strong>Informations manquées</strong> comptées, citées par la fin du jour et recalculées par le rejeu ;
+    une égalité à la minute n'en est pas une.</li>
+  <li><strong>Agents à règles</strong> à leur heure tirée, reproductible ; <strong>chargement</strong> exclu de
+    l'heure ; <strong>parallélisme</strong> par palier respecté, une décision par agent et par jour.</li>
+</ul>
+<p>Résultat : 225 tests (dont 12 nouveaux), <span class="ok">tous réussis</span> sans les tests Ollama
+(3 lancements sur 3) ; dans la suite complète, un test du RAG a échoué une fois puis réussi seul (voir les
+constats). Aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Deux modes au choix dans la configuration. En asynchrone, l'heure simulée suit le temps de calcul, et chaque
+    décision porte l'heure où l'agent commence à réfléchir et celle où il finit.</li>
+  <li>La carte graphique impose deux phases ; leur coût est mesuré (informations manquées), pas caché.</li>
+  <li>Q6 du jury : le résultat principal tient dans les deux modes pour le sens. La baseline montre que le modèle
+    de temps accélère l'imitation ; chez les agents LLM, c'est le délai de réflexion qui domine.</li>
+  <li>L'hypothèse était fausse en partie, et c'est instructif : « rapide » ne veut pas dire « tôt » (la file
+    d'attente compte), et ce ne sont pas les rapides qui parlent.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 16 — Campagnes d'expériences : configurations C0 à C3, au moins 5 graines chacune (E1, E2), runs de 90
+jours, synchrone contre asynchrone avec témoins (C5), coûts (E4, E5) ; et les constats qui en dépendent :
+adoption au premier contact, saturation, durée des flacons, prompts réduits, bascules de modèles.</p>
 </section>
 
 </body>

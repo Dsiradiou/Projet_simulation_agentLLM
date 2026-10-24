@@ -1,4 +1,7 @@
-"""Horloge simulée explicite (C3) et ordre de passage des paliers."""
+"""Horloge simulée explicite (C3), horloge de phase du mode asynchrone (C4) et ordre de passage
+des paliers."""
+
+import time
 
 from agents.roles import Palier
 from sim.domaine import HEURE_DECISION, debut_du_jour
@@ -28,6 +31,30 @@ class SimClock:
 
     def maintenant(self) -> int:
         return self.minute
+
+
+class HorlogePhase:
+    """Heure simulée d'une phase de la journée asynchrone (C4) : elle part de `debut` et avance
+    avec le temps réel de calcul, à raison de `minutes_par_seconde`. Le temps passé à charger un
+    modèle en est retiré (`decaler`) : c'est la carte graphique, pas l'agent, qui le perd.
+    Elle ne recule jamais et s'arrête à `limite`, avant les événements du soir."""
+
+    def __init__(self, debut: int, minutes_par_seconde: float, limite: int) -> None:
+        self.debut = debut
+        self.minutes_par_seconde = minutes_par_seconde
+        self.limite = limite
+        self._t0 = time.perf_counter()
+        self._exclu_s = 0.0
+        self._derniere = debut
+
+    def decaler(self, secondes: float) -> None:
+        self._exclu_s += secondes
+
+    def maintenant(self) -> int:
+        ecoule = time.perf_counter() - self._t0 - self._exclu_s
+        minute = self.debut + int(ecoule * self.minutes_par_seconde)
+        self._derniere = min(self.limite, max(self._derniere, minute))
+        return self._derniere
 
 
 def ordre_paliers(jour: int) -> list[Palier]:

@@ -1,5 +1,7 @@
 """Un exemple valide de chaque type d'événement, partagé par les tests."""
 
+import uuid
+
 from bus import events as ev
 
 RUN = "run_test"
@@ -9,7 +11,10 @@ def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
     base = {"run_id": RUN, "sim_time_occurred": 600, "sim_time_processed": 602}
     return {
         ev.ClockEnd: ev.ClockEnd(
-            **base, source_agent_id="horloge", payload=ev.ClockStepPayload(jour=1)
+            **base,
+            source_agent_id="horloge",
+            caused_by=(uuid.UUID(int=7),),
+            payload=ev.ClockEndPayload(jour=1, informations_manquees=1),
         ),
         ev.ClockStep: ev.ClockStep(
             **base, source_agent_id="horloge", payload=ev.ClockStepPayload(jour=1)

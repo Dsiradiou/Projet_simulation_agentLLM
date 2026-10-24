@@ -1,0 +1,6 @@
+# Mode asynchrone (étape 15, C4) à la taille de développement : le même monde que dev.yaml, avec
+# la même graine. À comparer à un run de dev.yaml (C5) : seul le modèle de temps change.
+herite_de: dev.yaml
+
+simulation:
+  mode: asynchrone

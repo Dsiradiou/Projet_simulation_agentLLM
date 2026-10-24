@@ -70,7 +70,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 12 | Corpus fictif et RAG | ✅ terminée |
 | 13 | Agents à règles et baseline | ✅ terminée |
 | 14 | Indicateurs d'émergence | ✅ terminée |
-| 15 | Mode asynchrone et cohérence temporelle | à venir |
+| 15 | Mode asynchrone et cohérence temporelle | ✅ terminée |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
@@ -150,8 +150,28 @@ messages, déplacements, incidents).
 .venv\Scripts\python -m sim.run --factice --jours 3 --latence 0.1  # latences mesurées x 0,1
 ```
 
-Les rôles à règles sont tenus par un agent à seuil provisoire jusqu'à l'étape 13, et la météo
-est factice.
+### Deux modes d'exécution
+
+Le mode se choisit dans la configuration (`simulation.mode`).
+
+- **Synchrone** (par défaut) : tous les agents décident à 10:00 sur l'état de la veille ; rien de
+  ce qui est décidé un jour n'est vu avant le lendemain. Un run se reproduit à l'identique à
+  graine égale.
+- **Asynchrone** (`configs/dev-asynchrone.yaml`, `configs/baseline-dev-asynchrone.yaml`) : chacun
+  décide quand une place se libère pour son modèle et voit ce qui a déjà été décidé le jour même.
+  L'heure simulée de la journée suit le temps réel de calcul (`minutes_par_seconde`), hors
+  chargement de modèle ; une décision porte l'heure où l'agent commence à réfléchir
+  (`sim_time_occurred`) et celle où il finit (`sim_time_processed`). Le 8b garde sa phase à
+  part : un message qu'il calcule après le passage de son destinataire mais daté d'avant est une
+  **information manquée**, comptée dans le bilan et citée par `horloge.fin_jour`. Les latences
+  variant d'un run à l'autre, deux runs asynchrones de même graine diffèrent ; le rejeu, lui,
+  reste exact.
+
+```powershell
+.venv\Scripts\python -m sim.run --config configs/dev-asynchrone.yaml        # C1, ~30 min
+.venv\Scripts\python -m sim.run --config configs/baseline-dev-asynchrone.yaml  # C0, quelques secondes
+.venv\Scripts\python -m replay.horloges <run_sync> <run_async>   # heures, réflexion, lectures du jour même
+```
 
 Chaque run reçoit un identifiant (`20261017-173539-default-s42` : date, configuration, graine)
 et un dossier `runs/<run_id>/` contenant `manifest.json` (configuration complète, graine,

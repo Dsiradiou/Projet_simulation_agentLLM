@@ -1,18 +1,25 @@
 {
   "$defs": {
-    "ClockStepPayload": {
+    "ClockEndPayload": {
       "additionalProperties": false,
       "properties": {
         "jour": {
           "exclusiveMinimum": 0,
           "title": "Jour",
           "type": "integer"
+        },
+        "informations_manquees": {
+          "default": 0,
+          "description": "Mode asynchrone : messages livrés à un agent avant son passage du jour, mais calculés après lui (phase de modèles suivante) ; il les lira à sa prochaine décision. `caused_by` liste ces messages (version 1.1).",
+          "minimum": 0,
+          "title": "Informations Manquees",
+          "type": "integer"
         }
       },
       "required": [
         "jour"
       ],
-      "title": "ClockStepPayload",
+      "title": "ClockEndPayload",
       "type": "object"
     },
     "Zone": {
@@ -38,8 +45,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -105,7 +115,7 @@
       "type": "array"
     },
     "payload": {
-      "$ref": "#/$defs/ClockStepPayload"
+      "$ref": "#/$defs/ClockEndPayload"
     }
   },
   "required": [

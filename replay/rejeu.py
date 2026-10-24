@@ -24,6 +24,7 @@ from bus import events as ev
 from bus.producer import ordre_publication
 from replay.bilan import COMPARABLES, bilan_depuis, population_agents
 from replay.ecrivain import dossier_evenements
+from sim.orchestrateur import Bilan
 from sim.run import RUNS_DIR
 
 
@@ -63,11 +64,14 @@ def verifier(run_id: str, events: list[ev.Envelope], runs_dir: Path = RUNS_DIR) 
     manifeste = json.loads((runs_dir / run_id / "manifest.json").read_text(encoding="utf-8"))
     enregistre = json.loads((runs_dir / run_id / "bilan.json").read_text(encoding="utf-8"))
     recalcule = bilan_depuis(events, population_agents(manifeste))
-    return {
-        k: {"enregistre": enregistre.get(k), "rejeu": recalcule[k]}
-        for k in COMPARABLES
-        if enregistre.get(k) != recalcule[k]
-    }
+    # Un compteur ajouté après le run (étape 15 : informations manquées) vaut sa valeur initiale.
+    defaut = Bilan()
+    ecarts = {}
+    for k in COMPARABLES:
+        valeur = enregistre.get(k, getattr(defaut, k))
+        if valeur != recalcule[k]:
+            ecarts[k] = {"enregistre": valeur, "rejeu": recalcule[k]}
+    return ecarts
 
 
 async def _afficher(run_id: str, vitesse: float | None, sortie: Callable[[str], None]) -> int:

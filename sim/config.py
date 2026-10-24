@@ -40,9 +40,28 @@ class RunConfig(_Section):
     seed: NonNegativeInt = Field(description="Graine explicite, pour la reproductibilité.")
 
 
+class AsynchroneConfig(_Section):
+    """Mode asynchrone (étape 15) : pendant la journée, l'heure simulée suit le temps réel."""
+
+    debut_min: int = Field(
+        default=510, ge=0, lt=24 * 60, description="Heure où commencent les décisions (08:30)."
+    )
+    minutes_par_seconde: PositiveFloat = Field(
+        default=15,
+        description="Minutes simulées par seconde réelle de calcul : la latence d'un modèle "
+        "devient du temps simulé.",
+    )
+    fenetre_regles_min: NonNegativeInt = Field(
+        default=210,
+        description="Les agents à règles décident à une heure tirée entre `debut_min` et "
+        "`debut_min` + cette fenêtre (08:30 à 12:00).",
+    )
+
+
 class SimulationConfig(_Section):
     duree_jours: PositiveInt = Field(description="Durée simulée, un pas = un jour.")
     mode: Mode
+    asynchrone: AsynchroneConfig = Field(default_factory=AsynchroneConfig)
     delais_livraison_min: dict[Canal, NonNegativeInt] = Field(
         description="Délai, en minutes simulées, avant qu'un message soit lisible, par canal."
     )
