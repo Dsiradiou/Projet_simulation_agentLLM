@@ -34,7 +34,8 @@ class Perception:
     messages: tuple[AgentMessage, ...] = ()  # messages livrés depuis la dernière décision
     evenements: tuple[Envelope, ...] = ()  # perturbations du monde survenues depuis
     meteo: WeatherPayload | None = None
-    part_porteurs_zone: float = 0.0  # part de porteurs dans sa zone, état de la veille
+    # Part de porteurs dans sa zone, état de la veille ; None dans le run témoin sans diffusion.
+    part_porteurs_zone: float | None = 0.0
     flacon_vide: bool = False  # son flacon est fini (étape 13) : il doit racheter pour continuer
     achat_rate: bool = False  # la veille, il a voulu acheter mais le rayon était vide
     promotion_concurrente: bool = False  # le concurrent est en promotion (fait public du monde)
@@ -142,7 +143,8 @@ class Agent(ABC):
             return None
         if meteo_nouvelle:
             return Motif.METEO
-        if abs(p.part_porteurs_zone - self._part_vue) >= d.exposition_ecart:
+        part = p.part_porteurs_zone
+        if part is not None and abs(part - self._part_vue) >= d.exposition_ecart:
             return Motif.EXPOSITION
         if p.jour - self._jour_decision >= d.lassitude_jours:
             return Motif.LASSITUDE
@@ -152,7 +154,7 @@ class Agent(ABC):
         """Appelé par l'orchestrateur quand la décision est publiée : point de départ des
         déclencheurs d'exposition et de lassitude."""
         self.derniere_decision = decision
-        self._part_vue = perception.part_porteurs_zone
+        self._part_vue = perception.part_porteurs_zone or 0.0
         self._jour_decision = perception.jour
         if self.declencheurs:  # tiré avec le générateur de l'agent : reproductible, désynchronisé
             d = self.declencheurs

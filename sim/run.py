@@ -257,6 +257,7 @@ async def executer_run(
 
     from bus.producer import EventProducer
     from bus.topics import ensure_topics
+    from indicators.service import PRODUCTEUR, ServiceIndicateurs
     from replay.ecrivain import EcrivainHistorique
     from sim.controle import LecteurControle
     from sim.etat import EtatMonde
@@ -268,6 +269,10 @@ async def executer_run(
     ecrivain = EcrivainHistorique(settings.kafka_bootstrap_servers, run.run_id, runs_dir)
     await ecrivain.demarrer()
     ecriture = asyncio.create_task(ecrivain.boucle())
+    # Les indicateurs (B2) sont calculés par un consommateur à part, lancé avec le run.
+    indicateurs = ServiceIndicateurs(settings.kafka_bootstrap_servers, run.run_id, config.run.seed)
+    await indicateurs.demarrer()
+    calcul = asyncio.create_task(indicateurs.boucle())
     redis = Redis.from_url(settings.redis_url)
     etat = EtatMonde(redis, run.run_id)
     await etat.reinitialiser()
@@ -284,17 +289,25 @@ async def executer_run(
                 bilan = await orchestrateur.executer(jours)
             finally:
                 await controle.stop()
-        enregistres = await ecrivain.terminer(producer.published)
+        publies_indicateurs = await indicateurs.terminer(bilan.jours)
+        await calcul
+        enregistres = await ecrivain.terminer(
+            producer.published, autres={PRODUCTEUR: publies_indicateurs}
+        )
         await ecriture
     finally:
         await redis.aclose()
-        if not ecriture.done():
-            ecriture.cancel()
+        for tache in (ecriture, calcul):
+            if not tache.done():
+                tache.cancel()
 
     resume = {k: v for k, v in vars(bilan).items() if k != "sequence_paliers"}
     resume["evenements_publies"] = producer.published
     resume["evenements_enregistres"] = enregistres  # publiés par l'orchestrateur et relus
-    resume["evenements_externes"] = ecrivain.recus - enregistres  # injections, commandes du pont
+    resume["indicateurs_publies"] = publies_indicateurs
+    resume["indicateurs_enregistres"] = ecrivain.recus_de[PRODUCTEUR]
+    # Injections et commandes du pont.
+    resume["evenements_externes"] = ecrivain.recus - enregistres - ecrivain.recus_de[PRODUCTEUR]
     # Prompts ramenés sous le budget du contexte (étape 12) : état des agents, pas des événements.
     resume["prompts_reduits"] = sum(getattr(a, "prompts_reduits", 0) for a in agents)
     recuperateurs = {

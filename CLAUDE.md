@@ -133,6 +133,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
 | Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
+| Indicateurs | `.venv\Scripts\python -m indicators.rapport <run_id> ...` ; `indicators.trace <run_id> --variation` |
 | Doc des événements | `.venv\Scripts\python -m bus.export_schemas` (après toute modif de `bus/events.py`) |
 | Tests | `.venv\Scripts\python -m pytest` (`-m "not integration and not ollama and not godot"` sans services) |
 | Lint et format | `.venv\Scripts\python -m ruff check .` et `ruff format .` |
@@ -229,10 +230,22 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   météo en C0 et en C1 : seule la décision change (E1).
 - Comparer des runs : `python -m replay.comparaison <run_id>...` (courbes, pic, déclin, dispersion).
 
+## Indicateurs d'émergence (étape 14)
+
+- Sens partagé (décidé le 20 oct.) : **convergence** `1 − H / log 4` (globale, par rôle, par zone)
+  et **information mutuelle** rôle × sens normalisée, avec p-valeur par permutation
+  (`indicators/calcul.py`). Les deux se lisent ensemble.
+- `indicators.service` : consommateur lancé par `sim.run`, qui publie les indicateurs à chaque
+  `horloge.fin_jour` ; chaque valeur cite ses décisions (`caused_by`). Le même code sert au calcul
+  après coup (`indicators.rapport`) et à la trace (`indicators.trace`, F6/B4).
+- Dérives des décisions LLM (`indicators/derives.py`) : heuristiques, taux = borne basse.
+- Run témoin B3 : `simulation.diffusion: false` (aucun message remis, part de porteurs masquée) ;
+  `configs/temoin*.yaml`.
+
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- La formule exacte de l'indicateur de sens partagé : accord modal, entropie normalisée, ou
-  information mutuelle entre groupe et sens.
+- Ajouter ou non une mesure de déplacement du sens par rapport au jour 1 : la convergence seule
+  ne distingue pas la baseline de son témoin (B3, étape 14).
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

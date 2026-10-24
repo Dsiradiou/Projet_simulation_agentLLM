@@ -73,10 +73,13 @@ def formater(event: ev.Envelope) -> str | None:
             return f"{quand}  INJECTION   {p.nature.value}{zone} : {p.description} (jour suivant)"
         case ev.Command():
             return f"{quand}  COMMANDE    {event.payload.commande}"
+        case ev.ClockEnd():
+            return f"{quand}  fin du jour {event.payload.jour}"
         case ev.Indicator():
             p = event.payload
             groupe = f" [{p.groupe}]" if p.groupe else ""
-            return f"{quand}  indicateur  {p.nom}{groupe} = {p.valeur:.3f}"
+            effectif = f" sur {p.effectif}" if p.effectif is not None else ""
+            return f"{quand}  indicateur  {p.nom}{groupe} = {p.valeur:.3f}{effectif}"
         case ev.Rejection():
             return f"{quand}  REJET       {event.payload.topic_origine} : {event.payload.erreur}"
     return f"{quand}  {event.type:<11} {qui}"

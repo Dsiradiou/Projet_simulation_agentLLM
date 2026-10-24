@@ -231,7 +231,8 @@ def test_run_is_recorded_from_kafka_and_replays_identically(tmp_path: Path) -> N
         resume = await executer_run(config, run, agents, acteurs, settings, 3, runs_dir=tmp_path)
         lus: list[ev.Envelope] = []
         async with asyncio.timeout(20):
-            while len(lus) < resume["evenements_publies"]:
+            # Les événements de l'orchestrateur et les indicateurs du service (étape 14).
+            while len(lus) < resume["evenements_publies"] + resume["indicateurs_publies"]:
                 lot = await lecteur.getmany(timeout_ms=500)
                 lus += [
                     e
@@ -244,6 +245,7 @@ def test_run_is_recorded_from_kafka_and_replays_identically(tmp_path: Path) -> N
 
     resume, en_direct = asyncio.run(scenario())
     assert resume["evenements_enregistres"] == resume["evenements_publies"]
+    assert resume["indicateurs_enregistres"] == resume["indicateurs_publies"] > 0
     rejoues = charger(run.run_id, tmp_path)
     assert {e.event_id for e in rejoues} == {e.event_id for e in en_direct}
     assert verifier(run.run_id, rejoues, tmp_path) == {}  # mêmes indicateurs (E3)

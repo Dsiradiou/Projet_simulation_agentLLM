@@ -59,8 +59,25 @@ func _initialize() -> void:
 	monde._sur_message({"type": "monde.stock", "zone": "pharmacie", "payload": {"produit": "marque", "quantite": 7}})
 	verifier(monde.decor._stocks["pharmacie"].text.contains("7 flacons"), "le réassort s'affiche")
 
+	# Étape 14 : indicateurs du service (B2), dans le panneau, la courbe et les jauges des zones.
+	verifier(monde.ui._mesures.text.contains("non reçus"), "sans indicateurs, le panneau le dit")
+	monde._sur_message({"type": "indicateur.valeur", "sim_time_occurred": 1439, "payload": {"nom": "sens_partage", "valeur": 0.42, "groupe": null, "repartition": {"efficace": 3, "banal": 1}}})
+	monde._sur_message({"type": "indicateur.valeur", "sim_time_occurred": 2879, "payload": {"nom": "sens_partage", "valeur": 0.61, "groupe": null, "repartition": {"efficace": 3, "banal": 1}}})
+	monde._sur_message({"type": "indicateur.valeur", "sim_time_occurred": 2879, "payload": {"nom": "information_mutuelle", "valeur": 0.3, "groupe": null}})
+	monde._sur_message({"type": "indicateur.valeur", "sim_time_occurred": 2879, "payload": {"nom": "derives", "valeur": 0.05, "groupe": null}})
+	verifier(monde.ui._mesures.text.contains("0.61") and monde.ui._mesures.text.contains("5 %"), "le panneau montre les valeurs du service")
+	verifier(monde.ui._barres["efficace"][1].text.contains("75 %"), "la répartition vient du service")
+	verifier(monde.ui.courbe.points("sens_partage") == 2, "la courbe garde une valeur par jour")
+	monde._sur_message({"type": "indicateur.valeur", "zone": "plage", "sim_time_occurred": 2879, "payload": {"nom": "sens_partage", "valeur": 1.0, "groupe": "zone:plage", "repartition": {"tendance": 2}}})
+	var jauge: Array = monde.decor.jauge("plage")
+	verifier(jauge[1]["tendance"].visible and not jauge[1]["efficace"].visible, "la jauge de la plage montre ses sens")
+	verifier((jauge[2] as Label3D).text.contains("C 1.00"), "et la convergence de la zone")
+	monde._sur_message({"type": "horloge.fin_jour", "payload": {"jour": 2}})
+	verifier(not jauge[1]["tendance"].visible, "une fin de jour remet les jauges à zéro")
+
 	monde._sur_message({"type": "pont.nouveau_run", "run_id": "r2"})
 	verifier(monde.habitants.is_empty(), "un nouveau run repart d'un monde vide")
+	verifier(monde.ui.courbe.points("sens_partage") == 0, "et une courbe vide")
 
 	print("test_monde : %s" % ("OK" if _echecs == 0 else "%d échec(s)" % _echecs))
 	quit(1 if _echecs > 0 else 0)

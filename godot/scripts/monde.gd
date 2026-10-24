@@ -21,6 +21,7 @@ var _meteo := "—"
 var _mode := "en direct"
 var _messages_jour := 0
 var _incidents := 0
+var _mesures := {}  # dernières valeurs globales du service des indicateurs (étape 14)
 var _selection: Habitant
 var _fiche_serveur := {}  # dernière fiche reçue du pont pour l'agent sélectionné
 var _capture := ""
@@ -124,6 +125,10 @@ func _sur_message(d: Dictionary) -> void:
 			_jour = int(p["jour"])
 			_messages_jour = 0
 			ui.ajouter_au_fil("[color=#9fb3c8]— Jour %d —[/color]" % _jour)
+		"horloge.fin_jour":
+			decor.vider_jauges()  # les zones vides n'ont pas de nouvelle valeur
+		"indicateur.valeur":
+			_indicateur(d, p)
 		"monde.meteo":
 			decor.appliquer_meteo(p["conditions"])
 			_meteo = "%s, %d °C, UV %d" % [NOMS_METEO.get(p["conditions"], p["conditions"]), round(p["temperature_c"]), p["indice_uv"]]
@@ -193,6 +198,22 @@ func _decision(agent_id: String, zone, p: Dictionary) -> void:
 		_afficher_fiche()
 
 
+func _indicateur(d: Dictionary, p: Dictionary) -> void:
+	## Valeurs du service des indicateurs (B2) : globales dans le panneau et la courbe, par zone
+	## dans les jauges du décor. Elles arrivent avec le jour qu'elles décrivent, en direct comme
+	## en rejeu.
+	var nom: String = p.get("nom", "")
+	var groupe = p.get("groupe")
+	var jour := int(d.get("sim_time_occurred", 0)) / 1440 + 1
+	if groupe == null:
+		_mesures[nom] = float(p["valeur"])
+		if nom == "sens_partage" and p.get("repartition") != null:
+			_mesures["repartition"] = p["repartition"]
+		ui.courbe.ajouter(nom, jour, float(p["valeur"]))
+	elif nom == "sens_partage" and str(groupe).begins_with("zone:"):
+		decor.afficher_jauge(str(groupe).trim_prefix("zone:"), p.get("repartition", {}), float(p["valeur"]))
+
+
 func _message(agent_id: String, p: Dictionary) -> void:
 	_messages_jour += 1
 	if not habitants.has(agent_id):
@@ -260,6 +281,9 @@ func _vider() -> void:
 	_selection = null
 	_incidents = 0
 	_messages_jour = 0
+	_mesures = {}
+	ui.courbe.vider()
+	decor.vider_jauges()
 	ui.cacher_fiche()
 
 
@@ -270,7 +294,7 @@ func _rafraichir() -> void:
 		if h.sens != "":
 			comptes[h.sens] = comptes.get(h.sens, 0) + 1
 		porteurs += int(h.porteur)
-	ui.afficher_indicateurs(comptes, porteurs, habitants.size(), _messages_jour, _incidents)
+	ui.afficher_indicateurs(comptes, porteurs, habitants.size(), _messages_jour, _incidents, _mesures)
 	ui.afficher_etat(_jour, _meteo, _mode)
 
 

@@ -96,8 +96,7 @@ class EcrivainHistorique:
         self._tampon: list[dict] = []
         self._parts = 0
         self._consumer: AIOKafkaConsumer | None = None
-        self._attendus: int | None = None
-        self._producteur_attendu = "orchestrateur"
+        self._attendus: dict[str, int] | None = None  # par producteur
         self._fini = asyncio.Event()  # demande d'arrêt de la lecture
         self._ecrit = asyncio.Event()  # dernier lot écrit, lecteur arrêté
 
@@ -142,16 +141,17 @@ class EcrivainHistorique:
         self._ecrit.set()
 
     def _complet(self) -> bool:
-        return self.recus_de[self._producteur_attendu] >= (self._attendus or 0)
+        return all(self.recus_de[p] >= n for p, n in (self._attendus or {}).items())
 
     async def terminer(
-        self, attendus: int, producteur: str = "orchestrateur", delai_s: float = 30.0
-    ) -> int:
+        self, attendus: int, producteur: str = "orchestrateur", delai_s: float = 30.0,
+        autres: dict[str, int] | None = None,
+    ) -> int:  # fmt: skip
         """Fin de run : attend d'avoir reçu les `attendus` événements publiés par `producteur`
-        et que le dernier lot soit écrit. Les messages d'autres producteurs (le pont : injections,
-        commandes) sont enregistrés aussi. Renvoie le nombre d'événements reçus de `producteur`."""
-        self._attendus = attendus
-        self._producteur_attendu = producteur
+        (et ceux d'`autres` producteurs, le service des indicateurs) et que le dernier lot soit
+        écrit. Les messages du pont (injections, commandes) sont enregistrés aussi. Renvoie le
+        nombre d'événements reçus de `producteur`."""
+        self._attendus = {producteur: attendus, **(autres or {})}
         if self._complet():
             self._fini.set()
         try:

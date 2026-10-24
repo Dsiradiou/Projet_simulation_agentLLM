@@ -8,6 +8,9 @@ RUN = "run_test"
 def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
     base = {"run_id": RUN, "sim_time_occurred": 600, "sim_time_processed": 602}
     return {
+        ev.ClockEnd: ev.ClockEnd(
+            **base, source_agent_id="horloge", payload=ev.ClockStepPayload(jour=1)
+        ),
         ev.ClockStep: ev.ClockStep(
             **base, source_agent_id="horloge", payload=ev.ClockStepPayload(jour=1)
         ),
@@ -64,7 +67,12 @@ def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
             **base,
             source_agent_id="indicateurs",
             payload=ev.IndicatorPayload(
-                nom="sens_partage", valeur=0.42, fenetre_debut=0, fenetre_fin=600
+                nom="sens_partage",
+                valeur=0.42,
+                fenetre_debut=0,
+                fenetre_fin=600,
+                effectif=3,
+                repartition={"efficace": 2, "banal": 1},
             ),
         ),
         ev.Injection: ev.Injection(

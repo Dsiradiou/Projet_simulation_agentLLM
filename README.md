@@ -69,7 +69,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 11 | Le monde : marque, population | ✅ terminée |
 | 12 | Corpus fictif et RAG | ✅ terminée |
 | 13 | Agents à règles et baseline | ✅ terminée |
-| 14 | Indicateurs d'émergence | à venir |
+| 14 | Indicateurs d'émergence | ✅ terminée |
 | 15 | Mode asynchrone et cohérence temporelle | à venir |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
@@ -258,6 +258,24 @@ appel de modèle : un run de 60 jours prend quelques secondes.
 ```powershell
 .venv\Scripts\python -m sim.run --config configs/baseline-dev.yaml --graine 7   # une graine
 .venv\Scripts\python -m replay.comparaison <run_c0> <run_c1> --titre "C0 contre C1"
+```
+
+## Indicateurs d'émergence
+
+Un service lancé avec chaque run publie à la fin de chaque jour simulé, sur `sim.indicators` :
+la **convergence** du sens (`1 − H / log 4`, globale, par rôle et par zone), l'**information
+mutuelle** rôle × sens avec sa p-valeur (test de permutation), l'adoption et le taux de dérive
+des décisions LLM (autre alphabet, personne inventée, santé, incohérence, ton d'assistant).
+Chaque valeur cite les décisions qu'elle compte (`caused_by`). La scène Godot les affiche :
+une jauge des sens devant chaque zone et une courbe dans le panneau.
+
+Le **run témoin** (`simulation.diffusion: false`) ne remet aucun message et cache qui porte le
+produit : ce qui converge quand même vient du modèle, pas des échanges (B3).
+
+```powershell
+.venv\Scripts\python -m sim.run --config configs/temoin-dev.yaml          # témoin de dev.yaml
+.venv\Scripts\python -m indicators.rapport <run> <run_temoin>              # comparaison jour par jour
+.venv\Scripts\python -m indicators.trace <run> --variation                # d'une valeur aux messages
 ```
 
 ## Structure du dépôt

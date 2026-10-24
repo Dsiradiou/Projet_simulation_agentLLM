@@ -126,6 +126,17 @@ class ClockStep(Envelope):
     payload: ClockStepPayload
 
 
+class ClockEnd(Envelope):
+    TOPIC = Topic.WORLD_EVENTS
+    DESCRIPTION = (
+        "Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour "
+        "sont calculés à sa réception (étape 14)."
+    )
+    type: Literal["horloge.fin_jour"] = "horloge.fin_jour"
+    schema_version: Literal["1.0"] = "1.0"
+    payload: ClockStepPayload
+
+
 class WeatherPayload(_Strict):
     indice_uv: Annotated[int, Field(ge=0, le=15)]
     temperature_c: Annotated[float, Field(ge=-10, le=50)]
@@ -298,16 +309,27 @@ class AgentMove(Envelope):
 class IndicatorPayload(_Strict):
     nom: Annotated[str, Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_]+$")]
     valeur: float
-    groupe: str | None = Field(default=None, description="Groupe concerné, ou None si global.")
+    groupe: str | None = Field(
+        default=None,
+        max_length=64,
+        description="Groupe concerné (role:<rôle>, zone:<zone>), ou None si global.",
+    )
     fenetre_debut: SimMinute
     fenetre_fin: SimMinute
+    effectif: NonNegativeInt | None = Field(
+        default=None, description="Nombre d'agents ou de décisions comptés (version 1.1)."
+    )
+    repartition: dict[Annotated[str, Field(max_length=32)], NonNegativeInt] | None = Field(
+        default=None,
+        description="Comptes par catégorie : sens, ou nature de dérive (version 1.1).",
+    )
 
 
 class Indicator(Envelope):
     TOPIC = Topic.INDICATORS
     DESCRIPTION = "Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources."
     type: Literal["indicateur.valeur"] = "indicateur.valeur"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : effectif et répartition
     payload: IndicatorPayload
 
     @model_validator(mode="after")
@@ -394,6 +416,7 @@ class Rejection(Envelope):
 
 EVENT_CLASSES: tuple[type[Envelope], ...] = (
     ClockStep,
+    ClockEnd,
     Weather,
     Stock,
     Disturbance,
@@ -409,6 +432,7 @@ EVENT_CLASSES: tuple[type[Envelope], ...] = (
 
 Event = Annotated[
     ClockStep
+    | ClockEnd
     | Weather
     | Stock
     | Disturbance

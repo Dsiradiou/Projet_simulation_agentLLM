@@ -17,6 +17,7 @@
         "groupe": {
           "anyOf": [
             {
+              "maxLength": 64,
               "type": "string"
             },
             {
@@ -24,7 +25,7 @@
             }
           ],
           "default": null,
-          "description": "Groupe concerné, ou None si global.",
+          "description": "Groupe concerné (role:<rôle>, zone:<zone>), ou None si global.",
           "title": "Groupe"
         },
         "fenetre_debut": {
@@ -38,6 +39,40 @@
           "minimum": 0,
           "title": "Fenetre Fin",
           "type": "integer"
+        },
+        "effectif": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Nombre d'agents ou de décisions comptés (version 1.1).",
+          "title": "Effectif"
+        },
+        "repartition": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "propertyNames": {
+                "maxLength": 32
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Comptes par catégorie : sens, ou nature de dérive (version 1.1).",
+          "title": "Repartition"
         }
       },
       "required": [
@@ -72,8 +107,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

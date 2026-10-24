@@ -39,6 +39,7 @@ var _ciel: ProceduralSkyMaterial
 var _ecran: Label3D
 var _halos := {}  # zone -> anneau de mise en évidence (perturbation)
 var _stocks := {}  # point de vente -> étiquette du stock de la marque (étape 13)
+var _jauges := {}  # zone -> [racine, {sens: segment}, étiquette, largeur] (étape 14)
 
 
 func construire() -> void:
@@ -54,6 +55,7 @@ func construire() -> void:
 	_arbres()
 	for zone in AIRES:
 		_halos[zone] = _halo(zone)
+		_jauge(zone)
 	_stocks["pharmacie"] = etiquette("", Vector3(-2, 5.4, -11), 64)
 	_stocks["centre_commercial"] = etiquette("", Vector3(16, 8.4, -12), 64)
 
@@ -118,6 +120,39 @@ func afficher_stock(zone: String, quantite: int) -> void:
 	var l: Label3D = _stocks[zone]
 	l.text = "En rayon : %d flacon%s" % [quantite, "s" if quantite > 1 else ""] if quantite > 0 else "Rupture de stock"
 	l.modulate = Color("ffffff") if quantite > 0 else Color("ff8a80")
+
+
+func afficher_jauge(zone: String, repartition: Dictionary, convergence: float) -> void:
+	## Jauge posée au sol devant la zone : la part de chaque sens parmi les présents, et la
+	## convergence de la zone, calculées par le service des indicateurs (étape 14).
+	if not _jauges.has(zone):
+		return
+	var j: Array = _jauges[zone]
+	var segments: Dictionary = j[1]
+	var largeur: float = j[3]
+	var total := 0
+	for s in repartition:
+		total += int(repartition[s])
+	var x := -largeur / 2.0
+	for s in COULEURS_SENS:
+		var segment: MeshInstance3D = segments[s]
+		var part := float(repartition.get(s, 0)) / maxi(total, 1)
+		segment.visible = part > 0.0
+		if segment.visible:
+			var w := largeur * part
+			(segment.mesh as BoxMesh).size = Vector3(w, 0.14, 0.5)
+			segment.position = Vector3(x + w / 2.0, 0.1, 0)
+			x += w
+	(j[2] as Label3D).text = "%d · C %.2f" % [total, convergence] if total > 0 else ""
+
+
+func vider_jauges() -> void:
+	for zone in _jauges:
+		afficher_jauge(zone, {}, 0.0)
+
+
+func jauge(zone: String) -> Array:
+	return _jauges.get(zone, [])
 
 
 func signaler_zone(zone: String, couleur: Color, duree := 6.0) -> void:
@@ -196,6 +231,25 @@ func etiquette(texte: String, pos: Vector3, taille := 96) -> Label3D:
 	l.position = pos
 	add_child(l)
 	return l
+
+
+func _jauge(zone: String) -> void:
+	var aire: Array = AIRES[zone]
+	var centre: Vector3 = aire[0]
+	var taille: Vector2 = aire[1]
+	var racine := Node3D.new()
+	racine.position = centre + Vector3(0, 0.05, taille.y / 2.0 + 0.9)
+	add_child(racine)
+	var largeur := minf(taille.x * 0.8, 10.0)
+	boite(Vector3(largeur + 0.2, 0.06, 0.7), Vector3.ZERO, Color(0.1, 0.12, 0.2), 0.0, racine)
+	var segments := {}
+	for s in COULEURS_SENS:
+		var segment := boite(Vector3(0.01, 0.14, 0.5), Vector3.ZERO, COULEURS_SENS[s], 0.4, racine)
+		segment.mesh = segment.mesh.duplicate()
+		segment.visible = false
+		segments[s] = segment
+	var l := etiquette("", racine.position + Vector3(largeur / 2.0 + 1.6, 0.5, 0), 44)
+	_jauges[zone] = [racine, segments, l, largeur]
 
 
 func _halo(zone: String) -> MeshInstance3D:

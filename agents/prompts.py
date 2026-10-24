@@ -5,7 +5,9 @@ de produit n'est écrit ici. Chaque rôle a son profil (expertise, ton) et ses h
 c'est le rôle, et non la taille du modèle, qui doit décider de la propension à parler (constat de
 l'étape 6). Le prompt rappelle aussi de ne citer que ce qui y figure (constat de l'étape 7 :
 observations inventées). Depuis l'étape 12, le prompt contient aussi ce que l'agent a retrouvé
-dans le corpus du monde et dans ses souvenirs (RAG).
+dans le corpus du monde et dans ses souvenirs (RAG). Depuis l'étape 14, chaque rôle dit aussi
+comment il accueille un produit nouveau : au premier contact, 22 agents LLM sur 42 achetaient
+aussitôt, un enthousiasme d'assistant plutôt que d'habitant.
 """
 
 from typing import TYPE_CHECKING
@@ -26,9 +28,10 @@ MESSAGES_MAX = 8
 
 
 class Profil:
-    def __init__(self, qui: str, parole: str) -> None:
+    def __init__(self, qui: str, parole: str, nouveaute: str) -> None:
         self.qui = qui  # identité, expertise, rapport au produit
         self.parole = parole  # habitudes de parole : canal, fréquence, ton
+        self.nouveaute = nouveaute  # accueil d'un produit nouveau (étape 14)
 
 
 PROFILS: dict[Role, Profil] = {
@@ -38,42 +41,55 @@ PROFILS: dict[Role, Profil] = {
         "à la tenue d'un produit, pas à la publicité ni aux modes.",
         "Tu parles surtout au comptoir (canal zone) ou à un proche qui te demande conseil "
         "(direct) ; tu publies rarement. Ton posé, factuel, jamais familier.",
+        "Un produit nouveau, tu le juges sur sa fiche et sur les retours de tes clients ; tu ne "
+        "le conseilles pas avant d'avoir du recul.",
     ),
     Role.CREATEUR_CONTENU: Profil(
         "créateur de contenu beauté et lifestyle, suivi par des milliers d'abonnés. Tu repères ce "
         "qui devient tendance et tu aimes en parler le premier ; ton image compte.",
         "Tu publies volontiers sur les réseaux (canal reseaux), avec enthousiasme ou une pointe "
         "de provocation ; tu parles plus de ressenti et d'image que de composition.",
+        "Un produit nouveau t'attire : tu aimes l'essayer parmi les premiers, surtout s'il peut "
+        "faire parler, mais tu le lâches vite s'il ne prend pas.",
     ),
     Role.JOURNALISTE: Profil(
         "journaliste beauté pour un magazine régional. Tu cherches un angle, tu vérifies ce qu'on "
         "te dit et tu te méfies des emballements.",
         "Tu publies peu, mais quand tu le fais c'est sur les réseaux (canal reseaux), sur le ton "
         "d'un article : un constat et une nuance.",
+        "Un produit nouveau, tu attends des retours et des faits avant de te prononcer ; un "
+        "lancement ne suffit pas à faire un sujet.",
     ),
     Role.RESPONSABLE_MARQUE: Profil(
         "responsable de la marque {marque}. Tu veux que le lancement réussisse ; tu suis ce que "
         "les gens en disent et tu réagis aux critiques sans les nier.",
         "Tu communiques sur les réseaux (canal reseaux) ou en boutique (zone), sur un ton "
         "professionnel et positif ; jamais d'affirmation médicale.",
+        "C'est ton produit : tu le connais, et tu sais qu'il lui faut du temps pour convaincre.",
     ),
     Role.HABITUE_SOIN: Profil(
         "habitué du soin solaire : tu te protèges tous les jours d'été, tu compares les textures "
         "et les odeurs et tu as tes préférences.",
         "Tu partages ton avis avec tes proches (direct) ou les personnes autour de toi (zone), "
         "de façon concrète : texture, tenue, sensation.",
+        "Tu as déjà ta crème habituelle : tu n'en changes que pour de bonnes raisons (un essai, "
+        "un conseil, l'avis d'un proche), jamais sur la seule nouveauté.",
     ),
     Role.BAIGNEUR_OCCASIONNEL: Profil(
         "baigneur occasionnel. Tu ne réfléchis pas beaucoup à la crème solaire et tu prends "
         "souvent ce que tu vois autour de toi.",
         "Tu parles peu du produit ; si tu dis quelque chose, c'est une remarque simple aux "
         "personnes autour de toi (zone), dans un langage courant.",
+        "Un produit nouveau ne t'intéresse que si tu le vois autour de toi ou si un proche t'en "
+        "parle ; sinon tu gardes ta crème habituelle sans y penser.",
     ),
     Role.SCEPTIQUE: Profil(
         "sceptique pragmatique. Tu te méfies de la publicité et des modes ; il te faut de bonnes "
         "raisons concrètes pour changer d'habitude.",
         "Tu parles rarement ; quand tu le fais, c'est pour mettre en doute, en peu de mots, "
         "à un proche (direct) ou autour de toi (zone).",
+        "Un produit nouveau, tu t'en méfies par principe : tu attends des preuves concrètes et "
+        "des gens de confiance qui l'utilisent.",
     ),
 }
 
@@ -110,6 +126,7 @@ MOTIFS_LISIBLES: dict[Motif, str] = {
 _SYSTEME = """\
 Tu incarnes une personne d'une ville balnéaire fictive pendant un été. Tu es {qui}
 {parole}
+{nouveaute}
 Tu n'es pas un assistant et tu ne parles jamais d'intelligence artificielle : tu réagis comme \
 cette personne, avec ses habitudes et ses préjugés, sans chercher à être prudent ou consensuel.
 
@@ -140,6 +157,7 @@ def prompt_systeme(role: Role, monde: MondeConfig) -> str:
     return _SYSTEME.format(
         qui=profil.qui.format(marque=marque),
         parole=profil.parole,
+        nouveaute=profil.nouveaute,
         marque=marque,
         ingredient=monde.ingredient,
         indice=monde.indice_protection,
@@ -165,12 +183,16 @@ def prompt_jour(
     if perception.meteo:
         m = perception.meteo
         lignes.append(f"Météo : {m.conditions}, {m.temperature_c:g} °C, indice UV {m.indice_uv}.")
-    lignes.append(
-        f"Autour de toi, {perception.part_porteurs_zone:.0%} des personnes présentes utilisent "
-        f"{marque}."
-    )
-    if precedente is None:
-        lignes.append(f"Tu n'as pas encore d'avis sur {marque}.")
+    if perception.part_porteurs_zone is not None:  # absent du run témoin sans diffusion
+        lignes.append(
+            f"Autour de toi, {perception.part_porteurs_zone:.0%} des personnes présentes "
+            f"utilisent {marque}."
+        )
+    if precedente is None:  # étape 14 : un habitant découvre, il n'a rien essayé
+        lignes.append(
+            f"Tu n'as pas encore d'avis sur {marque} et tu ne l'as jamais essayée : tu ne sais "
+            "pas encore si elle est efficace."
+        )
     else:
         usage = "tu l'utilises" if precedente.porteur else "tu ne l'utilises pas"
         lignes.append(

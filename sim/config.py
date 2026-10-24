@@ -46,6 +46,11 @@ class SimulationConfig(_Section):
     delais_livraison_min: dict[Canal, NonNegativeInt] = Field(
         description="Délai, en minutes simulées, avant qu'un message soit lisible, par canal."
     )
+    diffusion: bool = Field(
+        default=True,
+        description="False : run témoin (B3), aucun message n'est remis et personne ne voit "
+        "qui utilise le produit autour de lui.",
+    )
 
     @field_validator("delais_livraison_min")
     @classmethod

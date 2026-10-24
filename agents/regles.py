@@ -33,7 +33,7 @@ class ChoixRegle:
 def regle_seuil(perception: Perception, seuil: float) -> ChoixRegle:
     """Adopte si la part de porteurs dans sa zone (état de la veille) atteint son seuil.
     Adopter par imitation donne le sens « tendance » ; ne pas adopter, « banal »."""
-    part = perception.part_porteurs_zone
+    part = perception.part_porteurs_zone or 0.0  # témoin sans diffusion : rien de visible
     if part >= seuil:
         return ChoixRegle(
             Action.ACHETER,
@@ -125,7 +125,7 @@ class AgentAuSeuil(Agent):
         return min(1.0, self.seuil + self.bonus + promo)
 
     async def decider(self, perception: Perception) -> Decision:
-        part, seuil = perception.part_porteurs_zone, self.seuil_du_jour(perception)
+        part, seuil = perception.part_porteurs_zone or 0.0, self.seuil_du_jour(perception)
         etait_porteur = bool(self.derniere_decision and self.derniere_decision.porteur)
         recule = etait_porteur and self._part_adoption - part >= self.regles.recul_abandon
         if etait_porteur and (recule or (perception.flacon_vide and part < seuil)):
@@ -245,7 +245,7 @@ class AgentRegleC0(AgentAuSeuil):
         natures = _natures(p)
         if p.meteo and p.meteo.conditions == "canicule" and self.porteur:
             self._jours_chauds += 1
-        part = p.part_porteurs_zone
+        part = p.part_porteurs_zone or 0.0
         pression = part + r.q_message * min(3, len(p.messages))
         etait_porteur = bool(self.derniere_decision and self.derniere_decision.porteur)
         if etait_porteur:

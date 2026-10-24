@@ -1,5 +1,8 @@
 # Interface 2D au-dessus de la scène : état du run, indicateurs, fil des événements, fiche d'un
 # agent (D2), injection d'une perturbation et commandes (D3), choix entre direct et rejeu.
+# Depuis l'étape 14, le panneau des indicateurs affiche les valeurs calculées par le service des
+# indicateurs (B2) et leur courbe jour par jour ; sans elles (runs plus anciens), il compte les
+# sens des habitants visibles.
 #
 # Elle ne parle pas au pont elle-même : elle émet des signaux, que `monde.gd` traduit en requêtes.
 class_name Interface
@@ -28,6 +31,8 @@ var _ips: Label
 var _ips_attente := 0.0
 var _barres := {}
 var _resume: Label
+var _mesures: Label
+var courbe: Courbe
 var _fil: RichTextLabel
 var _lignes_fil: Array[String] = []
 var _fiche: PanelContainer
@@ -68,16 +73,32 @@ func afficher_connexion(texte: String, ok: bool) -> void:
 	_connexion.modulate = Color("7ee08a") if ok else Color("ff8a80")
 
 
-func afficher_indicateurs(comptes: Dictionary, porteurs: int, total: int, messages_jour: int, incidents: int) -> void:
+func afficher_indicateurs(comptes: Dictionary, porteurs: int, total: int, messages_jour: int, incidents: int, mesures := {}) -> void:
+	## `mesures` : dernières valeurs globales du service (sens_partage, information_mutuelle...).
+	## Si elles existent, la répartition et l'adoption affichées sont les siennes.
+	if mesures.has("repartition"):
+		comptes = mesures["repartition"]
 	var exprimes := 0
 	for s in comptes:
-		exprimes += comptes[s]
+		exprimes += int(comptes[s])
 	for s in _barres:
 		var part: float = float(comptes.get(s, 0)) / maxi(exprimes, 1)
 		_barres[s][0].custom_minimum_size.x = 4 + 170 * part
 		_barres[s][1].text = " %s  %d %%" % [s, round(part * 100)]
 	var adoption: float = 100.0 * porteurs / maxi(total, 1)
+	if mesures.has("adoption"):
+		adoption = 100.0 * float(mesures["adoption"])
 	_resume.text = " Porteurs %d / %d (%d %%)\n Messages du jour %d   ·   Incidents %d" % [porteurs, total, round(adoption), messages_jour, incidents]
+	if mesures.has("sens_partage"):
+		var p_valeur := float(mesures.get("information_mutuelle_p", 1.0))
+		_mesures.text = " Convergence %.2f   ·   Écart entre rôles %.2f%s\n Dérives des agents LLM %s" % [
+			float(mesures["sens_partage"]),
+			float(mesures.get("information_mutuelle", 0.0)),
+			" (p %.3f)" % p_valeur if mesures.has("information_mutuelle_p") else "",
+			"%d %%" % round(100.0 * float(mesures["derives"])) if mesures.has("derives") else "—",
+		]
+	else:
+		_mesures.text = " (indicateurs du service non reçus)"
 
 
 func ajouter_au_fil(texte: String) -> void:
@@ -180,6 +201,16 @@ func _indicateurs(couleurs: Dictionary) -> void:
 		_barres[s] = [barre, l]
 	_resume = _label("", 14)
 	col.add_child(_resume)
+	_mesures = _label("", 14)
+	col.add_child(_mesures)
+	courbe = Courbe.new()
+	courbe.custom_minimum_size = Vector2(274, 56)
+	courbe.definir("sens_partage", Color("ffd166"))
+	courbe.definir("information_mutuelle", Color("7fd1ff"))
+	col.add_child(courbe)
+	var legende := _label(" convergence (jaune) · écart entre rôles (bleu)", 12)
+	legende.modulate = Color(1, 1, 1, 0.7)
+	col.add_child(legende)
 
 
 func _panneau_fil() -> void:
@@ -196,7 +227,7 @@ func _panneau_fil() -> void:
 
 
 func _panneau_fiche() -> void:
-	_fiche = _panneau(Vector2(1180, 236), Vector2(404, 390))
+	_fiche = _panneau(Vector2(1180, 330), Vector2(404, 300))
 	var col := VBoxContainer.new()
 	_fiche.add_child(col)
 	var tete := HBoxContainer.new()
@@ -207,7 +238,7 @@ func _panneau_fiche() -> void:
 	tete.add_child(_bouton("✕", func(): cacher_fiche(); fiche_fermee.emit()))
 	_fiche_texte = RichTextLabel.new()
 	_fiche_texte.bbcode_enabled = true
-	_fiche_texte.custom_minimum_size = Vector2(384, 340)
+	_fiche_texte.custom_minimum_size = Vector2(384, 250)
 	_fiche_texte.add_theme_font_size_override("normal_font_size", 13)
 	_fiche_texte.add_theme_font_size_override("bold_font_size", 13)
 	col.add_child(_fiche_texte)

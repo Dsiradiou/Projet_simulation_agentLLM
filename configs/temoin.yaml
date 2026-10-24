@@ -1,0 +1,8 @@
+# Run témoin sans diffusion (étape 14, B3) : le même monde que default.yaml, mais aucun message
+# n'est remis et personne ne voit qui utilise le produit autour de lui. Les agents décident
+# seuls, avec la météo, les perturbations, le commerce et ce qu'ils lisent dans le corpus.
+# Ce qui converge quand même vient du modèle, pas des échanges (question Q2 du jury).
+herite_de: default.yaml
+
+simulation:
+  diffusion: false

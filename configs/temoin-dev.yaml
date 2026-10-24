@@ -1,0 +1,6 @@
+# Témoin sans diffusion (B3) à la taille de développement : comparer à un run de dev.yaml de
+# même graine (60 agents).
+herite_de: dev.yaml
+
+simulation:
+  diffusion: false

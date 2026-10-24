@@ -1,0 +1,7 @@
+# Témoin sans diffusion (B3) de la baseline C0 à la taille de développement : les règles d'imitation
+# ne voient plus personne. À comparer à baseline-dev.yaml de même graine : la convergence du sens
+# doit y rester plate, ce qui montre que l'indicateur distingue l'émergence de son absence.
+herite_de: baseline-dev.yaml
+
+simulation:
+  diffusion: false

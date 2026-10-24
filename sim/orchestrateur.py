@@ -38,6 +38,7 @@ from bus.events import (
     AgentMessagePayload,
     AgentMove,
     AgentMovePayload,
+    ClockEnd,
     ClockStep,
     ClockStepPayload,
     Disturbance,
@@ -55,7 +56,7 @@ from bus.events import (
 from sim.commerce import Commerce
 from sim.config import Config
 from sim.controle import SourceControle
-from sim.domaine import Canal
+from sim.domaine import MINUTES_PAR_JOUR, Canal
 from sim.etat import EtatMonde
 from sim.horloge import SimClock, ordre_paliers
 from sim.livraison import Boite
@@ -267,12 +268,21 @@ class Orchestrateur:
                 if isinstance(event, Disturbance):
                     self._perturbations.append(event)
                     self._perturbations_vues.add(event.event_id)
-        for message in messages:  # zones résolues après les déplacements du jour
-            self.boite.deposer(message, self._destinataires(message))
+        if self.config.simulation.diffusion:  # run témoin (B3) : personne ne les reçoit
+            for message in messages:  # zones résolues après les déplacements du jour
+                self.boite.deposer(message, self._destinataires(message))
 
         self.bilan.jours = jour
         if self.etat:
             await self.etat.ecrire_jour(jour, t, self.agents, self.meteo, perceptions)
+        # Tous les faits du jour sont publiés : les indicateurs du jour peuvent être calculés.
+        await self._publier(
+            ClockEnd(
+                **self._dates(minute0 + MINUTES_PAR_JOUR - 1),
+                source_agent_id="horloge",
+                payload=ClockStepPayload(jour=jour),
+            )
+        )
         if self.on_jour:
             self.on_jour(self._resume(jour, len(resultats)))
 
@@ -343,7 +353,10 @@ class Orchestrateur:
                     e for e in self._perturbations if e.zone is None or e.zone is agent.zone
                 ),
                 meteo=self.meteo,
-                part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone],
+                # Run témoin (B3) : l'agent ne voit pas qui utilise le produit autour de lui.
+                part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone]
+                if self.config.simulation.diffusion
+                else None,
                 flacon_vide=agent.flacon_jours == 0
                 and bool(agent.derniere_decision and agent.derniere_decision.porteur),
                 achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),

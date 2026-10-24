@@ -76,7 +76,7 @@ exigences de l'énoncé.</p>
   <tr><td>11</td><td>Le monde</td><td>Nom de marque et test de contamination, population complète, seuils d'adoption</td><td class="ok">terminée</td></tr>
   <tr><td>12</td><td>Corpus et RAG</td><td>Documents fictifs, ChromaDB, filtres par date et par rôle, mémoires, évaluation (F1, F2, A1, C6)</td><td class="ok">terminée</td></tr>
   <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="ok">terminée</td></tr>
-  <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="todo">à venir</td></tr>
+  <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="todo">à venir</td></tr>
   <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
   <tr><td>16</td><td>Expériences</td><td>Configurations C0 à C3, au moins 5 runs chacune, Bass, synchrone/asynchrone, coûts (E1, E2, E4, E5, C5)</td><td class="todo">à venir</td></tr>
@@ -2040,6 +2040,173 @@ plateforme de recherche.</p>
   <li>Le facteur limitant d'un run est le nombre de décisions : un modèle plus grand mais plus lent rendrait
     les campagnes de l'étape 16 impossibles.</li>
 </ul>
+</section>
+
+
+<!-- ============================================================ -->
+<section class="step">
+<h2>Étape 14 — Indicateurs d'émergence</h2>
+<p class="meta">24 octobre 2026 · Exigences concernées : B1 (contexte commun observable), B2 (indicateur
+calculé pendant le run et affiché avec la scène), B3 (distinguer l'émergence de son absence), B4 (échanges
+qui précèdent une variation), F6 (remonter aux événements bruts), A6 et O2 (sorties de rôle). Constats
+traités : incohérences et caractères étrangers du 1.7b (étape 6), observations inventées (étape 7),
+invention médicale (étape 12), adoption au premier contact (étape 13), lisibilité de la scène (étape 10).</p>
+
+<h3>Objectif</h3>
+<p>Mesurer pendant le run ce que l'énoncé appelle le « contexte commun » : ici, le sens que chaque groupe
+attribue au produit, et le degré auquel ce sens est partagé. Chaque valeur doit pouvoir remonter aux
+décisions et aux messages qui l'ont produite, et un <strong>run témoin sans diffusion</strong> doit dire ce
+qui, dans le sens observé, vient des échanges et ce qui vient du modèle lui-même (question Q2 du jury).</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Formule du sens partagé (20 oct.)</td><td><strong>Deux mesures complémentaires</strong> : la convergence <code>C = 1 − H / log 4</code> (globale, par rôle, par zone) et l'<strong>information mutuelle rôle × sens</strong> normalisée par l'entropie des sens, avec un test de permutation (200 tirages reproductibles) pour sa p-valeur. La convergence seule confond un consensus avec un défaut commun ; l'information mutuelle dit si les groupes pensent encore différemment.</td></tr>
+  <tr><td>Run témoin (B3)</td><td><strong>Aucun message remis, et personne ne voit qui porte le produit</strong> autour de lui (ni dans le prompt, ni dans les règles). Les agents décident encore avec la météo, les perturbations, le commerce et le corpus : ce qui converge quand même vient du modèle (<code>simulation.diffusion: false</code>).</td></tr>
+  <tr><td>Sorties de rôle</td><td><strong>Cinq signes détectés dans le texte</strong> des décisions LLM : incohérence action/sens, personne inventée, vocabulaire de santé, autre alphabet, formule d'assistant. Heuristiques : le taux est une borne basse, vérifiée à la main sur un échantillon.</td></tr>
+  <tr><td>Adoption au premier contact</td><td>Chaque rôle dit <strong>comment il accueille un produit nouveau</strong> ; la première décision précise que l'agent ne l'a jamais essayé.</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<table>
+  <tr><th>Fichier</th><th>Rôle</th></tr>
+  <tr><td><code>indicators/calcul.py</code></td><td>Définitions et calcul, sans Kafka : convergence, information mutuelle et permutation, adoption. Chaque valeur cite dans <code>caused_by</code> les décisions qu'elle compte (F6).</td></tr>
+  <tr><td><code>indicators/service.py</code></td><td>Consommateur Kafka lancé avec le run : il remet les événements dans l'ordre exact de l'orchestrateur (en-tête <code>seq</code>) et publie les indicateurs du jour sur <code>sim.indicators</code> à chaque fin de jour (B2).</td></tr>
+  <tr><td><code>indicators/derives.py</code></td><td>Détection des cinq signes de dérive ; les correspondants d'un agent viennent des seuls événements (messages cités, destinataires).</td></tr>
+  <tr><td><code>indicators/trace.py</code></td><td>D'une valeur affichée aux décisions qui l'ont fait bouger, puis aux messages que ces agents avaient sous les yeux (F6, B4) ; <code>--variation</code> trouve le jour du plus grand écart.</td></tr>
+  <tr><td><code>indicators/rapport.py</code></td><td>Rapport de plusieurs runs depuis leur seul historique (un run plus ancien est recalculé avec le même code).</td></tr>
+  <tr><td><code>bus/events.py</code></td><td>Nouvel événement <code>horloge.fin_jour</code> 1.0 (tous les faits du jour sont publiés) ; <code>indicateur.valeur</code> 1.1 (effectif et répartition par catégorie).</td></tr>
+  <tr><td><code>sim/orchestrateur.py</code>, <code>sim/run.py</code>, <code>replay/ecrivain.py</code></td><td>Fin de jour publiée ; service des indicateurs démarré avant le premier événement ; l'écrivain attend aussi les indicateurs du dernier jour ; mode témoin.</td></tr>
+  <tr><td><code>agents/prompts.py</code></td><td>Accueil d'un produit nouveau, par rôle ; « tu ne l'as jamais essayée » à la première décision.</td></tr>
+  <tr><td><code>configs/temoin*.yaml</code></td><td>Témoins sans diffusion : <code>temoin</code> (default), <code>temoin-dev</code> (dev), <code>temoin-baseline-dev</code> (baseline C0).</td></tr>
+  <tr><td><code>godot/scripts/</code></td><td>Une <strong>jauge des sens posée au sol devant chaque zone</strong> (<code>decor.gd</code>) et une courbe jour par jour du sens partagé et de l'information mutuelle (<code>courbe.gd</code>), alimentées par le service, en direct comme en rejeu.</td></tr>
+</table>
+
+<h3>Les runs (60 agents, 60 jours, graine 42)</h3>
+<p>Deux runs LLM lancés depuis un terminal séparé, et deux runs de la baseline, chacun avec son témoin.
+Détail jour par jour : <code>docs/mesures/indicateurs_2026-10-24_1737.md</code>.</p>
+<table>
+  <tr><th>Mesure</th><th>C0</th><th>C0 témoin</th><th>C1</th><th>C1 témoin</th></tr>
+  <tr><td>Adoption en fin de run</td><td>100 %</td><td>12 %</td><td><strong>83 %</strong></td><td><strong>43 %</strong></td></tr>
+  <tr><td>Convergence C, jour 1 → jour 60</td><td>0,75 → 0,79</td><td>0,75 → 0,68</td><td>0,46 → 0,25</td><td>0,32 → 0,28</td></tr>
+  <tr><td>Information mutuelle, jour 1 → jour 60 (p)</td><td>0,31 → 0,50 (0,01)</td><td>0,31 → 0,26 (0,44)</td><td>0,85 → 0,48 (0,005)</td><td>0,48 → 0,43 (0,005)</td></tr>
+  <tr><td>Sens dominant en fin de run</td><td>tendance</td><td>banal</td><td>efficace</td><td>banal / efficace</td></tr>
+  <tr><td>Agents LLM porteurs dès leur 1<sup>re</sup> décision</td><td>–</td><td>–</td><td>18 / 42</td><td>18 / 42</td></tr>
+  <tr><td>Décisions LLM « en dérive »</td><td>–</td><td>–</td><td>36 / 870 (4,1 %)</td><td>7 / 406 (1,7 %)</td></tr>
+  <tr><td>Appels LLM, durée réelle</td><td>0, 7 s</td><td>0, 5 s</td><td>870, 25 min</td><td>406, 10 min</td></tr>
+</table>
+
+<h3>Ce qu'on lit</h3>
+<ul>
+  <li><strong>Les échanges font l'adoption.</strong> Avec la diffusion, les porteurs doublent (83 % contre 43 %
+    pour C1, 100 % contre 12 % pour C0). C'est le résultat le plus net de l'étape.</li>
+  <li><strong>Chez les agents LLM, les échanges ne créent pas de sens commun.</strong> En C1, la convergence
+    baisse (0,46 → 0,25) et finit au niveau du témoin. Rôle par rôle, le sens final des agents LLM est presque
+    le même avec ou sans échanges : pharmaciens « efficace » 3 sur 3 dans les deux runs, habitués 7 sur 8
+    contre 5 sur 8, baigneurs 12 sur 17 contre 11 sur 17. Le rôle explique environ la moitié de la diversité
+    des sens dans les deux cas (information mutuelle autour de 0,45). Réponse à Q2 : <strong>le sens des
+    agents LLM vient du modèle, du rôle et du corpus, pas de la diffusion.</strong></li>
+  <li><strong>La diffusion mélange d'abord les groupes, puis ils se séparent à nouveau.</strong> En C1,
+    l'information mutuelle tombe de 0,85 à environ 0,3 entre les jours 5 et 30 (chacun entend les autres),
+    puis remonte vers 0,5 à 0,6 : les rôles retrouvent leur lecture du produit.</li>
+  <li><strong>Le surplus de « tendance » en C1</strong> (21 contre 5 dans le témoin) vient surtout des agents
+    à règles : 14 des 21 sont des fidèles et des vendeurs, que leur règle fait passer à « tendance » quand ils
+    voient des porteurs autour d'eux.</li>
+  <li><strong>Le biais « tendance » du 8b</strong> (étapes 3 et 6) ne se retrouve pas ici : les pharmaciens
+    disent « efficace » dans les deux runs. Avec 3 pharmaciens, l'échantillon est trop petit pour conclure.</li>
+</ul>
+
+<div class="box">
+  <strong>B3 : ce que la convergence seule ne sait pas dire.</strong> La baseline C0 est le cas d'école d'une
+  émergence : par imitation, tout le monde passe de « banal » à « tendance ». Son témoin reste sur « banal ».
+  Pourtant la convergence finit presque au même niveau dans les deux (0,79 contre 0,68), parce qu'un défaut
+  commun est aussi concentré qu'un consensus. Ce qui les distingue : l'<strong>information mutuelle</strong>
+  devient significative avec la diffusion (p = 0,01) et ne l'est pas dans le témoin (p = 0,44), et le
+  <strong>sens dominant change</strong> (banal → tendance) au lieu de rester celui du départ. La démonstration
+  B3 tient donc avec les deux mesures ensemble, pas avec la convergence seule. Le binôme devra dire, avant les
+  campagnes, s'il ajoute une mesure de déplacement du sens par rapport au jour 1 (question ouverte).
+</div>
+
+<h3>Remonter d'une valeur aux échanges (F6, B4)</h3>
+<p><code>python -m indicators.trace &lt;run&gt; --variation</code> trouve la plus forte variation du run C1 :
+le sens partagé tombe de 0,31 à 0,20 au jour 7. Treize décisions l'ont fait bouger, dont cinq motivées par un
+message ; elles remontent à deux publications « réseaux », et surtout à celle de <code>createur_contenu_02</code>
+au jour 4 (« Vaelys, Halo 4, nacrelle : la texture fluide qui rend la peau satinée »), entendue par cinq agents.
+Trois jours plus tard, après leur délai de réflexion, trois baigneurs et sceptiques passent de « banal » à
+« efficace » et un sceptique repasse à « banal ». Détail :
+<code>docs/mesures/trace_20261024-154113-dev-s42_sens_partage_j7_1736.md</code>.</p>
+
+<h3>Les dérives</h3>
+<table>
+  <tr><th>Signe</th><th>C1 (870 décisions)</th><th>Témoin (406)</th><th>Lecture</th></tr>
+  <tr><td>Autre alphabet</td><td>21</td><td>6</td><td>1.7b : 24 sur 755 décisions (3,2 %) ; 4b : 3 sur 434 ; 8b : aucun</td></tr>
+  <tr><td>Personne inventée</td><td>13</td><td>0</td><td>Seulement quand des noms circulent ; deux cas vérifiés à la main, tous deux justes (« mon pharmacien_02 », qui ne lui a jamais écrit)</td></tr>
+  <tr><td>Incohérence action/sens</td><td>2</td><td>0</td><td>Rare : le constat de l'étape 6 est réglé</td></tr>
+  <tr><td>Santé</td><td>0</td><td>1</td><td>« la crème pourrait avoir des effets secondaires », sans source</td></tr>
+  <tr><td>Formule d'assistant</td><td>0</td><td>0</td><td>La consigne « tu n'es pas un assistant » tient dans le texte</td></tr>
+</table>
+<p>La posture d'assistant se voit encore dans les choix, pas dans le ton : 18 agents LLM sur 42 deviennent
+porteurs dès leur première décision (22 avant la consigne d'accueil), contre environ 5 sur 60 au jour 1 dans la
+baseline.</p>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>0 incident, 0 relance, 0 repli, 0 violation temporelle dans les deux runs LLM ; tous les événements et
+    indicateurs publiés sont enregistrés (2 953 et 1 187 en C1).</li>
+  <li>Rejeu fidèle (bilan identique) d'un run de contrôle ; les indicateurs du rejeu sont ceux du run,
+    restitués sans recalcul.</li>
+  <li>Le même code calcule les indicateurs en direct et après coup : deux calculs d'un même run donnent les mêmes
+    valeurs, y compris les p-valeurs (tirages de permutation reproductibles).</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li><strong>Réglés</strong> : les incohérences action/sens du 1.7b (2 sur 870) et les caractères étrangers,
+    désormais comptés à chaque jour ; les observations inventées et les inventions médicales, détectées et
+    comptées ; la lisibilité de la scène pour les sens (jauge par zone).</li>
+  <li><strong>Mis à jour</strong> : l'adoption au premier contact baisse un peu (22 → 18 sur 42), reste loin de
+    la baseline (étape 16) ; le biais « tendance » du 8b ne se voit pas sur 3 pharmaciens (étape 16, 5 graines) ;
+    le chargement des modèles prend un tiers du temps d'un run C1 (498 s sur 1 525 s, 56 bascules).</li>
+  <li><strong>Nouveaux</strong> : 69 % des prompts de C1 sont réduits pour tenir dans le contexte (602 sur
+    870, aucun dans le témoin) : les messages reçus saturent le prompt, il faut vérifier ce que la réduction
+    retire (étape 16) ; le « tendance » des agents à règles vient de leur règle (imitation = tendance), ce qui
+    pèse sur toute comparaison de sens entre C0 et C1 (étape 16) ; la convergence seule ne prouve pas B3
+    (question ouverte au binôme).</li>
+  <li><strong>Durée</strong> : un run C1 de 60 agents sur 60 jours prend 25 min (870 appels), mieux que prévu ;
+    soit environ 1 h 15 projetée pour 120 agents sur 90 jours.</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Calcul</strong> : bornes de la convergence et de l'information mutuelle ; la permutation sépare
+    des sous-cultures du hasard ; l'état de la population compte le dernier avis et cite ses décisions.</li>
+  <li><strong>Service</strong> : indicateurs publiés à chaque fin de jour, reproductibles ; les runs antérieurs
+    reçoivent leurs fins de jour au rejeu.</li>
+  <li><strong>Dérives</strong> : chaque signe détecté ; correspondants tirés des seuls événements ; dérives
+    publiées avec le jour.</li>
+  <li><strong>Témoin</strong> : aucun message remis, part de porteurs masquée ; chaque rôle dit comment il
+    accueille un produit nouveau ; la trace remonte d'une valeur aux messages qui l'ont précédée.</li>
+  <li><strong>Scène</strong> : jauges et courbe appliquées depuis les messages du pont (<code>test_monde.gd</code>).</li>
+</ul>
+<p>Résultat : <span class="ok">213 tests réussis</span> (200 sans services, 7 avec Kafka et Redis, 1 Godot,
+5 avec Ollama), aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Le contexte commun se mesure avec deux nombres : à quel point un groupe s'accorde (convergence), et si les
+    groupes pensent encore différemment (information mutuelle, avec sa p-valeur).</li>
+  <li>Le témoin sans diffusion est la preuve : les échanges doublent l'adoption, mais le sens des agents LLM est
+    déjà là sans eux. C'est la réponse honnête à Q2.</li>
+  <li>Toute valeur affichée remonte aux décisions, puis aux messages : la chute du jour 7 vient d'une seule
+    publication d'un créateur de contenu.</li>
+  <li>Les petits modèles dérivent plus (alphabet, personnes inventées), et la dérive est comptée, pas cachée.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 15 — Mode asynchrone et cohérence temporelle : chaque agent agit à son rythme, latences réelles des
+modèles comprises (C4) ; place des chargements de modèles dans le temps simulé ; violations temporelles
+détectées et comptées sans barrière (C6) ; même scénario dans les deux modes et hypothèse formulée avant de
+mesurer (C5).</p>
 </section>
 
 </body>

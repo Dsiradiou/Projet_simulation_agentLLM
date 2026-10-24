@@ -34,13 +34,14 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | Type | Topic | Version | Description |
 | --- | --- | --- | --- |
 | [`horloge.pas`](#horlogepas) | `sim.world.events` | 1.0 | Début d'un pas de simulation (un jour). Synchronise les consommateurs. |
+| [`horloge.fin_jour`](#horlogefin_jour) | `sim.world.events` | 1.0 | Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). |
 | [`monde.meteo`](#mondemeteo) | `sim.world.events` | 1.0 | Météo du jour, produite par l'agent à règles météo. |
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
 | [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.3 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
 | [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.0 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
-| [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.0 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
+| [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.1 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
 | [`controle.injection`](#controleinjection) | `sim.control` | 1.1 | Demande d'injection d'une perturbation depuis l'interface (D3). |
 | [`controle.commande`](#controlecommande) | `sim.control` | 1.0 | Commande de pilotage du run depuis l'interface. |
 | [`incident`](#incident) | `sim.incidents` | 1.0 | Incident d'agent ou de cohérence temporelle, tracé et compté (A4, C6). |
@@ -51,6 +52,16 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 ### horloge.pas
 
 Début d'un pas de simulation (un jour). Synchronise les consommateurs. Version 1.0.
+
+Payload :
+
+| Champ | Type | Obligatoire | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `jour` | integer | oui |  |  |
+
+### horloge.fin_jour
+
+Fin d'un pas de simulation : tous les faits du jour sont publiés. Les indicateurs du jour sont calculés à sa réception (étape 14). Version 1.0.
 
 Payload :
 
@@ -142,7 +153,7 @@ Payload :
 
 ### indicateur.valeur
 
-Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. Version 1.0.
+Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. Version 1.1.
 
 Payload :
 
@@ -150,9 +161,11 @@ Payload :
 | --- | --- | --- | --- | --- |
 | `nom` | string | oui | longueur ≥ 1, longueur ≤ 64, motif `^[a-z0-9_]+$` |  |
 | `valeur` | number | oui |  |  |
-| `groupe` | string ou null | non |  | Groupe concerné, ou None si global. |
+| `groupe` | string ou null | non | longueur ≤ 64 | Groupe concerné (role:<rôle>, zone:<zone>), ou None si global. |
 | `fenetre_debut` | integer | oui | ≥ 0 | Minutes simulées depuis le jour 1 à 00:00. |
 | `fenetre_fin` | integer | oui | ≥ 0 | Minutes simulées depuis le jour 1 à 00:00. |
+| `effectif` | integer ou null | non | ≥ 0 | Nombre d'agents ou de décisions comptés (version 1.1). |
+| `repartition` | object ou null | non |  | Comptes par catégorie : sens, ou nature de dérive (version 1.1). |
 
 ## Topic `sim.control`
 
