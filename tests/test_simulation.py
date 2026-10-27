@@ -86,9 +86,10 @@ def test_factice_run_goes_through_kafka_and_redis(settings) -> None:
     bilan, publies, lus, zones, premier, agents = asyncio.run(scenario())
 
     assert bilan.jours == 3 and bilan.incidents == 0
-    # Par jour : début, météo et fin du jour (étape 14), puis les faits des agents.
-    assert publies == 3 * 3 + bilan.decisions + bilan.deplacements + bilan.messages
+    # Le plan du monde (étape 15 bis) ; par jour : début, météo et fin du jour (étape 14), puis
+    # les faits des agents.
+    assert publies == 1 + 3 * 3 + bilan.decisions + bilan.deplacements + bilan.messages
     assert [e.payload.jour for e in lus if isinstance(e, ev.ClockStep)] == [1, 2, 3]
     assert sum(isinstance(e, ev.AgentDecision) for e in lus) == bilan.decisions
     assert sum(z["presents"] for z in zones.values()) == len(agents)
-    assert premier["jour"] == "3" and premier["zone"] == agents[0].zone.value
+    assert premier["jour"] == "3" and premier["zone"] == agents[0].zone

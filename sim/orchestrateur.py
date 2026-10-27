@@ -4,6 +4,9 @@ synchrone ou asynchrone (`simulation.mode`).
 Avant chaque jour, l'orchestrateur relève les commandes et injections de l'interface (D3) :
 pause et reprise, arrêt propre, perturbations à appliquer ce jour-là.
 
+Au début du run, `monde.plan` annonce les zones du monde (leur nombre par type est un paramètre,
+`zones`) : la scène et le rejeu en tirent leur décor.
+
 Déroulé d'un jour d :
 1. début du jour (00:00) : `horloge.pas`, les événements des acteurs du monde (météo...), puis
    les perturbations injectées depuis la veille, éventuellement limitées à une zone ; à 08:00,
@@ -73,11 +76,13 @@ from bus.events import (
     NatureIncident,
     Weather,
     WeatherPayload,
+    WorldPlan,
+    WorldPlanPayload,
 )
 from sim.commerce import Commerce
 from sim.config import Config, Mode
 from sim.controle import SourceControle
-from sim.domaine import MINUTES_PAR_JOUR, Canal, Zone
+from sim.domaine import MINUTES_PAR_JOUR, Canal, concerne
 from sim.etat import EtatMonde
 from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.livraison import Boite
@@ -154,16 +159,16 @@ class _JourneeAsync:
     changé depuis, daté. La perception à l'heure s ne retient que les changements datés de s
     ou avant, même si une phase de modèles les a calculés plus tard (C6)."""
 
-    matin: dict[str, tuple[Zone, bool]]  # zone et porteur de chacun au début des décisions
+    matin: dict[str, tuple[str, bool]]  # lieu et porteur de chacun au début des décisions
     regles: list[tuple[int, str]]  # agents à règles pas encore passés : (heure, identifiant)
-    changements: dict[str, tuple[int, Zone, bool]] = field(default_factory=dict)
+    changements: dict[str, tuple[int, str, bool]] = field(default_factory=dict)
     passages: dict[str, int] = field(default_factory=dict)  # heure de passage de chacun
     perceptions: dict[str, Perception] = field(default_factory=dict)
     manquees: list[UUID] = field(default_factory=list)
     declenches: int = 0
     fin: int = 0
 
-    def etat_a(self, agent_id: str, minute: int) -> tuple[Zone, bool]:
+    def etat_a(self, agent_id: str, minute: int) -> tuple[str, bool]:
         change = self.changements.get(agent_id)
         if change is not None and change[0] <= minute:
             return change[1], change[2]
@@ -242,6 +247,16 @@ class Orchestrateur:
     async def executer(self, jours: int | None = None) -> Bilan:
         debut = time.perf_counter()
         await self._statut("en_cours")
+        lieux = self.config.lieux
+        if self.etat:
+            await self.etat.ecrire_plan(lieux)
+        await self._publier(
+            WorldPlan(
+                **self._dates(0),
+                source_agent_id="orchestrateur",
+                payload=WorldPlanPayload(lieux=lieux),
+            )
+        )
         for jour in range(1, (jours or self.config.simulation.duree_jours) + 1):
             if not await self._relever_controle():
                 break
@@ -591,9 +606,7 @@ class Orchestrateur:
             zone=agent.zone,
             messages=self._non_lus.pop(agent.agent_id, ())
             + self.boite.relever(agent.agent_id, t, barriere),
-            evenements=tuple(
-                e for e in self._perturbations if e.zone is None or e.zone is agent.zone
-            ),
+            evenements=tuple(e for e in self._perturbations if concerne(e.zone, agent.zone)),
             meteo=self.meteo,
             # Run témoin (B3) : l'agent ne voit pas qui utilise le produit autour de lui.
             part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone]
@@ -764,17 +777,18 @@ class Orchestrateur:
         pour qu'une décision mal formée n'en publie qu'une partie)."""
         suites: list[AgentMove | AgentMessage] = []
         zone = agent.zone
-        if decision.deplacement and decision.deplacement is not zone:
+        vers = agent.lieu_de(decision.deplacement) if decision.deplacement else None
+        if vers is not None and vers != zone:
             suites.append(
                 AgentMove(
                     **self._dates(t),
                     source_agent_id=agent.agent_id,
-                    zone=decision.deplacement,
+                    zone=vers,
                     caused_by=(decision_id,),
-                    payload=AgentMovePayload(depuis=zone, vers=decision.deplacement),
+                    payload=AgentMovePayload(depuis=zone, vers=vers),
                 )
             )
-            zone = decision.deplacement
+            zone = vers
         delais = self.config.simulation.delais_livraison_min
         for intent in decision.messages:
             suites.append(
@@ -812,7 +826,7 @@ class Orchestrateur:
         if canal is Canal.DIRECT:
             return [a for a in message.payload.destinataires if a in self._par_id]
         if canal is Canal.ZONE:
-            return [a.agent_id for a in self.agents if a.zone is message.zone]
+            return [a.agent_id for a in self.agents if a.zone == message.zone]
         return self._abonnes.get(message.source_agent_id, [])  # réseaux : ses abonnés
 
     # --- utilitaires ------------------------------------------------------------------------

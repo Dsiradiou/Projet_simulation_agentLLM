@@ -1,5 +1,7 @@
 """Vocabulaire fermé du monde : zones, sens, et représentation du temps simulé."""
 
+import re
+from collections.abc import Mapping
 from enum import StrEnum
 from typing import Annotated
 
@@ -7,6 +9,8 @@ from pydantic import Field
 
 
 class Zone(StrEnum):
+    """Type de zone. Le monde en compte un ou plusieurs exemplaires de chaque type (`zones`)."""
+
     PHARMACIE = "pharmacie"
     PLAGE = "plage"
     PISCINE = "piscine"
@@ -14,6 +18,40 @@ class Zone(StrEnum):
     CENTRE_COMMERCIAL = "centre_commercial"
     TERRAIN_SPORT = "terrain_sport"
     DOMICILE = "domicile"
+
+
+# Un lieu est une zone précise du monde. Un type présent une seule fois garde son nom (« plage ») :
+# les runs à sept zones sont inchangés. Présent plusieurs fois, il est numéroté (« plage_1 »,
+# « plage_2 »…) et son nom seul désigne alors tous ses exemplaires (perturbation sur « plage »).
+ZONES_PAR_TYPE_MAX = 4
+LIEU_MOTIF = rf"^({'|'.join(z.value for z in Zone)})(_[1-{ZONES_PAR_TYPE_MAX}])?$"
+_NUMERO = re.compile(r"_[0-9]+$")
+
+Lieu = Annotated[
+    str,
+    Field(pattern=LIEU_MOTIF, description="Zone du monde : « plage », ou « plage_2 » s'il y en a "
+          "plusieurs ; le nom du type seul désigne tous ses exemplaires."),
+]  # fmt: skip
+
+
+def type_de_lieu(lieu: str) -> Zone:
+    """Type d'un lieu : « plage_2 » -> plage."""
+    return Zone(_NUMERO.sub("", lieu))
+
+
+def lieux_du_monde(nombres: Mapping[Zone, int] | None = None) -> tuple[str, ...]:
+    """Lieux du monde, dans l'ordre des types : un type absent de `nombres` compte une zone."""
+    lieux: list[str] = []
+    for zone in Zone:
+        n = (nombres or {}).get(zone, 1)
+        lieux += [zone.value] if n == 1 else [f"{zone.value}_{i}" for i in range(1, n + 1)]
+    return tuple(lieux)
+
+
+def concerne(cible: str | None, lieu: str) -> bool:
+    """Un fait daté dans `cible` touche-t-il quelqu'un qui se trouve dans `lieu` ? Sans cible,
+    tout le monde ; un nom de type, tous ses exemplaires ; un lieu numéroté, lui seul."""
+    return cible is None or cible == lieu or cible == type_de_lieu(lieu).value
 
 
 class Sens(StrEnum):

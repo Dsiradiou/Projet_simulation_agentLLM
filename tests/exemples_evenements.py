@@ -65,8 +65,24 @@ def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
         ev.AgentMove: ev.AgentMove(
             **base,
             source_agent_id="baigneur_occasionnel_12",
-            zone="plage",
-            payload=ev.AgentMovePayload(depuis="domicile", vers="plage"),
+            zone="plage_2",
+            payload=ev.AgentMovePayload(depuis="domicile", vers="plage_2"),
+        ),
+        ev.WorldPlan: ev.WorldPlan(
+            **base,
+            source_agent_id="orchestrateur",
+            payload=ev.WorldPlanPayload(
+                lieux=(
+                    "pharmacie",
+                    "plage_1",
+                    "plage_2",
+                    "piscine",
+                    "reseaux_sociaux",
+                    "centre_commercial",
+                    "terrain_sport",
+                    "domicile",
+                ),
+            ),
         ),
         ev.Indicator: ev.Indicator(
             **base,

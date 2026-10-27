@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "WorldPlanPayload": {
+      "additionalProperties": false,
+      "properties": {
+        "lieux": {
+          "description": "Zones du monde, une fois chacune.",
+          "items": {
+            "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+            "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Lieux",
+          "type": "array"
+        }
+      },
+      "required": [
+        "lieux"
+      ],
+      "title": "WorldPlanPayload",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "description": "Identifiant unique.",
+      "format": "uuid",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "description": "Run qui a produit l'événement.",
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "type": {
+      "const": "monde.plan",
+      "default": "monde.plan",
+      "title": "Type",
+      "type": "string"
+    },
+    "sim_time_occurred": {
+      "description": "Moment simulé où le fait se produit.",
+      "minimum": 0,
+      "title": "Sim Time Occurred",
+      "type": "integer"
+    },
+    "sim_time_processed": {
+      "description": "Moment simulé où l'émetteur a fini de le traiter (≥ sim_time_occurred).",
+      "minimum": 0,
+      "title": "Sim Time Processed",
+      "type": "integer"
+    },
+    "wall_time_emitted": {
+      "description": "Horodatage réel d'émission, en UTC.",
+      "format": "date-time",
+      "title": "Wall Time Emitted",
+      "type": "string"
+    },
+    "source_agent_id": {
+      "description": "Émetteur : agent ou composant.",
+      "maxLength": 64,
+      "minLength": 1,
+      "pattern": "^[a-z0-9_]+$",
+      "title": "Source Agent Id",
+      "type": "string"
+    },
+    "zone": {
+      "anyOf": [
+        {
+          "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+          "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Zone concernée, si elle existe : un lieu (« plage », « plage_2 ») ou, pour une perturbation, un type de zone qui vaut pour tous ses exemplaires.",
+      "title": "Zone"
+    },
+    "caused_by": {
+      "default": [],
+      "description": "Événements à l'origine de celui-ci (traçabilité, F6).",
+      "items": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "title": "Caused By",
+      "type": "array"
+    },
+    "payload": {
+      "$ref": "#/$defs/WorldPlanPayload"
+    }
+  },
+  "required": [
+    "run_id",
+    "sim_time_occurred",
+    "sim_time_processed",
+    "source_agent_id",
+    "payload"
+  ],
+  "title": "WorldPlan",
+  "type": "object"
+}

@@ -70,7 +70,7 @@ class VueMonde:
             case ev.AgentDecision():
                 f = self._fiche(event.source_agent_id)
                 p = event.payload
-                f.zone = event.zone.value if event.zone else f.zone
+                f.zone = event.zone or f.zone
                 f.sens, f.porteur = p.sens.value, p.porteur
                 f.palier = p.palier.value if p.palier else "regles"
                 f.decisions.append(
@@ -89,7 +89,7 @@ class VueMonde:
                     }
                 )
             case ev.AgentMove():
-                self._fiche(event.source_agent_id).zone = event.payload.vers.value
+                self._fiche(event.source_agent_id).zone = event.payload.vers
             case ev.AgentMessage():
                 p = event.payload
                 message = {
@@ -109,7 +109,7 @@ class VueMonde:
                     {
                         "jour": self.jour,
                         "nature": event.payload.nature.value,
-                        "zone": event.zone.value if event.zone else None,
+                        "zone": event.zone,
                         "description": event.payload.description,
                     }
                 )

@@ -78,6 +78,7 @@ exigences de l'énoncé.</p>
   <tr><td>13</td><td>Agents à règles et baseline</td><td>Météo, vendeurs, concurrent, fidèles ; baseline C0 avec la même saisonnalité (A6, E1)</td><td class="ok">terminée</td></tr>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="ok">terminée</td></tr>
+  <tr><td>15 bis</td><td>Paramétrage et zones multiples</td><td>Lancer un run depuis la scène : agents par rôle, zones par type, mode synchrone ou asynchrone (C2, C4, D3)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
   <tr><td>16</td><td>Expériences</td><td>Configurations C0 à C3, au moins 5 runs chacune, Bass, synchrone/asynchrone, coûts (E1, E2, E4, E5, C5)</td><td class="todo">à venir</td></tr>
   <tr><td>17</td><td>Charge et pannes</td><td>Agent muet, pic d'événements, latence jusqu'aux indicateurs (O4, C7)</td><td class="todo">à venir</td></tr>
@@ -2389,6 +2390,117 @@ constats). Aucune remarque de ruff.</p>
 <p>Étape 16 — Campagnes d'expériences : configurations C0 à C3, au moins 5 graines chacune (E1, E2), runs de 90
 jours, synchrone contre asynchrone avec témoins (C5), coûts (E4, E5) ; et les constats qui en dépendent :
 adoption au premier contact, saturation, durée des flacons, prompts réduits, bascules de modèles.</p>
+</section>
+
+<section class="step">
+<h2>Étape 15 bis — Interface de paramétrage et zones multiples</h2>
+<p class="meta">27 octobre 2026 · Exigences concernées : C2 (nombre d'agents fixé au lancement, sans toucher
+au code), C4 (mode choisi au lancement), D1 et D3 (piloter le monde depuis l'interface), E2 et E3 (chaque
+run lancé reste reproductible et rejouable), A5 (le modèle dépend du rôle).</p>
+
+<h3>Objectif</h3>
+<p>Lancer soi-même une simulation depuis la scène, sans éditer de YAML ni ouvrir de terminal : choisir le
+nombre d'agents (de chaque rôle, donc de chaque modèle), le mode d'exécution, et le nombre de zones de
+chaque type. Étape ajoutée au plan à la demande du binôme, avant les campagnes d'expériences.</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Que veut dire « plusieurs zones d'un même type » ?</td><td><strong>De vrais lieux distincts</strong> : avec 3 plages, on ne voit que les porteurs et les messages de zone de <em>sa</em> plage ; chaque pharmacie a son stock. Pas un simple effet visuel, qui n'aurait rien changé à la simulation.</td></tr>
+  <tr><td>Que règle-t-on pour « le nombre de modèles » ?</td><td><strong>Le nombre d'agents de chaque rôle</strong> ; le palier et le modèle en découlent (A5 : le modèle dépend du rôle, jamais l'inverse). Un total peut aussi être réparti au prorata de la configuration de base.</td></tr>
+  <tr><td>Où vit l'interface, et lance-t-elle le run ?</td><td><strong>Un menu dans la scène Godot qui lance le run</strong> par le pont : le pont écrit la configuration, la valide et démarre le run dans son propre processus.</td></tr>
+  <tr><td>Place dans le plan</td><td><strong>Étape 15 bis</strong>, avant les campagnes (étape 16), pour ne pas renuméroter les étapes déjà citées partout.</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Lieux</strong> (<code>sim/domaine.py</code>) : <code>Zone</code> reste le vocabulaire fermé des
+    types ; un lieu est <code>plage</code> si le type est présent une fois, <code>plage_1</code>…<code>plage_4</code>
+    sinon. Le nom du type seul vise tous ses exemplaires (<code>concerne</code>). Nouveau réglage
+    <code>zones</code> (1 à 4 par type) ; sans lui, les sept zones d'origine, inchangées.</li>
+  <li><strong>Agents</strong> : chacun a un lieu habituel par type répété (sa plage, sa pharmacie), tiré avec
+    un générateur à part : un monde à une zone par type garde exactement les mêmes tirages qu'avant (testé).
+    Les routines mènent au lieu habituel ; prompts et RAG ne voient que le type (« à la plage »).</li>
+  <li><strong>Orchestrateur</strong> : part de porteurs et messages de zone par lieu ; une perturbation sur un
+    type touche tous ses exemplaires, sur un lieu lui seul. Nouvel événement <code>monde.plan</code> en tête de
+    chaque run (ses lieux) ; <code>agent.deplacement</code> passe en version 1.1.</li>
+  <li><strong>Commerce</strong> : un stock par exemplaire de point de vente ; les quantités configurées valent
+    pour un type et se partagent entre ses exemplaires, pour que le nombre de zones change la géographie, pas
+    l'offre totale.</li>
+  <li><strong>Pont</strong> (<code>bridge/lancement.py</code>) : <code>GET /parametres</code> décrit le
+    formulaire d'après une configuration de base ; <code>POST /lancements</code> écrit
+    <code>runs/lancements/&lt;horodatage&gt;/interface.yaml</code> (<code>herite_de</code> la base), la valide
+    avec <code>load_config</code>, puis lance <code>sim.run</code> à part, sortie dans <code>sortie.log</code> ;
+    <code>GET /lancements</code> en suit l'état. Un seul run à la fois ; l'instantané donne les lieux du run,
+    et une injection vers une zone absente du run est refusée.</li>
+  <li><strong>Scène</strong> : interface de paramétrage (<code>parametrage.gd</code>) construite d'après la
+    description du pont, ouverte au démarrage si aucun run ne tourne ; décor procédural d'après
+    <code>monde.plan</code> (plages le long de la côte, autres zones en rangées vers l'intérieur, un stock,
+    une jauge et un halo par exemplaire, caméra cadrée sur l'ensemble) ; un échec du run rouvre le menu
+    avec la fin de sa sortie.</li>
+  <li><strong>Effets de météo</strong> (<code>meteo.gd</code>, à la demande du binôme) : jusque-là, seuls la
+    couleur du ciel et la lumière changeaient. Désormais, transition d'une seconde et demie entre les
+    ambiances, brume et couleurs selon le temps, pluie en particules, orage (une pluie précédée le même jour
+    d'une perturbation « orage » injectée) avec pluie battante et éclairs, canicule aux couleurs chaudes où
+    l'air ondule, banc de nuages à l'horizon. Les premiers nuages, placés au-dessus de la ville, la
+    masquaient en vue plongeante : ils ont été repoussés derrière elle.</li>
+</ul>
+<p><img src="../scene/parametrage.png" alt="Interface de paramétrage" style="width:100%"></p>
+<p><img src="../scene/zones-multiples.png" alt="Rejeu d'un run à trois plages, deux pharmacies et deux domiciles" style="width:100%"></p>
+<p><img src="../scene/meteo-orage.png" alt="Orage : pluie battante, ciel sombre, éclair" style="width:100%"></p>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>Run lancé par le pont (baseline C0, 60 agents, 10 jours, graine 7, 3 plages, 2 pharmacies, 2 domiciles) :
+    <code>20261027-101104-interface-s7</code>, code de sortie 0, 368 événements publiés et enregistrés,
+    rejeu fidèle (bilan identique). Les décisions se répartissent sur les 11 lieux (de 3 au terrain de sport à
+    26 au domicile 1).</li>
+  <li>Captures de la scène : menu rempli d'après la configuration par défaut (120 agents, résumé par modèle),
+    décor à 11 zones en rejeu.</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li><strong>Nouveau</strong> : dans la scène Godot, le rejeu se coupe avant la fin (« pont injoignable » au
+    jour 9 sur 10) ; la scène de l'étape 15 fait de même sur un ancien run, et le client Python reçoit tout.
+    Défaut antérieur, ajouté aux constats ouverts (étape 18, avant le run de démonstration).</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Vocabulaire</strong> : noms des lieux, bornes 1 à 4, cible d'un type contre cible d'un lieu,
+    lieux inconnus refusés par le contrat, plan sans doublon.</li>
+  <li><strong>Population</strong> : mêmes tirages qu'avant avec une zone par type ; lieux habituels répartis et
+    reproductibles ; la routine mène au lieu habituel.</li>
+  <li><strong>Orchestrateur</strong> : plan publié en premier, message de zone limité à son lieu, part de
+    porteurs par lieu, perturbation sur un type ou sur un lieu ; run factice à 12 zones valide et recalculé par
+    le rejeu.</li>
+  <li><strong>Commerce</strong> : stock partagé entre exemplaires, rupture sur un exemplaire ou sur un type.</li>
+  <li><strong>Pont</strong> : description du formulaire, configuration écrite et valide, lancement et suivi
+    d'un processus, refus (zones hors bornes, base inconnue ou hors de <code>configs/</code>, mode inconnu,
+    population vide), un seul run à la fois.</li>
+  <li><strong>Scène</strong> (Godot sans écran) : décor d'après un plan, placement et déplacement entre
+    exemplaires, halos par type ou par lieu, stocks et jauges par exemplaire, retour aux zones d'origine pour
+    un rejeu sans plan ; menu construit d'après le pont, répartition au prorata, demande de lancement, refus et
+    échec affichés ; effets de chaque météo, orage injecté puis pluie ordinaire le lendemain, météo gardée
+    quand le décor est reconstruit.</li>
+</ul>
+<p>Résultat : 255 tests (dont 30 nouveaux, et 30 vérifications ajoutées au test de la scène), <span class="ok">tous réussis</span>, tests Ollama,
+d'intégration et de la scène compris. Aucune remarque de ruff.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Une simulation se lance depuis la scène : agents par rôle, zones par type, mode et moteur ; le pont écrit
+    une configuration ordinaire, validée comme les autres, et le run reste reproductible (manifeste) et
+    rejouable.</li>
+  <li>Plusieurs plages, ce sont plusieurs foyers : chacun ne voit que les siens, le réseau social et les messages
+    directs font le lien. De quoi tester l'effet de la géographie sur la diffusion.</li>
+  <li>Le modèle reste attribué par le rôle (A5) : on choisit combien de pharmaciens, pas qui a le 8b.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 16 — Campagnes d'expériences, comme prévu ; le nombre de zones devient un facteur possible à
+comparer (même population, même graine, une ou plusieurs plages).</p>
 </section>
 
 </body>

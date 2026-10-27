@@ -48,19 +48,6 @@
       ],
       "title": "Canal",
       "type": "string"
-    },
-    "Zone": {
-      "enum": [
-        "pharmacie",
-        "plage",
-        "piscine",
-        "reseaux_sociaux",
-        "centre_commercial",
-        "terrain_sport",
-        "domicile"
-      ],
-      "title": "Zone",
-      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -119,14 +106,17 @@
     "zone": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Zone"
+          "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+          "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+          "type": "string"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Zone concernée, si elle existe."
+      "description": "Zone concernée, si elle existe : un lieu (« plage », « plage_2 ») ou, pour une perturbation, un type de zone qui vaut pour tous ses exemplaires.",
+      "title": "Zone"
     },
     "caused_by": {
       "default": [],

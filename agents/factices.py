@@ -31,7 +31,7 @@ class AgentFactice(Agent):
         self,
         agent_id: str,
         role: Role,
-        zone: Zone,
+        zone: str,
         rng: random.Random,
         contacts: list[str],
         facteur_latence: float = 0.0,

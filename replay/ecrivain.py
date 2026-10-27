@@ -78,7 +78,7 @@ def _ligne(record: ConsumerRecord, event: ev.Envelope) -> dict:
         "sim_time_processed": event.sim_time_processed,
         "wall_time_emitted": event.wall_time_emitted,
         "source_agent_id": event.source_agent_id,
-        "zone": event.zone.value if event.zone else None,
+        "zone": event.zone,
         "caused_by": [str(c) for c in event.caused_by],
         "brut": record.value.decode("utf-8"),
     }

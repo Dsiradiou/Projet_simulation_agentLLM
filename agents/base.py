@@ -30,7 +30,7 @@ class Perception:
 
     jour: int
     minute: int
-    zone: Zone
+    zone: str  # lieu où il se trouve (« plage », ou « plage_2 » s'il y en a plusieurs)
     messages: tuple[AgentMessage, ...] = ()  # messages livrés depuis la dernière décision
     evenements: tuple[Envelope, ...] = ()  # perturbations du monde survenues depuis
     meteo: WeatherPayload | None = None
@@ -70,7 +70,7 @@ class Decision:
     palier: Palier | None = None
     appel_llm: LlmCall | None = None
     messages: tuple[MessageIntent, ...] = ()
-    deplacement: Zone | None = None
+    deplacement: Zone | None = None  # type de zone : il gagne son lieu habituel de ce type
     caused_by: tuple[UUID, ...] = field(default=())  # événements de la perception utilisés
     incidents: tuple[IncidentAgent, ...] = ()
     sources: tuple[str, ...] = ()  # passages du corpus et souvenirs montrés au modèle (RAG)
@@ -87,11 +87,14 @@ def porteur_apres(action: Action, porteur_avant: bool) -> bool:
 
 
 class Agent(ABC):
-    def __init__(self, agent_id: str, role: Role, zone: Zone, rng: random.Random) -> None:
+    def __init__(self, agent_id: str, role: Role, zone: str, rng: random.Random) -> None:
         self.agent_id = agent_id
         self.role = role
         self.palier: Palier | None = palier_du_role(role)
         self.zone = zone
+        # Ses lieux habituels quand un type de zone a plusieurs exemplaires (sa plage, sa
+        # pharmacie) ; un type absent n'en a qu'un, qui porte son nom.
+        self.lieux: dict[Zone, str] = {}
         self.rng = rng
         self.derniere_decision: Decision | None = None
         # Comptes suivis sur les réseaux ; None : reçoit toutes les publications (agents de test).
@@ -105,6 +108,10 @@ class Agent(ABC):
         self._meteo_forte_veille = False
         # Jours d'usage restants dans son flacon (étape 13) ; None : pas de commerce simulé.
         self.flacon_jours: int | None = None
+
+    def lieu_de(self, zone: Zone) -> str:
+        """Le lieu où il va quand il se rend dans une zone de ce type."""
+        return self.lieux.get(zone, zone.value)
 
     @property
     def porteur(self) -> bool:

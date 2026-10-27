@@ -1,10 +1,11 @@
 """Routines de déplacement (étape 11) : où chaque agent passe sa journée, selon rôle et temps.
 
 Règle sans LLM, lue dans la configuration (`routines`). Chaque matin, un agent reste dans sa zone
-avec la probabilité `stabilite`, sinon il tire une zone selon les poids de son rôle par beau ou
-mauvais temps. Ces déplacements exposent chacun aux porteurs d'autres zones (déclencheur
-d'exposition) et font vivre la scène. Chaque agent a son propre générateur, dérivé de la graine du
-run : les tirages ne dépendent ni de l'ordre des agents ni des autres composants.
+avec la probabilité `stabilite`, sinon il tire un type de zone selon les poids de son rôle par
+beau ou mauvais temps, et gagne son lieu habituel de ce type (`Agent.lieu_de`). Ces déplacements
+exposent chacun aux porteurs d'autres zones (déclencheur d'exposition) et font vivre la scène.
+Chaque agent a son propre générateur, dérivé de la graine du run : les tirages ne dépendent ni de
+l'ordre des agents ni des autres composants.
 """
 
 import random
@@ -48,16 +49,17 @@ class Routines:
             self._rngs[agent_id] = agent_rng(self.seed, f"{agent_id}:routine")
         return self._rngs[agent_id]
 
-    def deplacements(self, agents: list[Agent], meteo: WeatherPayload | None) -> dict[str, Zone]:
-        """Zone du jour des agents qui changent de zone ce matin."""
+    def deplacements(self, agents: list[Agent], meteo: WeatherPayload | None) -> dict[str, str]:
+        """Lieu du jour des agents qui changent de zone ce matin."""
         temps = temps_de(meteo)
-        mouvements: dict[str, Zone] = {}
+        mouvements: dict[str, str] = {}
         for agent in sorted(agents, key=lambda a: a.agent_id):
             if agent.role not in self.config.roles:
                 continue
             rng = self._rng(agent.agent_id)
             reste = rng.random() < self.config.stabilite  # deux tirages par jour, toujours
             zone = tirer_zone(self.config, agent.role, temps, rng)
-            if not reste and zone is not None and zone is not agent.zone:
-                mouvements[agent.agent_id] = zone
+            lieu = agent.lieu_de(zone) if zone is not None else None
+            if not reste and lieu is not None and lieu != agent.zone:
+                mouvements[agent.agent_id] = lieu
         return mouvements

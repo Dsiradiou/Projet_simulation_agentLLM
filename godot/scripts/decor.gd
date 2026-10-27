@@ -1,8 +1,13 @@
 # Décor de la station balnéaire (maquette A, choisie par le binôme le 18 octobre).
 #
 # Construit le terrain, les bâtiments de chaque zone et l'environnement, et fournit pour chaque
-# zone une liste d'emplacements où les habitants se tiennent. Le décor ne dépend d'aucune donnée
-# de la simulation : `monde.gd` y place les habitants et l'anime à partir du flux du pont.
+# zone une liste d'emplacements où les habitants se tiennent. `monde.gd` y place les habitants et
+# l'anime à partir du flux du pont.
+#
+# Décor procédural (étape 15 bis) : il est construit à partir des lieux du run (`monde.plan`),
+# un ou plusieurs exemplaires de chaque type de zone. Le premier exemplaire garde la place de la
+# maquette ; les plages suivantes se suivent le long de la côte, les autres zones s'alignent en
+# rangées vers l'intérieur des terres. Sans plan (runs plus anciens), les sept zones d'origine.
 class_name Decor
 extends Node3D
 
@@ -21,8 +26,8 @@ const NOMS_ZONES := {
 	"terrain_sport": "Terrain de sport",
 	"domicile": "Domicile",
 }
-# Zone où se tiennent les habitants : centre, taille (x, z) et hauteur du sol.
-const AIRES := {
+# Aire où se tiennent les habitants dans le premier exemplaire d'un type : centre, taille (x, z).
+const AIRES_TYPE := {
 	"plage": [Vector3(-3, 0.0, 11.2), Vector2(40, 4.5)],
 	"domicile": [Vector3(-24, 0.0, -6.8), Vector2(12, 4.5)],
 	"centre_commercial": [Vector3(16, 0.0, -7.2), Vector2(16, 4.5)],
@@ -32,32 +37,106 @@ const AIRES := {
 	"terrain_sport": [Vector3(-27, 0.06, 1.0), Vector2(12, 7.0)],
 }
 const ESPACEMENT := 1.35
+const LIEUX_ORIGINE := ["pharmacie", "plage", "piscine", "reseaux_sociaux", "centre_commercial", "terrain_sport", "domicile"]
+const DECALAGES_PLAGE := [0.0, 44.0, -44.0, 88.0]  # exemplaires successifs, le long de la côte
+const ECART_RANGEE := 28.0  # entre deux exemplaires d'une autre zone, vers l'intérieur des terres
 
+var lieux: Array = []  # lieux du décor, dans l'ordre du plan
+var aires := {}  # lieu -> [centre, taille] de l'aire où se tiennent les habitants
+var effets: EffetsMeteo  # nuages, pluie, orage, chaleur
+var _conditions := "ensoleille"
+var _orage := false
+var _cible := Vector3(-2, 0, -2)
 var _materiaux := {}
 var _soleil: DirectionalLight3D
 var _ciel: ProceduralSkyMaterial
-var _ecran: Label3D
-var _halos := {}  # zone -> anneau de mise en évidence (perturbation)
+var _ecran: Label3D  # écran du premier exemplaire des réseaux sociaux
+var _ecrans: Array[Label3D] = []
+var _halos := {}  # lieu -> anneau de mise en évidence (perturbation)
 var _stocks := {}  # point de vente -> étiquette du stock de la marque (étape 13)
-var _jauges := {}  # zone -> [racine, {sens: segment}, étiquette, largeur] (étape 14)
+var _jauges := {}  # lieu -> [racine, {sens: segment}, étiquette, largeur] (étape 14)
 
 
-func construire() -> void:
+func construire(liste: Array = []) -> void:
+	## (Re)construit tout le décor pour ces lieux ; sans liste, les sept zones d'origine.
+	for enfant in get_children():
+		remove_child(enfant)
+		enfant.queue_free()
+	for d in [aires, _halos, _stocks, _jauges]:
+		d.clear()
+	_ecrans.clear()
+	_ecran = null
+	lieux = []
+	for lieu in (liste if liste.size() > 0 else LIEUX_ORIGINE):
+		if AIRES_TYPE.has(type_de(lieu)) and numero(lieu) <= DECALAGES_PLAGE.size():
+			lieux.append(str(lieu))
+			var aire: Array = AIRES_TYPE[type_de(lieu)]
+			aires[lieu] = [aire[0] + decalage(lieu), aire[1]]
 	_environnement()
 	_terrain_et_mer()
-	_plage()
-	_domicile()
-	_commerces()
-	_pharmacie()
-	_reseaux()
-	_piscine(Vector3(14, 0, 1))
-	_terrain(Vector3(-27, 0, 1))
+	for lieu in lieux:
+		var o := decalage(lieu)
+		match type_de(lieu):
+			"plage":
+				_plage(lieu, o)
+			"domicile":
+				_domicile(lieu, o)
+			"centre_commercial":
+				_commerces(lieu, o)
+			"pharmacie":
+				_pharmacie(lieu, o)
+			"reseaux_sociaux":
+				_reseaux(lieu, o)
+			"piscine":
+				_piscine(lieu, Vector3(14, 0, 1) + o)
+			"terrain_sport":
+				_terrain(lieu, Vector3(-27, 0, 1) + o)
 	_arbres()
-	for zone in AIRES:
-		_halos[zone] = _halo(zone)
-		_jauge(zone)
-	_stocks["pharmacie"] = etiquette("", Vector3(-2, 5.4, -11), 64)
-	_stocks["centre_commercial"] = etiquette("", Vector3(16, 8.4, -12), 64)
+	for lieu in lieux:
+		_halos[lieu] = _halo(lieu)
+		_jauge(lieu)
+
+
+func est_d_origine() -> bool:
+	return lieux == LIEUX_ORIGINE
+
+
+# --- lieux --------------------------------------------------------------------------------------
+
+
+static func type_de(lieu: String) -> String:
+	## « plage_2 » -> « plage » ; un nom de type est son propre type.
+	var i := lieu.rfind("_")
+	if i > 0 and lieu.substr(i + 1).is_valid_int():
+		return lieu.left(i)
+	return lieu
+
+
+static func numero(lieu: String) -> int:
+	return int(lieu.substr(lieu.rfind("_") + 1)) if type_de(lieu) != lieu else 1
+
+
+static func decalage(lieu: String) -> Vector3:
+	var k := numero(lieu) - 1
+	if type_de(lieu) == "plage":
+		return Vector3(DECALAGES_PLAGE[k], 0, 0)
+	return Vector3(0, 0, -ECART_RANGEE * k)
+
+
+func nom_lieu(lieu: String) -> String:
+	## « Plage 2 » ; un nom de type (perturbation sur tous ses exemplaires) reste « Plage ».
+	var nom: String = NOMS_ZONES.get(type_de(lieu), lieu)
+	return nom if type_de(lieu) == lieu else "%s %d" % [nom, numero(lieu)]
+
+
+func lieux_concernes(cible: String) -> Array:
+	## Lieux touchés par un fait daté dans `cible` : tous sans cible, tous les exemplaires d'un
+	## type pour un nom de type, sinon le lieu lui-même (même règle que `sim.domaine.concerne`).
+	if cible == "":
+		return lieux.duplicate()
+	if aires.has(cible):
+		return [cible]
+	return lieux.filter(func(l): return type_de(l) == cible)
 
 
 # --- emplacements -------------------------------------------------------------------------------
@@ -65,7 +144,7 @@ func construire() -> void:
 
 func emplacements(zone: String) -> Array[Vector3]:
 	## Points où se tenir dans une zone, en grille, du centre vers les bords.
-	var aire: Array = AIRES[zone]
+	var aire: Array = aires[zone]
 	var centre: Vector3 = aire[0]
 	var taille: Vector2 = aire[1]
 	var points: Array[Vector3] = []
@@ -81,35 +160,41 @@ func emplacements(zone: String) -> Array[Vector3]:
 
 
 func centre_zone(zone: String) -> Vector3:
-	return AIRES[zone][0]
+	return aires[zone][0]
+
+
+func bornes() -> Rect2:
+	## Emprise au sol des aires (x, z), pour cadrer la caméra sur le monde construit.
+	var r := Rect2()
+	for i in lieux.size():
+		var aire: Array = aires[lieux[i]]
+		var c: Vector3 = aire[0]
+		var t: Vector2 = aire[1]
+		var a := Rect2(c.x - t.x / 2.0, c.z - t.y / 2.0, t.x, t.y)
+		r = a if i == 0 else r.merge(a)
+	return r
 
 
 # --- effets pilotés par la simulation -----------------------------------------------------------
 
 
-func appliquer_meteo(conditions: String) -> void:
-	match conditions:
-		"canicule":
-			_soleil.light_energy = 1.45
-			_soleil.light_color = Color("ffe1b0")
-			_ciel.sky_top_color = Color("3f86d6")
-		"nuageux":
-			_soleil.light_energy = 0.75
-			_soleil.light_color = Color("e8eef5")
-			_ciel.sky_top_color = Color("8aa3bd")
-		"pluie":
-			_soleil.light_energy = 0.5
-			_soleil.light_color = Color("d0d8e2")
-			_ciel.sky_top_color = Color("6c7a8a")
-		_:
-			_soleil.light_energy = 1.25
-			_soleil.light_color = Color("fff3dc")
-			_ciel.sky_top_color = Color("4f8fd8")
+func appliquer_meteo(conditions: String, orage := false) -> void:
+	## Temps du jour, avec ses effets (`meteo.gd`) ; gardé si le décor est reconstruit.
+	_conditions = conditions
+	_orage = orage
+	effets.appliquer(conditions, orage)
+
+
+func suivre(cible: Vector3) -> void:
+	## Point que regarde la caméra : la pluie et la chaleur tombent autour de lui.
+	_cible = cible
+	effets.centrer(cible)
 
 
 func afficher_publication(auteur: String, texte: String) -> void:
-	## Affiche la dernière publication des réseaux sociaux sur l'écran de la place.
-	_ecran.text = "%s
+	## Affiche la dernière publication des réseaux sociaux sur l'écran de chaque place.
+	for ecran in _ecrans:
+		ecran.text = "%s
 « %s »" % [auteur, texte.left(140)]
 
 
@@ -163,7 +248,7 @@ func signaler_zone(zone: String, couleur: Color, duree := 6.0) -> void:
 	halo.visible = true
 	var t := create_tween()
 	t.tween_interval(duree)
-	t.tween_callback(func(): halo.visible = false)
+	t.tween_callback(func(): if is_instance_valid(halo): halo.visible = false)  # décor reconstruit entre-temps
 
 
 # --- briques ------------------------------------------------------------------------------------
@@ -234,7 +319,7 @@ func etiquette(texte: String, pos: Vector3, taille := 96) -> Label3D:
 
 
 func _jauge(zone: String) -> void:
-	var aire: Array = AIRES[zone]
+	var aire: Array = aires[zone]
 	var centre: Vector3 = aire[0]
 	var taille: Vector2 = aire[1]
 	var racine := Node3D.new()
@@ -253,7 +338,7 @@ func _jauge(zone: String) -> void:
 
 
 func _halo(zone: String) -> MeshInstance3D:
-	var aire: Array = AIRES[zone]
+	var aire: Array = aires[zone]
 	var taille: Vector2 = aire[1]
 	var mi := boite(Vector3(taille.x + 1.5, 0.05, taille.y + 1.5), aire[0] + Vector3(0, 0.02, 0), Color(1, 0.3, 0.2, 0.4), 1.0)
 	mi.visible = false
@@ -284,90 +369,108 @@ func _environnement() -> void:
 	_soleil.shadow_enabled = true
 	_soleil.directional_shadow_max_distance = 120.0
 	add_child(_soleil)
-	appliquer_meteo("ensoleille")
+	effets = EffetsMeteo.new()
+	add_child(effets)
+	effets.configurer(env, _soleil, _ciel, bornes())
+	effets.appliquer(_conditions, _orage, true)
+	effets.centrer(_cible)
+
+
+func _profondeur() -> int:
+	## Rangées d'exemplaires derrière la première, vers l'intérieur des terres.
+	var k := 0
+	for lieu in lieux:
+		if type_de(lieu) != "plage":
+			k = maxi(k, numero(lieu) - 1)
+	return k
 
 
 func _terrain_et_mer() -> void:
-	boite(Vector3(240, 0.1, 117), Vector3(0, -0.1, -51.5), Color("8cc56b"))
+	var fond := minf(-110.0, -34.0 - ECART_RANGEE * _profondeur())
+	boite(Vector3(240, 0.1, 7.0 - fond), Vector3(0, -0.1, (7.0 + fond) / 2.0), Color("8cc56b"))
 	boite(Vector3(240, 0.08, 9), Vector3(0, -0.06, 11), Color("f2dca4"))
 	boite(Vector3(240, 0.05, 120), Vector3(0, -0.06, 75.5), Color("2f86c6"))
 	boite(Vector3(240, 0.04, 2.0), Vector3(0, -0.04, 16.1), Color("8fd3ef"), 0.2)
 
 
-func _plage() -> void:
+func _plage(lieu: String, o: Vector3) -> void:
 	var p := "res://assets/kenney_plage/"
 	var hasard := RandomNumberGenerator.new()
 	hasard.seed = 7
 	for x in [-26, -15, -4, 9, 21, 30]:
-		modele(p + "palm-detailed-bend.glb", Vector3(x, 0, 8.0), hasard.randf_range(0, 360), 0.8)
-	modele(p + "boat-row-large.glb", Vector3(-10, -0.1, 19), 30)
-	modele(p + "boat-row-small.glb", Vector3(14, -0.1, 21), -20)
-	modele(p + "structure-platform-dock.glb", Vector3(24, 0, 16))
+		modele(p + "palm-detailed-bend.glb", Vector3(x, 0, 8.0) + o, hasard.randf_range(0, 360), 0.8)
+	modele(p + "boat-row-large.glb", Vector3(-10, -0.1, 19) + o, 30)
+	modele(p + "boat-row-small.glb", Vector3(14, -0.1, 21) + o, -20)
+	modele(p + "structure-platform-dock.glb", Vector3(24, 0, 16) + o)
 	for x in [-20, -12, 2, 16]:
-		modele("res://assets/kenney_ville_commerces/detail-parasol-b.glb", Vector3(x, 0, 13.6), 0, 3.5)
-	etiquette(NOMS_ZONES["plage"], Vector3(-3, 4, 12))
+		modele("res://assets/kenney_ville_commerces/detail-parasol-b.glb", Vector3(x, 0, 13.6) + o, 0, 3.5)
+	etiquette(nom_lieu(lieu), Vector3(-3, 4, 12) + o)
 
 
-func _domicile() -> void:
+func _domicile(lieu: String, o: Vector3) -> void:
 	var m := "res://assets/kenney_ville_maisons/"
 	var types := ["a", "c", "e", "g", "k", "m"]
 	for i in types.size():
-		var pos := Vector3(-30 + (i % 3) * 5.5, 0, -17 + int(i / 3) * 6)
+		var pos := Vector3(-30 + (i % 3) * 5.5, 0, -17 + int(i / 3) * 6) + o
 		modele(m + "building-type-%s.glb" % types[i], pos, 180, 3.0)
 		modele(m + "tree-large.glb", pos + Vector3(2.6, 0, 1.5), 0, 3.0)
-	etiquette(NOMS_ZONES["domicile"], Vector3(-25, 6, -10))
+	etiquette(nom_lieu(lieu), Vector3(-25, 6, -10) + o)
 
 
-func _commerces() -> void:
+func _commerces(lieu: String, o: Vector3) -> void:
 	var c := "res://assets/kenney_ville_commerces/"
-	modele(c + "building-n.glb", Vector3(14, 0, -14), 180, 3.0)
-	modele(c + "building-j.glb", Vector3(21.5, 0, -13), 180, 3.0)
-	modele(c + "building-skyscraper-b.glb", Vector3(27, 0, -15), 180, 2.5)
-	modele(c + "building-k.glb", Vector3(7, 0, -13), 180, 3.0)
-	etiquette(NOMS_ZONES["centre_commercial"], Vector3(16, 9.5, -12))
+	modele(c + "building-n.glb", Vector3(14, 0, -14) + o, 180, 3.0)
+	modele(c + "building-j.glb", Vector3(21.5, 0, -13) + o, 180, 3.0)
+	modele(c + "building-skyscraper-b.glb", Vector3(27, 0, -15) + o, 180, 2.5)
+	modele(c + "building-k.glb", Vector3(7, 0, -13) + o, 180, 3.0)
+	etiquette(nom_lieu(lieu), Vector3(16, 9.5, -12) + o)
+	_stocks[lieu] = etiquette("", Vector3(16, 8.4, -12) + o, 64)
 
 
-func _pharmacie() -> void:
-	modele("res://assets/kenney_ville_commerces/building-e.glb", Vector3(-2, 0, -13), 180, 3.0)
+func _pharmacie(lieu: String, o: Vector3) -> void:
+	modele("res://assets/kenney_ville_commerces/building-e.glb", Vector3(-2, 0, -13) + o, 180, 3.0)
 	var pivot := Node3D.new()
-	pivot.position = Vector3(-2, 3.6, -11.4)
+	pivot.position = Vector3(-2, 3.6, -11.4) + o
 	add_child(pivot)
 	boite(Vector3(0.49, 1.54, 0.12), Vector3(0, -0.77, 0), Color("19c46b"), 2.0, pivot)
 	boite(Vector3(1.54, 0.49, 0.12), Vector3(0, -0.245, 0), Color("19c46b"), 2.0, pivot)
-	etiquette(NOMS_ZONES["pharmacie"], Vector3(-2, 6.5, -11))
+	etiquette(nom_lieu(lieu), Vector3(-2, 6.5, -11) + o)
+	_stocks[lieu] = etiquette("", Vector3(-2, 5.4, -11) + o, 64)
 
 
-func _reseaux() -> void:
-	cylindre(4.4, 0.3, Vector3(-11, 0, -2.6), Color("e4e7ee"))
+func _reseaux(lieu: String, o: Vector3) -> void:
+	cylindre(4.4, 0.3, Vector3(-11, 0, -2.6) + o, Color("e4e7ee"))
 	var pivot := Node3D.new()
-	pivot.position = Vector3(-11, 0.3, -5.8)
+	pivot.position = Vector3(-11, 0.3, -5.8) + o
 	add_child(pivot)
 	boite(Vector3(0.25, 3.0, 0.25), Vector3(-2.9, 0, 0), Color("39404d"), 0.0, pivot)
 	boite(Vector3(0.25, 3.0, 0.25), Vector3(2.9, 0, 0), Color("39404d"), 0.0, pivot)
 	boite(Vector3(6.8, 3.6, 0.3), Vector3(0, 2.5, 0), Color("1f2430"), 0.0, pivot)
 	boite(Vector3(6.4, 3.2, 0.05), Vector3(0, 2.7, 0.17), Color("2e4bd8"), 1.2, pivot)
-	_ecran = Label3D.new()
-	_ecran.text = "Les publications des réseaux sociaux apparaissent ici."
-	_ecran.font_size = 40
-	_ecran.pixel_size = 0.01
-	_ecran.width = 600
-	_ecran.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_ecran.modulate = Color.WHITE
-	_ecran.outline_size = 0
-	_ecran.position = Vector3(0, 4.3, 0.22)
-	pivot.add_child(_ecran)
-	etiquette(NOMS_ZONES["reseaux_sociaux"], Vector3(-11, 7.8, -5.8))
+	var ecran := Label3D.new()
+	ecran.text = "Les publications des réseaux sociaux apparaissent ici."
+	ecran.font_size = 40
+	ecran.pixel_size = 0.01
+	ecran.width = 600
+	ecran.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ecran.modulate = Color.WHITE
+	ecran.outline_size = 0
+	ecran.position = Vector3(0, 4.3, 0.22)
+	pivot.add_child(ecran)
+	_ecrans.append(ecran)
+	_ecran = _ecrans[0]
+	etiquette(nom_lieu(lieu), Vector3(-11, 7.8, -5.8) + o)
 
 
-func _piscine(centre: Vector3) -> void:
+func _piscine(lieu: String, centre: Vector3) -> void:
 	boite(Vector3(11, 0.25, 8), centre, Color("eeeae2"))
 	boite(Vector3(8, 0.04, 5), centre + Vector3(0, 0.25, 0), Color("39b8e6"), 0.25)
 	for i in 3:
 		boite(Vector3(1.0, 0.25, 2.0), centre + Vector3(-3 + i * 3, 0.25, 3.3), Color("f4a259"))
-	etiquette(NOMS_ZONES["piscine"], Vector3(14, 3.8, 1))
+	etiquette(nom_lieu(lieu), centre + Vector3(0, 3.8, 0))
 
 
-func _terrain(centre: Vector3) -> void:
+func _terrain(lieu: String, centre: Vector3) -> void:
 	boite(Vector3(14, 0.06, 8.5), centre, Color("3f9b4a"))
 	var blanc := Color("f5f5f0")
 	boite(Vector3(13, 0.02, 0.12), centre + Vector3(0, 0.06, 3.9), blanc)
@@ -378,13 +481,15 @@ func _terrain(centre: Vector3) -> void:
 		boite(Vector3(0.1, 1.4, 0.1), centre + Vector3(6.5 * s, 0, 1.4), blanc)
 		boite(Vector3(0.1, 1.4, 0.1), centre + Vector3(6.5 * s, 0, -1.4), blanc)
 		boite(Vector3(0.1, 0.1, 2.9), centre + Vector3(6.5 * s, 1.35, 0), blanc)
-	etiquette(NOMS_ZONES["terrain_sport"], Vector3(-27, 3.8, 1))
+	etiquette(nom_lieu(lieu), centre + Vector3(0, 3.8, 0))
 
 
 func _arbres() -> void:
+	## Lisière d'arbres derrière la dernière rangée de zones.
 	var hasard := RandomNumberGenerator.new()
 	hasard.seed = 42
 	var nature := "res://assets/kenney_nature/"
+	var recul := ECART_RANGEE * _profondeur()
 	for i in 26:
-		var pos := Vector3(hasard.randf_range(-38, 36), 0, hasard.randf_range(-30, -21))
+		var pos := Vector3(hasard.randf_range(-38, 36), 0, hasard.randf_range(-30, -21) - recul)
 		modele(nature + ["tree_default.glb", "tree_oak.glb", "tree_detailed.glb"][i % 3], pos, hasard.randf_range(0, 360), 3.0)

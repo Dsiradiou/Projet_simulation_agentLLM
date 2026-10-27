@@ -6,7 +6,8 @@ Clés, préfixées par le run pour que deux runs ne se mélangent pas :
 - `ephemere:<run_id>:agent:<agent_id>` : hash de l'agent (rôle, palier, zone, sens, porteur,
   seuil, dernière décision et sa justification, coût du dernier appel, messages reçus)
 - `ephemere:<run_id>:zones`            : hash zone -> JSON {presents, porteurs}
-- `ephemere:<run_id>:monde`            : hash (jour, minute, meteo)
+- `ephemere:<run_id>:monde`            : hash (jour, minute, meteo, lieux) ; `lieux` : zones du
+  monde (JSON), écrites au début du run
 
 Statuts d'un run : `en_cours`, `pause`, `termine`, `arrete`.
 """
@@ -18,7 +19,7 @@ from redis.asyncio import Redis
 
 from agents.base import Agent, Perception
 from bus.events import WeatherPayload
-from sim.domaine import Zone
+from sim.domaine import lieux_du_monde
 
 PREFIXE = "ephemere"
 CLE_RUN_COURANT = f"{PREFIXE}:run_courant"
@@ -46,7 +47,7 @@ def _fiche(agent: Agent, jour: int, recus: Perception | None) -> dict[str, str |
     return {
         "role": agent.role.value,
         "palier": agent.palier.value if agent.palier else "regles",
-        "zone": agent.zone.value,
+        "zone": agent.zone,
         "sens": agent.sens.value if agent.sens else "",
         "porteur": int(agent.porteur),
         "seuil": "" if seuil is None else f"{seuil:.3f}",
@@ -67,6 +68,7 @@ class EtatMonde:
         self.redis = redis
         self.run_id = run_id
         self._base = f"{PREFIXE}:{run_id}"
+        self.lieux: tuple[str, ...] = lieux_du_monde()
 
     async def reinitialiser(self) -> None:
         keys = [key async for key in self.redis.scan_iter(f"{self._base}:*")]
@@ -79,6 +81,13 @@ class EtatMonde:
             mapping={"run_id": self.run_id, "statut": statut, "jour": jour, "minute": minute},
         )
 
+    async def ecrire_plan(self, lieux: tuple[str, ...]) -> None:
+        """Zones du monde, au début du run : le pont les donne à l'interface (décor)."""
+        self.lieux = lieux
+        cle = f"{self._base}:monde"
+        await self.redis.hset(cle, mapping={"lieux": json.dumps(list(lieux))})
+        await self.redis.expire(cle, DUREE_DE_VIE_S)
+
     async def ecrire_jour(
         self,
         jour: int,
@@ -87,7 +96,7 @@ class EtatMonde:
         meteo: WeatherPayload | None,
         perceptions: Mapping[str, Perception] | None = None,
     ) -> None:
-        zones = {zone: {"presents": 0, "porteurs": 0} for zone in Zone}
+        zones = {lieu: {"presents": 0, "porteurs": 0} for lieu in self.lieux}
         async with self.redis.pipeline(transaction=True) as pipe:
             for agent in agents:
                 zones[agent.zone]["presents"] += 1
@@ -98,7 +107,7 @@ class EtatMonde:
                 pipe.expire(key, DUREE_DE_VIE_S)
             pipe.hset(
                 f"{self._base}:zones",
-                mapping={zone.value: json.dumps(counts) for zone, counts in zones.items()},
+                mapping={lieu: json.dumps(counts) for lieu, counts in zones.items()},
             )
             pipe.hset(
                 f"{self._base}:monde",

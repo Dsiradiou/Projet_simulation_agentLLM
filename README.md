@@ -71,6 +71,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 13 | Agents à règles et baseline | ✅ terminée |
 | 14 | Indicateurs d'émergence | ✅ terminée |
 | 15 | Mode asynchrone et cohérence temporelle | ✅ terminée |
+| 15 bis | Interface de paramétrage et zones multiples | ✅ terminée |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
@@ -190,9 +191,23 @@ renseigner le chemin de l'exécutable console dans `.env` (`GODOT_BIN`) pour les
 <Godot>.exe --path godot -- --rejeu <run_id> --vitesse 2           #    ou un run enregistré
 ```
 
+**Lancer une simulation depuis la scène (étape 15 bis).** Si aucun run ne tourne, la scène ouvre
+l'interface de paramétrage (sinon : bouton « Nouvelle simulation »). On y choisit une configuration
+de base, le mode (synchrone ou asynchrone), le moteur (agents LLM ou règles seules, baseline C0), la
+durée, la graine, le nombre d'agents de chaque rôle (ou un total réparti au prorata de la base) et le
+nombre de zones de chaque type (1 à 4). Le pont écrit la configuration dans
+`runs/lancements/<horodatage>/interface.yaml` (`herite_de` la base), la valide, puis lance
+`python -m sim.run` dans son propre processus ; la sortie du run est dans `sortie.log`, à côté.
+Plusieurs zones d'un type sont des lieux distincts (`plage_1`, `plage_2`…) : chaque habitant a sa
+plage, sa pharmacie ; on n'y voit que les porteurs et les messages de zone de son lieu. Le décor
+est construit d'après le plan du run (`monde.plan`) : les plages se suivent le long de la côte, les
+autres zones s'alignent en rangées vers l'intérieur.
+
 Dans la scène : la pastille sous chaque habitant donne son sens (vert efficace, rose tendance, gris
 banal, violet dépassé), le flacon jaune signale un porteur, les bulles montrent les messages,
-l'écran de la place affiche la dernière publication. Clic sur un habitant : sa fiche (D2). Panneau
+l'écran de la place affiche la dernière publication. La météo du jour se voit : ciel et lumière,
+brume, pluie, orage avec éclairs (perturbation injectée), air qui ondule et couleurs chaudes en
+canicule, nuages à l'horizon (étape 15 bis). Clic sur un habitant : sa fiche (D2). Panneau
 du bas : injecter une perturbation, pause, reprise, arrêt (D3), ou choisir un run à rejouer.
 Caméra : molette, clic droit, flèches. Les maquettes comparées sont dans
 [`docs/maquettes/`](docs/maquettes/).
@@ -212,6 +227,8 @@ ouvert entre les runs. Référence complète : [`docs/pont.md`](docs/pont.md).
 - `POST /injections` : perturbation (rupture de stock, polémique, vague de chaleur), pour tous ou une
   zone, appliquée au début du jour simulé suivant (D3).
 - `POST /commandes` : pause, reprise ou arrêt, entre deux jours.
+- `GET /parametres`, `POST /lancements`, `GET /lancements` : interface de paramétrage ; le pont
+  écrit et valide la configuration, lance le run et en suit l'état (étape 15 bis).
 
 ## Base de connaissances (RAG)
 

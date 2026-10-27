@@ -19,6 +19,7 @@ from bus.events import Disturbance
 from llm.sortie import MOT_DU_SENS
 from rag.base import BaseCorpus, Memoires, Passage
 from sim.config import MondeConfig, RagConfig
+from sim.domaine import type_de_lieu
 
 MESSAGES_DANS_LA_QUESTION = 3
 MESSAGES_DANS_LE_SOUVENIR = 3
@@ -42,13 +43,14 @@ def question_du_jour(perception: Perception, monde: MondeConfig) -> str:
     morceaux += [m.payload.contenu for m in perception.messages[-MESSAGES_DANS_LA_QUESTION:]]
     morceaux += [e.payload.description for e in perception.evenements if isinstance(e, Disturbance)]
     if len(morceaux) == 1:
-        morceaux.append(f"que faut-il savoir sur cette crème solaire ({perception.zone.value}) ?")
+        zone = type_de_lieu(perception.zone).value
+        morceaux.append(f"que faut-il savoir sur cette crème solaire ({zone}) ?")
     return " ".join(morceaux)
 
 
 def souvenir(perception: Perception, decision: Decision, monde: MondeConfig) -> tuple[str, int]:
     """Texte du souvenir et son importance (messages reçus, changement d'avis, événement)."""
-    parties = [f"Jour {perception.jour}, {perception.zone.value}."]
+    parties = [f"Jour {perception.jour}, {type_de_lieu(perception.zone).value}."]
     recus = perception.messages[-MESSAGES_DANS_LE_SOUVENIR:]
     if recus:
         parties.append(

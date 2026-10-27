@@ -88,10 +88,10 @@ def _commerce(population: int = 100) -> Commerce:
 
 def test_purchases_follow_stock_and_report_ruptures_once() -> None:
     c = _commerce()
-    assert c.acheter("a", Zone.PHARMACIE) is Zone.PHARMACIE
-    assert c.acheter("b", Zone.PLAGE) is Zone.CENTRE_COMMERCIAL  # le mieux fourni
-    assert c.acheter("c", Zone.PHARMACIE) is Zone.PHARMACIE
-    assert c.acheter("d", Zone.PHARMACIE) is Zone.CENTRE_COMMERCIAL
+    assert c.acheter("a", Zone.PHARMACIE) == Zone.PHARMACIE
+    assert c.acheter("b", Zone.PLAGE) == Zone.CENTRE_COMMERCIAL  # le mieux fourni
+    assert c.acheter("c", Zone.PHARMACIE) == Zone.PHARMACIE
+    assert c.acheter("d", Zone.PHARMACIE) == Zone.CENTRE_COMMERCIAL
     assert c.acheter("e", Zone.PHARMACIE) is None  # rupture partout
     assert (c.achats, c.achats_manques) == (4, 1)
     soir = c.fin_du_jour(18 * 60, "r")

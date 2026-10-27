@@ -17,7 +17,7 @@ from agents.roles import Role
 from bus.events import AgentMessage, Disturbance, Motif
 from llm.sortie import MOT_DU_SENS
 from sim.config import MondeConfig
-from sim.domaine import Zone
+from sim.domaine import Zone, type_de_lieu
 
 if TYPE_CHECKING:
     from rag.recuperation import Contexte
@@ -177,9 +177,8 @@ def prompt_jour(
     """Prompt du jour et messages effectivement montrés au modèle : seuls ceux-là sont cités
     dans `caused_by` de la décision (F6)."""
     marque = monde.brand_name
-    lignes = [
-        f"Situation du jour {perception.jour} de l'été. Tu es {ZONES_LISIBLES[perception.zone]}."
-    ]
+    ou = ZONES_LISIBLES[type_de_lieu(perception.zone)]
+    lignes = [f"Situation du jour {perception.jour} de l'été. Tu es {ou}."]
     if perception.meteo:
         m = perception.meteo
         lignes.append(f"Météo : {m.conditions}, {m.temperature_c:g} °C, indice UV {m.indice_uv}.")

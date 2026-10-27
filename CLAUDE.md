@@ -132,6 +132,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
 | Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
 | Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
+| Lancer depuis la scène | pont + scène : interface de paramétrage (« Nouvelle simulation », `-- --parametrage`) |
 | Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Indicateurs | `.venv\Scripts\python -m indicators.rapport <run_id> ...` ; `indicators.trace <run_id> --variation` |
@@ -174,9 +175,10 @@ Une dépendance n'est ajoutée qu'à l'étape qui l'utilise.
   `EventProducer` ; trier avec `bus.producer.ordre_publication`. Tout nouveau compteur de
   `Bilan` doit pouvoir être recalculé par `replay.bilan.bilan_depuis` (sinon le rejeu diverge).
 - Pont : processus séparé, ne parle à la simulation que par Kafka, Redis et Parquet ; il n'écrit
-  que sur `sim.control`. L'orchestrateur relève `sim.control` avant chaque jour : une injection
-  devient une `monde.perturbation` (avec `caused_by`) au début du jour suivant, pause et arrêt
-  s'appliquent entre deux jours. Toute route ou message `pont.*` ajouté se documente dans
+  que sur `sim.control` (et, pour lancer un run, sa configuration dans `runs/lancements/`).
+  L'orchestrateur relève `sim.control` avant chaque jour : une injection devient une
+  `monde.perturbation` (avec `caused_by`) au début du jour suivant, pause et arrêt s'appliquent
+  entre deux jours. Toute route ou message `pont.*` ajouté se documente dans
   `docs/pont.md`.
 - Scène Godot (`godot/`, maquette A retenue le 18 oct.) : elle n'a aucune logique de simulation,
   elle applique les messages du pont (`scripts/monde.gd`). Modèles 3D : kits CC0 seulement, rangés
@@ -265,6 +267,26 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 - Mesuré le 24 oct. : l'hypothèse tient pour la baseline, pas pour les agents LLM (le 1.7b décide le
   plus tard à cause de sa file, les 4b et 8b sont les voix) ; le sens par rôle tient dans les deux
   modes. Analyse des heures : `python -m replay.horloges <run_id>...`.
+
+## Interface de paramétrage et zones multiples (étape 15 bis, décidé le 27 oct.)
+
+- Zones multiples (`zones` dans la configuration, 1 à 4 par type) : de vrais lieux distincts. Un
+  type présent une fois garde son nom (`plage`), plusieurs fois il est numéroté (`plage_1`…) ; le
+  nom du type seul vise tous ses exemplaires (`sim.domaine.concerne`). `Zone` reste le vocabulaire
+  fermé des types ; `agent.zone` et le champ `zone` des événements portent un lieu (`Lieu`).
+- Chaque agent a un lieu habituel par type répété (`Agent.lieu_de`), tiré avec un générateur à part :
+  un monde à une zone par type garde exactement ses tirages. Prompts et RAG ne voient que le type.
+- Commerce : chaque exemplaire d'un type de point de vente a son stock ; les quantités configurées
+  valent pour un type et se partagent entre ses exemplaires (même offre totale).
+- `monde.plan` ouvre chaque run (lieux du monde) ; la scène construit son décor d'après lui.
+- Le pont peut lancer un run (`bridge/lancement.py`, `POST /lancements`) : il écrit une variante
+  `herite_de` dans `runs/lancements/`, la valide, démarre `sim.run` dans un processus à part ; il ne
+  pilote ensuite le run que par `sim.control`. Un seul run lancé par le pont à la fois.
+- Le menu Godot (`scripts/parametrage.gd`) est construit d'après `GET /parametres` : il ne connaît
+  ni les rôles ni les règles ; le palier reste fixé par le rôle (A5).
+- Effets de météo (`scripts/meteo.gd`) : ambiance par condition de `monde.meteo` ; un orage est une
+  pluie précédée le même jour d'une perturbation `orage`. Effets légers (particules CPU, brume) ;
+  nuages à l'horizon, jamais entre la caméra plongeante et la ville.
 
 ## Décisions encore ouvertes
 

@@ -1,5 +1,6 @@
 # Interface 2D au-dessus de la scène : état du run, indicateurs, fil des événements, fiche d'un
-# agent (D2), injection d'une perturbation et commandes (D3), choix entre direct et rejeu.
+# agent (D2), injection d'une perturbation et commandes (D3), choix entre direct et rejeu, accès
+# à l'interface de paramétrage (`parametrage.gd`, étape 15 bis).
 # Depuis l'étape 14, le panneau des indicateurs affiche les valeurs calculées par le service des
 # indicateurs (B2) et leur courbe jour par jour ; sans elles (runs plus anciens), il compte les
 # sens des habitants visibles.
@@ -13,6 +14,7 @@ signal injection(nature: String, zone: String, description: String)
 signal rejeu_demande(run_id: String, vitesse: float)
 signal direct_demande
 signal fiche_fermee
+signal parametrage_demande
 
 const NATURES := {
 	"polemique": "Polémique",
@@ -46,12 +48,12 @@ var _vitesse: SpinBox
 var _boutons_direct: Array[Button] = []
 
 
-func construire(noms_zones: Dictionary, couleurs_sens: Dictionary) -> void:
+func construire(couleurs_sens: Dictionary) -> void:
 	_barre_haute()
 	_indicateurs(couleurs_sens)
 	_panneau_fil()
 	_panneau_fiche()
-	_panneau_controle(noms_zones)
+	_panneau_controle()
 
 
 func _process(delta: float) -> void:
@@ -128,6 +130,24 @@ func definir_runs(runs: Array) -> void:
 		_runs.set_item_metadata(_runs.item_count - 1, r["run_id"])
 
 
+func definir_zones(zones: Array) -> void:
+	## Zones proposées pour une injection : [identifiant, nom] ; un type présent plusieurs fois
+	## est proposé en entier (tous ses exemplaires) puis exemplaire par exemplaire.
+	_zone.clear()
+	_zone.add_item("Toutes les zones")
+	_zone.set_item_metadata(0, "")
+	for z in zones:
+		_zone.add_item(z[1])
+		_zone.set_item_metadata(_zone.item_count - 1, z[0])
+
+
+func zones_proposees() -> Array:
+	var ids: Array = []
+	for i in _zone.item_count:
+		ids.append(_zone.get_item_metadata(i))
+	return ids
+
+
 func mode_rejeu(actif: bool) -> void:
 	for b in _boutons_direct:
 		b.disabled = actif
@@ -172,6 +192,7 @@ func _barre_haute() -> void:
 	p.add_child(ligne)
 	_titre = _label("  En attente du pont…  ", 20)
 	ligne.add_child(_titre)
+	ligne.add_child(_bouton("Nouvelle simulation", func(): parametrage_demande.emit()))
 	for spec in [["Pause", "pause"], ["Reprise", "reprise"], ["Arrêt", "arret"]]:
 		var nom: String = spec[1]
 		var b := _bouton(spec[0], func(): commande.emit(nom))
@@ -245,7 +266,7 @@ func _panneau_fiche() -> void:
 	_fiche.visible = false
 
 
-func _panneau_controle(noms_zones: Dictionary) -> void:
+func _panneau_controle() -> void:
 	var p := _panneau(Vector2(16, 700), Vector2(560, 0))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -259,11 +280,6 @@ func _panneau_controle(noms_zones: Dictionary) -> void:
 		_nature.set_item_metadata(_nature.item_count - 1, n)
 	ligne.add_child(_nature)
 	_zone = OptionButton.new()
-	_zone.add_item("Toutes les zones")
-	_zone.set_item_metadata(0, "")
-	for z in noms_zones:
-		_zone.add_item(noms_zones[z])
-		_zone.set_item_metadata(_zone.item_count - 1, z)
 	ligne.add_child(_zone)
 	_description = LineEdit.new()
 	_description.placeholder_text = "Ce qui se passe, en une phrase"

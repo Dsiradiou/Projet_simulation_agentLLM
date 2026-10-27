@@ -31,7 +31,7 @@ from pydantic import (
 
 from agents.roles import Palier
 from bus.topics import Topic
-from sim.domaine import Action, Canal, Produit, Sens, SimMinute, Zone
+from sim.domaine import Action, Canal, Lieu, Produit, Sens, SimMinute
 
 
 class _Strict(BaseModel):
@@ -74,7 +74,11 @@ class Envelope(_Strict):
         description="Horodatage réel d'émission, en UTC.",
     )
     source_agent_id: AgentId = Field(description="Émetteur : agent ou composant.")
-    zone: Zone | None = Field(default=None, description="Zone concernée, si elle existe.")
+    zone: Lieu | None = Field(
+        default=None,
+        description="Zone concernée, si elle existe : un lieu (« plage », « plage_2 ») ou, pour "
+        "une perturbation, un type de zone qui vaut pour tous ses exemplaires.",
+    )
     caused_by: tuple[UUID, ...] = Field(
         default=(), description="Événements à l'origine de celui-ci (traçabilité, F6)."
     )
@@ -193,6 +197,27 @@ class Disturbance(Envelope):
     payload: DisturbancePayload
 
 
+class WorldPlanPayload(_Strict):
+    lieux: tuple[Lieu, ...] = Field(min_length=1, description="Zones du monde, une fois chacune.")
+
+    @model_validator(mode="after")
+    def _distincts(self) -> Self:
+        if len(set(self.lieux)) != len(self.lieux):
+            raise ValueError("un lieu figure deux fois dans le plan")
+        return self
+
+
+class WorldPlan(Envelope):
+    TOPIC = Topic.WORLD_EVENTS
+    DESCRIPTION = (
+        "Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est "
+        "choisi au lancement. La scène Godot construit son décor à partir de lui."
+    )
+    type: Literal["monde.plan"] = "monde.plan"
+    schema_version: Literal["1.0"] = "1.0"
+    payload: WorldPlanPayload
+
+
 # --- sim.agent.messages ---------------------------------------------------------------------
 
 
@@ -293,22 +318,22 @@ class AgentDecision(Envelope):
 
 
 class AgentMovePayload(_Strict):
-    depuis: Zone
-    vers: Zone
+    depuis: Lieu
+    vers: Lieu
 
 
 class AgentMove(Envelope):
     TOPIC = Topic.AGENT_DECISIONS
     DESCRIPTION = "Déplacement d'un agent d'une zone à une autre (affiché dans Godot)."
     type: Literal["agent.deplacement"] = "agent.deplacement"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : lieux numérotés (plusieurs zones d'un type)
     payload: AgentMovePayload
 
     @model_validator(mode="after")
     def _check_move(self) -> Self:
-        if self.payload.depuis is self.payload.vers:
+        if self.payload.depuis == self.payload.vers:
             raise ValueError("un déplacement change de zone")
-        if self.zone is not self.payload.vers:
+        if self.zone != self.payload.vers:
             raise ValueError("la zone d'un déplacement est la zone d'arrivée")
         return self
 
@@ -430,6 +455,7 @@ EVENT_CLASSES: tuple[type[Envelope], ...] = (
     Weather,
     Stock,
     Disturbance,
+    WorldPlan,
     AgentMessage,
     AgentDecision,
     AgentMove,
@@ -446,6 +472,7 @@ Event = Annotated[
     | Weather
     | Stock
     | Disturbance
+    | WorldPlan
     | AgentMessage
     | AgentDecision
     | AgentMove

@@ -9,6 +9,8 @@ l'historique Parquet : on peut le laisser ouvert pendant que les runs démarrent
 - `POST /injections` : perturbation appliquée au début du jour simulé suivant (D3).
 - `POST /commandes` : pause, reprise ou arrêt, appliqués entre deux jours.
 - `GET /runs` : runs enregistrés, rejouables.
+- `GET /parametres`, `POST /lancements`, `GET /lancements` : interface de paramétrage ; le pont
+  écrit la configuration demandée et lance le run dans son propre processus (`bridge.lancement`).
 
 Messages du WebSocket : les événements du contrat (`docs/evenements/`), en JSON, plus quelques
 messages propres au pont, dont le type commence par `pont.` (instantané, nouveau run, rejeu).
@@ -18,7 +20,7 @@ import asyncio
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal, Protocol
 
@@ -26,13 +28,15 @@ from aiokafka import AIOKafkaConsumer
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
+from bridge.lancement import DemandeLancement, LancementRefuse, Lanceur, parametres
 from bridge.vue import VueMonde
 from bus import events as ev
 from bus.producer import ordre_record
 from bus.topics import Topic
 from replay.historique import requete
 from replay.rejeu import HistoriqueAbsent, charger, rejouer
-from sim.domaine import Zone
+from sim.config import ConfigError
+from sim.domaine import Lieu, lieux_du_monde, type_de_lieu
 from sim.run import RUNS_DIR
 
 STATUTS_ACTIFS = ("en_cours", "pause")
@@ -109,6 +113,7 @@ class Services:
     vue: VueMonde
     diffusion: Diffusion
     runs_dir: Path = RUNS_DIR
+    lanceur: Lanceur = field(default_factory=Lanceur)
 
 
 class SuiviDirect:
@@ -144,7 +149,10 @@ class SuiviDirect:
 
     def recevoir(self, event: ev.Envelope, brut: str) -> None:
         vue, diffusion = self.services.vue, self.services.diffusion
-        nouveau = isinstance(event, ev.ClockStep) and event.payload.jour == 1
+        # Un run commence par son plan (étape 15 bis), ou, avant lui, par le pas du jour 1.
+        nouveau = isinstance(event, ev.WorldPlan) or (
+            isinstance(event, ev.ClockStep) and event.payload.jour == 1
+        )
         if event.run_id != vue.run_id and (nouveau or vue.run_id is None):
             vue.reinitialiser(event.run_id)
             diffusion.diffuser(json.dumps({"type": "pont.nouveau_run", "run_id": event.run_id}))
@@ -159,7 +167,11 @@ class SuiviDirect:
 class DemandeInjection(BaseModel):
     nature: ev.Perturbation
     description: str = Field(min_length=1, max_length=500)
-    zone: Zone | None = Field(default=None, description="Zone concernée ; tout le monde si vide.")
+    zone: Lieu | None = Field(
+        default=None,
+        description="Zone concernée : un lieu du run, ou un type de zone pour tous ses "
+        "exemplaires ; tout le monde si vide.",
+    )
 
 
 class DemandeCommande(BaseModel):
@@ -174,6 +186,11 @@ async def _run_actif(services: Services) -> tuple[str, int]:
     return courant["run_id"], int(courant.get("minute") or 0)
 
 
+def _lieux(monde: dict[str, str]) -> list[str]:
+    """Zones du run courant ; les sept zones d'origine pour un run qui ne les a pas écrites."""
+    return json.loads(monde["lieux"]) if monde.get("lieux") else list(lieux_du_monde())
+
+
 async def instantane_direct(services: Services) -> dict:
     courant = await services.etat.run_courant()
     run_id = courant.get("run_id")
@@ -183,6 +200,7 @@ async def instantane_direct(services: Services) -> dict:
         "run": courant or None,
         "jour": int(courant.get("jour") or monde.get("jour") or 0),  # jour en cours
         "meteo": json.loads(monde["meteo"]) if monde.get("meteo") else None,
+        "lieux": _lieux(monde),
         "zones": await services.etat.zones(run_id) if run_id else {},
         "agents": [
             {"agent_id": a, **_fiche_lisible(f)}
@@ -282,6 +300,10 @@ def creer_app(services: Services | None = None, bootstrap_servers: str | None = 
     async def injecter(demande: DemandeInjection, request: Request) -> dict:
         s = svc(request)
         run_id, minute = await _run_actif(s)
+        if demande.zone is not None:
+            lieux = _lieux(await s.etat.monde(run_id))
+            if demande.zone not in set(lieux) | {type_de_lieu(lieu).value for lieu in lieux}:
+                raise HTTPException(422, f"zone absente de ce run : {demande.zone}")
         injection = ev.Injection(
             run_id=run_id,
             sim_time_occurred=minute,
@@ -319,6 +341,32 @@ def creer_app(services: Services | None = None, bootstrap_servers: str | None = 
             for r in lignes
             if r[4]
         ]
+
+    @app.get("/parametres")
+    async def lire_parametres(request: Request, base: str = "default.yaml") -> dict:
+        lanceur = svc(request).lanceur
+        try:
+            return parametres(base, lanceur.configs_dir)
+        except FileNotFoundError as exc:
+            raise HTTPException(404, f"configuration inconnue : {base}") from exc
+        except ConfigError as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.post("/lancements", status_code=202)
+    async def lancer(demande: DemandeLancement, request: Request) -> dict:
+        s = svc(request)
+        if s.lanceur.actif:
+            raise HTTPException(409, "un run lancé depuis l'interface est déjà en cours")
+        if (await s.etat.run_courant()).get("statut") in STATUTS_ACTIFS:
+            raise HTTPException(409, "un run est déjà en cours : l'arrêter avant d'en lancer un")
+        try:
+            return s.lanceur.lancer(demande)
+        except LancementRefuse as exc:
+            raise HTTPException(422, str(exc)) from exc
+
+    @app.get("/lancements")
+    async def lancement(request: Request) -> dict:
+        return svc(request).lanceur.etat()
 
     @app.websocket("/ws")
     async def flux(websocket: WebSocket, rejeu: str | None = None, vitesse: float | None = None):

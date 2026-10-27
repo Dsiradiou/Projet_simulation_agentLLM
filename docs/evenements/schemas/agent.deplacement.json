@@ -4,10 +4,16 @@
       "additionalProperties": false,
       "properties": {
         "depuis": {
-          "$ref": "#/$defs/Zone"
+          "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+          "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+          "title": "Depuis",
+          "type": "string"
         },
         "vers": {
-          "$ref": "#/$defs/Zone"
+          "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+          "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+          "title": "Vers",
+          "type": "string"
         }
       },
       "required": [
@@ -16,19 +22,6 @@
       ],
       "title": "AgentMovePayload",
       "type": "object"
-    },
-    "Zone": {
-      "enum": [
-        "pharmacie",
-        "plage",
-        "piscine",
-        "reseaux_sociaux",
-        "centre_commercial",
-        "terrain_sport",
-        "domicile"
-      ],
-      "title": "Zone",
-      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -40,8 +33,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
@@ -87,14 +83,17 @@
     "zone": {
       "anyOf": [
         {
-          "$ref": "#/$defs/Zone"
+          "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+          "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+          "type": "string"
         },
         {
           "type": "null"
         }
       ],
       "default": null,
-      "description": "Zone concernée, si elle existe."
+      "description": "Zone concernée, si elle existe : un lieu (« plage », « plage_2 ») ou, pour une perturbation, un type de zone qui vaut pour tous ses exemplaires.",
+      "title": "Zone"
     },
     "caused_by": {
       "default": [],

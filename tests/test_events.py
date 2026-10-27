@@ -109,10 +109,24 @@ def test_message_rules() -> None:
 def test_move_and_stock_rules() -> None:
     move = _dict(exemples()[ev.AgentMove])
     with pytest.raises(ev.EventValidationError):
-        ev.decode(json.dumps(_with(move, "payload.depuis", "plage")))
+        ev.decode(json.dumps(_with(move, "payload.depuis", "plage_2")))
     stock = _dict(exemples()[ev.Stock])
     with pytest.raises(ev.EventValidationError, match="zone"):
         ev.decode(json.dumps(_with(stock, "zone", None)))
+
+
+@pytest.mark.parametrize("lieu", ["lune", "plage_0", "plage_5", "plage2", "Plage"])
+def test_zone_is_a_known_place(lieu: str) -> None:
+    move = _with(_dict(exemples()[ev.AgentMove]), "payload.vers", lieu)
+    with pytest.raises(ev.EventValidationError, match="vers"):
+        ev.decode(json.dumps(_with(move, "zone", lieu)))
+
+
+def test_world_plan_lists_each_place_once() -> None:
+    plan = _dict(exemples()[ev.WorldPlan])
+    assert ev.decode(json.dumps(plan)).payload.lieux[1] == "plage_1"
+    with pytest.raises(ev.EventValidationError, match="deux fois"):
+        ev.decode(json.dumps(_with(plan, "payload.lieux", ["plage", "plage"])))
 
 
 def test_error_message_points_to_the_field() -> None:

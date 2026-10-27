@@ -6,7 +6,10 @@ par un acteur du monde. Chaque agent reçoit aussi sa place dans le réseau soci
 - ses **abonnements** : les comptes dont il reçoit les publications « réseaux », tirés selon
   l'audience de chaque rôle (`reseau.audience`) — les créateurs de contenu sont très suivis ;
 - ses **contacts directs** : un petit cercle de proches, en partie réciproque ;
-- sa **zone de départ**, tirée dans sa routine de beau temps (`routines`).
+- sa **zone de départ**, tirée dans sa routine de beau temps (`routines`) ;
+- ses **lieux habituels** quand un type de zone a plusieurs exemplaires (`zones`) : sa plage, sa
+  pharmacie… C'est là qu'il se rend quand sa routine le mène vers ce type de zone. Tirés avec un
+  générateur à part : un monde à une zone par type garde exactement les mêmes tirages.
 """
 
 import random
@@ -23,7 +26,7 @@ from rag.corpus import lire_corpus
 from sim.calendrier import CalendrierConcurrent
 from sim.commerce import Commerce
 from sim.config import Config, MoteurAgents, Temps
-from sim.domaine import Zone
+from sim.domaine import Zone, type_de_lieu
 from sim.meteo import MeteoSaison
 from sim.routines import tirer_zone
 from sim.run import agent_rng
@@ -37,9 +40,10 @@ class Identite:
     agent_id: str
     role: Role
     rng: random.Random
-    zone: Zone
+    zone: str
     contacts: list[str]
     abonnements: tuple[str, ...]
+    lieux: dict[Zone, str]
 
 
 def _tirage_pondere(
@@ -53,6 +57,16 @@ def _tirage_pondere(
         choisis.append(candidats.pop(i))
         poids.pop(i)
     return choisis
+
+
+def lieux_habituels(config: Config, agent_id: str) -> dict[Zone, str]:
+    """Exemplaire habituel de chaque type de zone présent plusieurs fois, tiré uniformément."""
+    rng = agent_rng(config.run.seed, f"{agent_id}:lieux")
+    return {
+        zone: f"{zone.value}_{rng.randint(1, n)}"
+        for zone in Zone
+        if (n := config.zones.get(zone, 1)) > 1
+    }
 
 
 def identites(config: Config) -> Iterator[Identite]:
@@ -69,11 +83,12 @@ def identites(config: Config) -> Iterator[Identite]:
     }
     ids = list(roles)
     audience = config.reseau.audience
-    tirages: dict[str, tuple[random.Random, Zone, list[str], list[str]]] = {}
+    tirages: dict[str, tuple[random.Random, str, list[str], list[str]]] = {}
     for agent_id, role in roles.items():
         rng = agent_rng(config.run.seed, agent_id)
         autres = [x for x in ids if x != agent_id]
-        zone = tirer_zone(config.routines, role, Temps.BEAU, rng) or rng.choice(list(Zone))
+        depart = tirer_zone(config.routines, role, Temps.BEAU, rng) or rng.choice(list(Zone))
+        zone = lieux_habituels(config, agent_id).get(depart, depart.value)
         contacts = rng.sample(autres, min(config.reseau.contacts_directs, len(autres)))
         poids = [audience.get(roles[x], 1.0) for x in autres]
         suivis = _tirage_pondere(rng, autres, poids, config.reseau.abonnements_par_agent)
@@ -88,8 +103,9 @@ def identites(config: Config) -> Iterator[Identite]:
     for agent_id, role in roles.items():
         rng, zone, contacts, suivis = tirages[agent_id]
         yield Identite(
-            agent_id, role, rng, zone, contacts + reciproques[agent_id], tuple(sorted(suivis))
-        )
+            agent_id, role, rng, zone, contacts + reciproques[agent_id], tuple(sorted(suivis)),
+            lieux_habituels(config, agent_id),
+        )  # fmt: skip
 
 
 def acteurs_monde(config: Config) -> list[WorldActor]:
@@ -106,9 +122,14 @@ def construire_commerce(config: Config, agents: list[Agent]) -> Commerce:
     """Stocks des points de vente, à l'échelle de la population ; un vendeur par point de vente
     signe ses réassorts."""
     vendeurs = sorted(a.agent_id for a in agents if a.role is Role.VENDEUR)
-    points = config.commerce.points_de_vente
-    signataires = {zone: vendeurs[i] for i, zone in enumerate(points) if i < len(vendeurs)}
-    return Commerce(config.commerce, len(agents), signataires)
+    points = points_de_vente(config)
+    signataires = {lieu: vendeurs[i] for i, lieu in enumerate(points) if i < len(vendeurs)}
+    return Commerce(config.commerce, len(agents), signataires, points)
+
+
+def points_de_vente(config: Config) -> list[str]:
+    """Lieux qui vendent la crème : chaque exemplaire des types de zone `points_de_vente`."""
+    return [lieu for lieu in config.lieux if type_de_lieu(lieu) in config.commerce.points_de_vente]
 
 
 def jours_de_campagne(config: Config) -> set[int]:
@@ -122,8 +143,10 @@ def jours_de_campagne(config: Config) -> set[int]:
 
 
 def equiper(agent: Agent, identite: Identite, config: Config) -> Agent:
-    """Place l'agent dans le réseau social et lui donne ses déclencheurs."""
+    """Place l'agent dans le réseau social et dans ses lieux habituels, et lui donne ses
+    déclencheurs."""
     agent.abonnements = identite.abonnements
+    agent.lieux = identite.lieux
     agent.declencheurs = config.declencheurs
     return agent
 

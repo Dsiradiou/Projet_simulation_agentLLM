@@ -6,6 +6,7 @@ Une configuration invalide arrête le lancement avec un message qui indique le c
 
 from enum import StrEnum
 from pathlib import Path
+from typing import Annotated
 
 import yaml
 from pydantic import (
@@ -21,7 +22,7 @@ from pydantic import (
 )
 
 from agents.roles import Palier, Role
-from sim.domaine import Canal, Zone
+from sim.domaine import ZONES_PAR_TYPE_MAX, Canal, Zone, lieux_du_monde
 
 
 class Mode(StrEnum):
@@ -225,10 +226,19 @@ class Config(_Section):
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."
     )
+    zones: dict[Zone, Annotated[int, Field(ge=1, le=ZONES_PAR_TYPE_MAX)]] = Field(
+        default_factory=dict,
+        description="Nombre de zones de chaque type (interface de paramétrage). Un type absent en "
+        "compte une ; plusieurs exemplaires sont des lieux distincts (« plage_1 », « plage_2 »).",
+    )
 
     @property
     def nb_agents(self) -> int:
         return sum(self.population.values())
+
+    @property
+    def lieux(self) -> tuple[str, ...]:
+        return lieux_du_monde(self.zones)
 
 
 class ConfigError(Exception):

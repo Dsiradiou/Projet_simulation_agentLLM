@@ -26,7 +26,7 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | `sim_time_processed` | integer | oui | ≥ 0 | Moment simulé où l'émetteur a fini de le traiter (≥ sim_time_occurred). |
 | `wall_time_emitted` | string (date-time) | oui |  | Horodatage réel d'émission, en UTC. |
 | `source_agent_id` | string | oui | longueur ≥ 1, longueur ≤ 64, motif `^[a-z0-9_]+$` | Émetteur : agent ou composant. |
-| `zone` | `pharmacie` \| `plage` \| `piscine` \| `reseaux_sociaux` \| `centre_commercial` \| `terrain_sport` \| `domicile` ou null | non |  | Zone concernée, si elle existe. |
+| `zone` | string ou null | non | motif `^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$` | Zone concernée, si elle existe : un lieu (« plage », « plage_2 ») ou, pour une perturbation, un type de zone qui vaut pour tous ses exemplaires. |
 | `caused_by` | liste de string (uuid) | non |  | Événements à l'origine de celui-ci (traçabilité, F6). |
 
 ## Types d'événements
@@ -38,9 +38,10 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | [`monde.meteo`](#mondemeteo) | `sim.world.events` | 1.0 | Météo du jour, produite par l'agent à règles météo. |
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
+| [`monde.plan`](#mondeplan) | `sim.world.events` | 1.0 | Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est choisi au lancement. La scène Godot construit son décor à partir de lui. |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
 | [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.3 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
-| [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.0 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
+| [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.1 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
 | [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.1 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
 | [`controle.injection`](#controleinjection) | `sim.control` | 1.1 | Demande d'injection d'une perturbation depuis l'interface (D3). |
 | [`controle.commande`](#controlecommande) | `sim.control` | 1.0 | Commande de pilotage du run depuis l'interface. |
@@ -104,6 +105,16 @@ Payload :
 | `nature` | `rupture_stock` \| `polemique` \| `vague_chaleur` \| `promotion_concurrente` \| `article_presse` \| `publication_virale` \| `orage` | oui |  |  |
 | `description` | string | oui | longueur ≥ 1, longueur ≤ 500 |  |
 
+### monde.plan
+
+Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est choisi au lancement. La scène Godot construit son décor à partir de lui. Version 1.0.
+
+Payload :
+
+| Champ | Type | Obligatoire | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `lieux` | liste de string | oui |  | Zones du monde, une fois chacune. |
+
 ## Topic `sim.agent.messages`
 
 ### agent.message
@@ -141,14 +152,14 @@ Payload :
 
 ### agent.deplacement
 
-Déplacement d'un agent d'une zone à une autre (affiché dans Godot). Version 1.0.
+Déplacement d'un agent d'une zone à une autre (affiché dans Godot). Version 1.1.
 
 Payload :
 
 | Champ | Type | Obligatoire | Contraintes | Description |
 | --- | --- | --- | --- | --- |
-| `depuis` | `pharmacie` \| `plage` \| `piscine` \| `reseaux_sociaux` \| `centre_commercial` \| `terrain_sport` \| `domicile` | oui |  |  |
-| `vers` | `pharmacie` \| `plage` \| `piscine` \| `reseaux_sociaux` \| `centre_commercial` \| `terrain_sport` \| `domicile` | oui |  |  |
+| `depuis` | string | oui | motif `^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$` | Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires. |
+| `vers` | string | oui | motif `^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$` | Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires. |
 
 ## Topic `sim.indicators`
 

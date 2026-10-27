@@ -10,8 +10,13 @@ demande, et une rupture signale une demande qui s'emballe.
 
 Une rupture injectée par l'interface vide réellement les rayons (constat de l'étape 9) ; une
 promotion de la marque concurrente dure une semaine et relève le seuil des fidèles.
+
+Plusieurs zones d'un même type (interface de paramétrage) : chaque exemplaire d'un type de point
+de vente est un point de vente, avec son stock. Les quantités configurées valent pour un type et
+se partagent entre ses exemplaires : le nombre de zones change la géographie, pas l'offre totale.
 """
 
+from collections import Counter
 from uuid import UUID
 
 from bus.events import (
@@ -23,21 +28,31 @@ from bus.events import (
     StockPayload,
 )
 from sim.config import CommerceConfig
-from sim.domaine import Produit, Zone
+from sim.domaine import Produit, Zone, concerne, type_de_lieu
 
 DUREE_PROMOTION_JOURS = 7
 
 
 class Commerce:
     def __init__(
-        self, config: CommerceConfig, population: int, vendeurs: dict[Zone, str] | None = None
+        self,
+        config: CommerceConfig,
+        population: int,
+        vendeurs: dict[str, str] | None = None,
+        points: list[str] | None = None,
     ) -> None:
+        """`points` : lieux qui vendent (`agents.population.points_de_vente`) ; par défaut un
+        par type de `config.points_de_vente`."""
         self.config = config
-        echelle = population / 100
-        self.reassort_minimum = max(1, round(config.reassort_pour_100 * echelle))
-        self.ventes_semaine: dict[Zone, int] = {zone: 0 for zone in config.points_de_vente}
-        self.stock: dict[Zone, int] = {
-            zone: round(config.stock_initial_pour_100 * echelle) for zone in config.points_de_vente
+        points = points if points is not None else [z.value for z in config.points_de_vente]
+        exemplaires = Counter(type_de_lieu(lieu) for lieu in points)
+        echelle = {lieu: population / 100 / exemplaires[type_de_lieu(lieu)] for lieu in points}
+        self.reassort_minimum = {
+            lieu: max(1, round(config.reassort_pour_100 * echelle[lieu])) for lieu in points
+        }
+        self.ventes_semaine: dict[str, int] = {lieu: 0 for lieu in points}
+        self.stock: dict[str, int] = {
+            lieu: round(config.stock_initial_pour_100 * echelle[lieu]) for lieu in points
         }
         self.vendeurs = vendeurs or {}
         self.achats = 0
@@ -46,8 +61,8 @@ class Commerce:
         self.reassorts = 0
         self.rates_veille: set[str] = set()  # ont raté leur achat hier (perception du jour)
         self._rates: set[str] = set()
-        self._modifies: set[Zone] = set()
-        self._en_rupture: set[Zone] = {z for z, q in self.stock.items() if q == 0}
+        self._modifies: set[str] = set()
+        self._en_rupture: set[str] = {z for z, q in self.stock.items() if q == 0}
         self._promotion_jusqu_a = 0
 
     # --- ce que voient les agents ----------------------------------------------------------------
@@ -60,7 +75,7 @@ class Commerce:
     def reagir(self, perturbation: Disturbance, jour: int) -> None:
         nature = perturbation.payload.nature
         if nature is Perturbation.RUPTURE_STOCK:
-            zones = [perturbation.zone] if perturbation.zone in self.stock else list(self.stock)
+            zones = [z for z in self.stock if concerne(perturbation.zone, z)] or list(self.stock)
             for zone in zones:
                 self.stock[zone] = 0
                 self._modifies.add(zone)
@@ -79,14 +94,14 @@ class Commerce:
         events: list[Envelope] = []
         for zone in self.stock:
             commande = round(self.ventes_semaine[zone] * self.config.marge_commande)
-            self.stock[zone] += max(self.reassort_minimum, commande)
+            self.stock[zone] += max(self.reassort_minimum[zone], commande)
             self.ventes_semaine[zone] = 0
             self._en_rupture.discard(zone)
             self.reassorts += 1
             events.append(self._evenement_stock(zone, minute, run_id))
         return events
 
-    def acheter(self, agent_id: str, zone: Zone) -> Zone | None:
+    def acheter(self, agent_id: str, zone: str) -> str | None:
         """Un flacon pour cet agent : renvoie le point de vente, ou None en rupture."""
         if self.stock.get(zone, 0) > 0:
             lieu = zone
@@ -96,7 +111,7 @@ class Commerce:
                 self.achats_manques += 1
                 self._rates.add(agent_id)
                 return None
-            lieu = max(fournis, key=lambda z: (self.stock[z], z.value))
+            lieu = max(fournis, key=lambda z: (self.stock[z], z))
         self.stock[lieu] -= 1
         self.ventes_semaine[lieu] += 1
         self._modifies.add(lieu)
@@ -107,7 +122,7 @@ class Commerce:
         """Niveaux de stock modifiés aujourd'hui, et ruptures nouvelles (une perturbation dans la
         zone, perçue le lendemain par les agents qui s'y trouvent)."""
         events: list[Envelope] = []
-        for zone in sorted(self._modifies, key=lambda z: z.value):
+        for zone in sorted(self._modifies):
             stock = self._evenement_stock(zone, minute, run_id)
             events.append(stock)
             if self.stock[zone] == 0 and zone not in self._en_rupture:
@@ -119,7 +134,7 @@ class Commerce:
 
     # --- événements ----------------------------------------------------------------------------
 
-    def _evenement_stock(self, zone: Zone, minute: int, run_id: str) -> Stock:
+    def _evenement_stock(self, zone: str, minute: int, run_id: str) -> Stock:
         return Stock(
             run_id=run_id,
             sim_time_occurred=minute,
@@ -129,8 +144,8 @@ class Commerce:
             payload=StockPayload(produit=Produit.MARQUE, quantite=self.stock[zone]),
         )
 
-    def _rupture(self, zone: Zone, minute: int, run_id: str, cause: UUID) -> Disturbance:
-        lieu = "à la pharmacie" if zone is Zone.PHARMACIE else "au centre commercial"
+    def _rupture(self, zone: str, minute: int, run_id: str, cause: UUID) -> Disturbance:
+        lieu = "à la pharmacie" if type_de_lieu(zone) is Zone.PHARMACIE else "au centre commercial"
         return Disturbance(
             run_id=run_id,
             sim_time_occurred=minute,

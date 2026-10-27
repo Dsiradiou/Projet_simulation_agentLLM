@@ -89,7 +89,7 @@ def test_injection_becomes_a_disturbance_the_next_day_in_its_zone() -> None:
 
     (perturbation,) = recorder.of(ev.Disturbance)
     assert perturbation.caused_by == (injection.event_id,)  # traçable jusqu'à l'injection (F6)
-    assert perturbation.zone is Zone.PLAGE
+    assert perturbation.zone == Zone.PLAGE
     assert perturbation.sim_time_occurred == debut_du_jour(2)  # demandée J1, effective J2 (C3)
     plage, piscine = orch.agents
     # Un agent ne perçoit (et n'est déclenché) que les jours où il décide : J1, puis J2 pour

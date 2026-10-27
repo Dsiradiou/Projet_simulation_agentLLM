@@ -59,6 +59,10 @@ def formater(event: ev.Envelope) -> str | None:
             )
         case ev.AgentMove():
             return f"{quand}  déplacement {qui} : {event.payload.depuis} → {event.payload.vers}"
+        case ev.WorldPlan():
+            return f"{quand}  plan        {len(event.payload.lieux)} zones : " + ", ".join(
+                event.payload.lieux
+            )
         case ev.Incident():
             i = event.payload
             essai = f" (essai {i.tentative})" if i.tentative else ""
@@ -111,7 +115,7 @@ async def suivre(run_id: str | None, bootstrap: str) -> None:
                 except ev.EventValidationError as exc:
                     print(f"(message non conforme ignoré : {exc})")
             for event in events:
-                if suivi is None and isinstance(event, ev.ClockStep):
+                if suivi is None and isinstance(event, ev.ClockStep | ev.WorldPlan):
                     suivi = event.run_id
                     print(f"Run {suivi}")
                 if event.run_id != suivi:

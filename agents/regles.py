@@ -13,7 +13,7 @@ from agents.base import Agent, Decision, MessageIntent, Perception
 from agents.roles import Role
 from bus.events import Disturbance, Moteur, Motif, Perturbation
 from sim.config import MondeConfig, ReglesConfig, SeuilConfig
-from sim.domaine import Action, Canal, Sens, Zone
+from sim.domaine import Action, Canal, Sens
 
 
 def tirer_seuil(rng: random.Random, loi: SeuilConfig) -> float:
@@ -67,7 +67,7 @@ class AgentSeuil(Agent):
     Il tient les rôles à règles (fidèles, vendeurs, concurrent) jusqu'à l'étape 13."""
 
     def __init__(
-        self, agent_id: str, role: Role, zone: Zone, rng: random.Random, seuil: float
+        self, agent_id: str, role: Role, zone: str, rng: random.Random, seuil: float
     ) -> None:
         super().__init__(agent_id, role, zone, rng)
         self.seuil = seuil
@@ -106,7 +106,7 @@ class AgentAuSeuil(Agent):
         self,
         agent_id: str,
         role: Role,
-        zone: Zone,
+        zone: str,
         rng: random.Random,
         seuil: float,
         regles: ReglesConfig,
@@ -156,7 +156,7 @@ class AgentConcurrent(Agent):
     """La marque concurrente : ne s'exprime qu'aux dates de son calendrier, sur les réseaux."""
 
     def __init__(
-        self, agent_id: str, role: Role, zone: Zone, rng: random.Random, monde: MondeConfig
+        self, agent_id: str, role: Role, zone: str, rng: random.Random, monde: MondeConfig
     ) -> None:
         super().__init__(agent_id, role, zone, rng)
         nom = monde.concurrent
@@ -222,7 +222,7 @@ class AgentRegleC0(AgentAuSeuil):
         self,
         agent_id: str,
         role: Role,
-        zone: Zone,
+        zone: str,
         rng: random.Random,
         seuil: float,
         regles: ReglesConfig,

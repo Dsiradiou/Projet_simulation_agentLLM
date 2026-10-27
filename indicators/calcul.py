@@ -30,7 +30,7 @@ from uuid import UUID
 
 from agents.roles import Role
 from bus import events as ev
-from sim.domaine import Sens, Zone, debut_du_jour
+from sim.domaine import Sens, debut_du_jour
 
 K = len(Sens)
 TIRAGES_PERMUTATION = 200
@@ -139,7 +139,7 @@ class EtatPopulation:
     """Dernier avis de chaque habitant et zone où il se trouve, tenus à partir des événements."""
 
     avis: dict[str, Avis] = field(default_factory=dict)
-    zones: dict[str, Zone] = field(default_factory=dict)
+    zones: dict[str, str] = field(default_factory=dict)  # lieu de chacun
 
     def appliquer(self, event: ev.Envelope) -> None:
         match event:
@@ -193,9 +193,7 @@ class EtatPopulation:
             groupes.setdefault(f"role:{self.avis[agent_id].role}", []).append(self.avis[agent_id])
         for agent_id in agents:
             if agent_id in self.zones:
-                groupes.setdefault(f"zone:{self.zones[agent_id].value}", []).append(
-                    self.avis[agent_id]
-                )
+                groupes.setdefault(f"zone:{self.zones[agent_id]}", []).append(self.avis[agent_id])
         for groupe in sorted(groupes):
             avis = groupes[groupe]
             rep = _repartition(avis)

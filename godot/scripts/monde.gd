@@ -2,9 +2,12 @@
 #
 # Le même code sert le direct et le rejeu : il ne fait qu'appliquer les messages reçus (D1).
 # Un clic sur un habitant ouvre sa fiche (D2) ; le panneau du bas injecte une perturbation ou
-# pilote le run (D3).
+# pilote le run (D3). Le décor suit le plan du run (`monde.plan`, nombre de zones de chaque type),
+# et l'interface de paramétrage (« Nouvelle simulation », ouverte au démarrage si aucun run ne
+# tourne) lance un run à travers le pont (étape 15 bis).
 #
 # Options (après `--`) : --pont http://127.0.0.1:8000  --rejeu <run_id>  --vitesse 2
+#   --parametrage (ouvre l'interface de paramétrage dès le démarrage)
 #   et, pour les vérifications automatiques : --capture fichier.png --apres 8 --inspecter <agent_id>
 extends Node3D
 
@@ -13,11 +16,13 @@ const NOMS_METEO := {"ensoleille": "ensoleillé", "nuageux": "nuageux", "pluie":
 var decor: Decor
 var pont: Pont
 var ui: Interface
+var menu: Parametrage
 var habitants := {}  # agent_id -> Habitant
 var _places := {}  # zone -> Array de [position, agent_id ou ""]
 var _place_de := {}  # agent_id -> [zone, indice]
 var _jour := 0
 var _meteo := "—"
+var _orage_du_jour := false  # un orage injecté aujourd'hui : la pluie du jour en vient
 var _mode := "en direct"
 var _messages_jour := 0
 var _incidents := 0
@@ -27,6 +32,9 @@ var _fiche_serveur := {}  # dernière fiche reçue du pont pour l'agent sélecti
 var _capture := ""
 var _apres := 8.0
 var _inspecter := ""
+var _menu_au_demarrage := true  # ouvert au premier instantané si aucun run ne tourne
+var _suivi_lancement: Timer
+var _etat_lancement := ""
 
 var _camera: Camera3D
 var _cible := Vector3(-2, 0, -2)
@@ -40,8 +48,7 @@ func _ready() -> void:
 	decor = Decor.new()
 	add_child(decor)
 	decor.construire()
-	for zone in Decor.AIRES:
-		_places[zone] = decor.emplacements(zone).map(func(p): return [p, ""])
+	_preparer_places()
 	_camera = Camera3D.new()
 	_camera.fov = 40.0
 	_camera.far = 400.0
@@ -50,12 +57,24 @@ func _ready() -> void:
 
 	ui = Interface.new()
 	add_child(ui)
-	ui.construire(Decor.NOMS_ZONES, Decor.COULEURS_SENS)
+	ui.construire(Decor.COULEURS_SENS)
+	ui.definir_zones(_zones_d_injection())
+	ui.parametrage_demande.connect(_ouvrir_parametrage)
 	ui.commande.connect(func(nom): pont.envoyer("/commandes", {"commande": nom}))
 	ui.injection.connect(_injecter)
 	ui.rejeu_demande.connect(func(run_id, vitesse): pont.rejouer(run_id, vitesse))
 	ui.direct_demande.connect(func(): pont.passer_en_direct())
 	ui.fiche_fermee.connect(_deselectionner)
+
+	menu = Parametrage.new()
+	add_child(menu)
+	menu.construire(Decor.NOMS_ZONES)
+	menu.base_demandee.connect(func(base): pont.obtenir("/parametres?base=%s" % base.uri_encode()))
+	menu.lancement_demande.connect(func(corps): pont.envoyer("/lancements", corps))
+	_suivi_lancement = Timer.new()
+	_suivi_lancement.wait_time = 2.0
+	_suivi_lancement.timeout.connect(func(): pont.obtenir("/lancements"))
+	add_child(_suivi_lancement)
 
 	pont = Pont.new()
 	add_child(pont)
@@ -63,8 +82,14 @@ func _ready() -> void:
 	pont.etat_connexion.connect(func(ok, detail): ui.afficher_connexion(detail, ok))
 	pont.reponse.connect(_sur_reponse)
 	_lire_options()
+	if pont.rejeu != "" or _capture != "":
+		_menu_au_demarrage = false
 	pont.connecter()
 	pont.obtenir("/runs")
+	pont.obtenir("/lancements")  # un run lancé plus tôt par le pont est suivi jusqu'au bout
+	if OS.get_cmdline_user_args().has("--parametrage"):
+		_menu_au_demarrage = false
+		_ouvrir_parametrage()
 	_rafraichir()
 	if _capture != "":
 		_capturer()
@@ -114,6 +139,7 @@ func _sur_message(d: Dictionary) -> void:
 			ui.ajouter_au_fil("[b]Nouveau run[/b] %s" % d.get("run_id", ""))
 		"pont.rejeu":
 			_vider()
+			_reconstruire([])  # un run sans plan a les sept zones d'origine
 			_mode = "rejeu de %s" % d.get("run_id", "")
 			ui.mode_rejeu(true)
 			ui.ajouter_au_fil("[b]Rejeu[/b] de %s (%d événements, aucun appel LLM)" % [d.get("run_id", ""), d.get("evenements", 0)])
@@ -121,17 +147,21 @@ func _sur_message(d: Dictionary) -> void:
 			ui.ajouter_au_fil("[b]Fin du rejeu[/b]")
 		"pont.erreur":
 			ui.ajouter_au_fil("[color=#ff8a80]%s[/color]" % d.get("detail", ""))
+		"monde.plan":
+			_reconstruire(p.get("lieux", []))
+			if p.get("lieux", []).size() != Decor.LIEUX_ORIGINE.size():
+				ui.ajouter_au_fil("[b]Plan du monde[/b] : %d zones" % decor.lieux.size())
 		"horloge.pas":
 			_jour = int(p["jour"])
 			_messages_jour = 0
+			_orage_du_jour = false
 			ui.ajouter_au_fil("[color=#9fb3c8]— Jour %d —[/color]" % _jour)
 		"horloge.fin_jour":
 			decor.vider_jauges()  # les zones vides n'ont pas de nouvelle valeur
 		"indicateur.valeur":
 			_indicateur(d, p)
 		"monde.meteo":
-			decor.appliquer_meteo(p["conditions"])
-			_meteo = "%s, %d °C, UV %d" % [NOMS_METEO.get(p["conditions"], p["conditions"]), round(p["temperature_c"]), p["indice_uv"]]
+			_afficher_meteo(p)
 		"agent.decision":
 			_decision(qui, d.get("zone"), p)
 		"agent.deplacement":
@@ -141,10 +171,12 @@ func _sur_message(d: Dictionary) -> void:
 		"agent.message":
 			_message(qui, p)
 		"monde.perturbation":
+			if p["nature"] == "orage":  # le bulletin de pluie du jour suit la perturbation
+				_orage_du_jour = true
 			var zone = d.get("zone")
-			for z in ([zone] if zone else Decor.AIRES.keys()):
+			for z in decor.lieux_concernes(zone if zone else ""):
 				decor.signaler_zone(z, Color("ff5a3c"), 8.0)
-			ui.ajouter_au_fil("[color=#ff9e80][b]Perturbation[/b] %s%s : %s[/color]" % [p["nature"], " (%s)" % Decor.NOMS_ZONES[zone] if zone else "", p["description"]])
+			ui.ajouter_au_fil("[color=#ff9e80][b]Perturbation[/b] %s%s : %s[/color]" % [p["nature"], " (%s)" % decor.nom_lieu(zone) if zone else "", p["description"]])
 		"controle.injection":
 			ui.ajouter_au_fil("[color=#ffd180]Injection demandée : %s[/color]" % p["description"])
 		"controle.commande":
@@ -160,16 +192,21 @@ func _sur_message(d: Dictionary) -> void:
 
 func _instantane(d: Dictionary) -> void:
 	_vider()
+	_reconstruire(d.get("lieux", []))
 	_mode = "en direct"
 	ui.mode_rejeu(false)
 	var run = d.get("run")
+	if _menu_au_demarrage:
+		_menu_au_demarrage = false
+		if run == null or not str(run.get("statut", "")) in ["en_cours", "pause"]:
+			_ouvrir_parametrage()
 	if run:
 		_jour = int(run.get("jour", 0))
 		_mode = "en direct · %s (%s)" % [run.get("run_id", ""), run.get("statut", "")]
+	_orage_du_jour = d.get("perturbations", []).any(func(x): return x.get("nature") == "orage" and int(x.get("jour", -1)) == _jour)
 	var meteo = d.get("meteo")
 	if meteo:
-		decor.appliquer_meteo(meteo["conditions"])
-		_meteo = "%s, %d °C, UV %d" % [NOMS_METEO.get(meteo["conditions"], ""), round(meteo["temperature_c"]), meteo["indice_uv"]]
+		_afficher_meteo(meteo)
 	for fiche in d.get("agents", []):
 		var h := _habitant(fiche["agent_id"], fiche.get("zone", "domicile"))
 		h.role = fiche.get("role", "")
@@ -177,6 +214,12 @@ func _instantane(d: Dictionary) -> void:
 		if fiche.get("sens", "") != "":
 			h.definir_sens(fiche["sens"], Decor.COULEURS_SENS[fiche["sens"]], decor.materiau)
 		h.definir_porteur(str(fiche.get("porteur", "0")) == "1")
+
+
+func _afficher_meteo(m: Dictionary) -> void:
+	decor.appliquer_meteo(m["conditions"], _orage_du_jour)
+	var nom: String = "orage" if decor.effets.etat == "orage" else NOMS_METEO.get(m["conditions"], m["conditions"])
+	_meteo = "%s, %d °C, UV %d" % [nom, round(m["temperature_c"]), m["indice_uv"]]
 
 
 func _decision(agent_id: String, zone, p: Dictionary) -> void:
@@ -252,7 +295,7 @@ func _installer(agent_id: String, zone: String, instantane: bool) -> void:
 		var ancienne: Array = _place_de[agent_id]
 		_places[ancienne[0]][ancienne[1]][1] = ""
 	var places: Array = _places[zone]
-	var cible := Decor.AIRES[zone][0] as Vector3
+	var cible := decor.centre_zone(zone)
 	var indice := -1
 	for i in places.size():
 		if places[i][1] == "":
@@ -268,6 +311,56 @@ func _installer(agent_id: String, zone: String, instantane: bool) -> void:
 	var h: Habitant = habitants[agent_id]
 	h.zone = zone
 	h.aller_vers(cible, instantane)
+
+
+func _preparer_places() -> void:
+	_places.clear()
+	_place_de.clear()
+	for zone in decor.lieux:
+		_places[zone] = decor.emplacements(zone).map(func(p): return [p, ""])
+
+
+func _reconstruire(liste: Array) -> void:
+	## Décor du plan reçu ; sans liste, les sept zones d'origine. Les habitants déjà là sont
+	## replacés, les jauges et la liste des zones d'injection suivent.
+	var voulus: Array = liste if liste.size() > 0 else Decor.LIEUX_ORIGINE
+	if voulus == decor.lieux:
+		return
+	decor.construire(voulus)
+	_preparer_places()
+	for agent_id in habitants:
+		_installer(agent_id, habitants[agent_id].zone, true)
+	ui.definir_zones(_zones_d_injection())
+	_cadrer()
+
+
+func _zones_d_injection() -> Array:
+	## [identifiant, nom] : chaque type ; s'il a plusieurs exemplaires, le type entier puis
+	## chacun d'eux (une perturbation sur un type touche tous ses exemplaires).
+	var zones: Array = []
+	var vus := {}
+	for lieu in decor.lieux:
+		var type := Decor.type_de(lieu)
+		if type == lieu:
+			zones.append([lieu, decor.nom_lieu(lieu)])
+			continue
+		if not vus.has(type):
+			vus[type] = true
+			zones.append([type, "%s (tous)" % Decor.NOMS_ZONES.get(type, type)])
+		zones.append([lieu, decor.nom_lieu(lieu)])
+	return zones
+
+
+func _cadrer() -> void:
+	## Caméra sur tout le monde construit ; la vue d'origine pour les sept zones d'origine.
+	if decor.est_d_origine():
+		_cible = Vector3(-2, 0, -2)
+		_distance = 58.0
+	else:
+		var b := decor.bornes()
+		_cible = Vector3(b.get_center().x, 0, b.get_center().y)
+		_distance = clampf(maxf(b.size.x, b.size.y * 1.6) * 1.05, 58.0, 190.0)
+	_placer_camera()
 
 
 func _vider() -> void:
@@ -325,7 +418,7 @@ func _afficher_fiche() -> void:
 	var palier := h.palier if h.palier != "" else str(etat.get("palier", ""))
 	lignes.append("[b]%s[/b]   %s · palier %s" % [h.agent_id, etat.get("role", h.role), palier])
 	var couleur := (Decor.COULEURS_SENS[h.sens] as Color).to_html(false) if h.sens != "" else "ffffff"
-	lignes.append("Zone : %s · Sens : [color=#%s]%s[/color] · %s" % [Decor.NOMS_ZONES.get(h.zone, h.zone), couleur, h.sens if h.sens != "" else "—", "porteur" if h.porteur else "non porteur"])
+	lignes.append("Zone : %s · Sens : [color=#%s]%s[/color] · %s" % [decor.nom_lieu(h.zone), couleur, h.sens if h.sens != "" else "—", "porteur" if h.porteur else "non porteur"])
 	if etat.get("seuil", "") != "":
 		lignes.append("Seuil d'adoption : %d %%" % round(float(etat["seuil"]) * 100))
 	if etat.has("regle"):
@@ -390,11 +483,67 @@ func _sur_reponse(chemin: String, code: int, donnees) -> void:
 		ui.afficher_retour("Injection envoyée : effet au début du jour %d." % (_jour + 1) if code == 202 else "Injection refusée (%d) : %s" % [code, _detail(donnees)])
 	elif chemin == "/commandes":
 		ui.afficher_retour("Commande envoyée, appliquée entre deux jours." if code == 202 else "Commande refusée (%d) : %s" % [code, _detail(donnees)])
+	elif chemin.begins_with("/parametres"):
+		if code == 200:
+			menu.remplir(donnees)
+		else:
+			menu.afficher_retour("Paramètres indisponibles (%d) : %s" % [code, _detail(donnees)], true)
+	elif chemin == "/lancements":
+		match code:
+			202:  # demande acceptée : configuration écrite, processus du run démarré
+				menu.fermer()
+				_etat_lancement = ""
+				ui.ajouter_au_fil("[b]Lancement[/b] : run en préparation (modèles, corpus)…")
+				_suivre_lancement(donnees)
+			200:
+				_suivre_lancement(donnees)
+			_:
+				menu.lancement_refuse("Lancement refusé (%d) : %s" % [code, _detail(donnees)])
+
+
+# --- interface de paramétrage (étape 15 bis) ----------------------------------------------------
+
+
+func _ouvrir_parametrage() -> void:
+	menu.ouvrir()
+	pont.obtenir("/parametres?base=%s" % menu.base_choisie().uri_encode())
+
+
+func _suivre_lancement(etat) -> void:
+	## État du run lancé par le pont : relevé toutes les deux secondes tant qu'il tourne ; un
+	## échec rouvre le paramétrage avec la fin de sa sortie.
+	if not etat is Dictionary:
+		return
+	var statut: String = etat.get("statut", "aucun")
+	if statut == "en_cours":
+		if _suivi_lancement.is_stopped():
+			_suivi_lancement.start()
+	else:
+		_suivi_lancement.stop()
+	if statut == _etat_lancement:
+		return
+	var premier := _etat_lancement == ""
+	_etat_lancement = statut
+	var lignes: Array = etat.get("dernieres_lignes", [])
+	match statut:
+		"termine":
+			if not premier:
+				ui.ajouter_au_fil("[b]Run terminé[/b] %s" % str(etat.get("run_id", "")))
+		"echec":
+			if premier:
+				return
+			for ligne in lignes.slice(-4):
+				ui.ajouter_au_fil("[color=#ff8a80]%s[/color]" % str(ligne).left(160))
+			menu.ouvrir()
+			menu.lancement_refuse("Le run s'est arrêté (code %s) : %s" % [str(etat.get("code")), str(lignes[-1]) if lignes.size() > 0 else "voir %s" % etat.get("journal", "")])
 
 
 func _detail(donnees) -> String:
 	if donnees is Dictionary and donnees.has("detail"):
-		return str(donnees["detail"])
+		var detail = donnees["detail"]
+		if detail is Array:  # erreurs de validation : champ et message
+			return "; ".join(detail.map(func(e): return "%s : %s" % [".".join(e.get("loc", []).slice(1).map(func(x): return str(x))), e.get("msg", "")]))
+		return str(detail)
 	return "pont injoignable"
 
 
@@ -405,6 +554,7 @@ func _placer_camera() -> void:
 	var direction := Vector3(sin(_lacet) * cos(_tangage), -sin(_tangage), cos(_lacet) * cos(_tangage))
 	_camera.position = _cible + direction * _distance
 	_camera.look_at(_cible)
+	decor.suivre(_cible)
 
 
 func _unhandled_input(evenement: InputEvent) -> void:
@@ -413,7 +563,7 @@ func _unhandled_input(evenement: InputEvent) -> void:
 			MOUSE_BUTTON_WHEEL_UP:
 				_distance = max(12.0, _distance * 0.9)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				_distance = min(120.0, _distance * 1.1)
+				_distance = min(200.0, _distance * 1.1)
 			MOUSE_BUTTON_RIGHT:
 				_rotation_active = evenement.pressed
 		_placer_camera()

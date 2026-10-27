@@ -23,7 +23,7 @@ from llm.client import Reponse
 from llm.routeur import DelaiDepasse, Routeur, graine_appel
 from llm.sortie import SortieAgent, SortieInvalide, lire_sortie, schema_sortie
 from sim.config import MondeConfig
-from sim.domaine import Canal, Zone
+from sim.domaine import Canal
 
 if TYPE_CHECKING:
     from rag.recuperation import Recuperateur
@@ -41,7 +41,7 @@ class AgentLLM(Agent):
         self,
         agent_id: str,
         role: Role,
-        zone: Zone,
+        zone: str,
         rng: random.Random,
         routeur: Routeur,
         monde: MondeConfig,
