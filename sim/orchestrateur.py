@@ -12,7 +12,12 @@ Déroulé d'un jour d :
    les perturbations injectées depuis la veille, éventuellement limitées à une zone ; à 08:00,
    les déplacements de routine (règles, selon le rôle et le temps) ;
 2. les décisions, selon le mode (ci-dessous) ;
-3. stocks du soir, écriture de l'état courant dans Redis, puis `horloge.fin_jour`.
+3. stocks du soir, faits publics du jour consignés dans la mémoire collective (étape 16, sauf
+   dans le run témoin), écriture de l'état courant dans Redis, puis `horloge.fin_jour`.
+
+Notoriété et lassitude (étape 16) : au passage de chaque agent, avant de savoir s'il décide, sa
+notoriété A et sa lassitude L sont mises à jour avec ce qu'il perçoit (`agents.notoriete`) ; un
+passage du seuil de A est publié (`agent.notoriete`). Qui a oublié le produit n'est pas déclenché.
 
 Mode synchrone :
 - perception de chaque agent à 10:00, construite sur l'état de la veille : c'est la barrière
@@ -47,12 +52,13 @@ import time
 from collections import Counter
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID
 
 from pydantic import ValidationError
 
 from agents.base import Agent, Decision, Perception, WorldActor
+from agents.notoriete import niveau_de_lassitude, vivre_jour
 from agents.roles import Palier
 from bus.events import (
     AgentDecision,
@@ -61,6 +67,10 @@ from bus.events import (
     AgentMessagePayload,
     AgentMove,
     AgentMovePayload,
+    AgentNotoriete,
+    AgentNotorietePayload,
+    AgentSouvenir,
+    AgentSouvenirPayload,
     ClockEnd,
     ClockEndPayload,
     ClockStep,
@@ -74,6 +84,8 @@ from bus.events import (
     LlmCall,
     Moteur,
     NatureIncident,
+    NatureSouvenir,
+    Notoriete,
     Weather,
     WeatherPayload,
     WorldPlan,
@@ -88,6 +100,9 @@ from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.livraison import Boite
 from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import RunInfo
+
+if TYPE_CHECKING:  # chargé seulement avec le RAG (ChromaDB)
+    from rag.collectif import MemoireCollective
 
 HEURE_DU_SOIR = 18 * 60  # stocks et ruptures du jour, publiés après les décisions
 
@@ -114,6 +129,13 @@ class Bilan:
     relances: int = 0  # tentatives au-delà de la première
     replis: int = 0  # décisions d'agents LLM prises par la règle de repli
     declenchements: dict[str, int] = field(default_factory=dict)  # décisions par motif
+    # Notoriété (étape 16) : passages du seuil, publiés en agent.notoriete.
+    decouvertes: int = 0
+    oublis: int = 0
+    redecouvertes: int = 0
+    # Mémoire des agents LLM (étape 16) : publiée en agent.souvenir.
+    souvenirs: int = 0  # épisodes, un par décision LLM réussie
+    bilans_semaine: int = 0  # consolidation hebdomadaire par règle
     # Commerce (étape 13) : état du monde, pas recalculé par le rejeu (voir replay.bilan).
     achats: int = 0
     achats_manques: int = 0
@@ -127,6 +149,20 @@ class Bilan:
     cout_par_modele: dict[str, dict[str, float]] = field(default_factory=dict)
     duree_reelle_s: float = 0.0
     sequence_paliers: list[str] = field(default_factory=list)
+
+    def compter_notoriete(self, nature: Notoriete) -> None:
+        if nature is Notoriete.DECOUVERTE:
+            self.decouvertes += 1
+        elif nature is Notoriete.OUBLI:
+            self.oublis += 1
+        else:
+            self.redecouvertes += 1
+
+    def compter_souvenir(self, nature: NatureSouvenir) -> None:
+        if nature is NatureSouvenir.BILAN:
+            self.bilans_semaine += 1
+        else:
+            self.souvenirs += 1
 
     def compter_appel(self, appel: LlmCall) -> None:
         self.appels_llm += appel.tentatives
@@ -199,6 +235,7 @@ class Orchestrateur:
         controle: SourceControle | None = None,
         routines: Routines | None = None,
         commerce: Commerce | None = None,
+        collectif: "MemoireCollective | None" = None,
     ) -> None:
         self.config = config
         self.run = run
@@ -214,6 +251,8 @@ class Orchestrateur:
         self.controle = controle
         self.routines = routines
         self.commerce = commerce
+        self.collectif = collectif  # mémoire collective (étape 16) ; None : sans
+        self._publics_du_jour: list[Envelope] = []  # matière de la mémoire collective
         # Ce qui réagit mécaniquement aux perturbations : météo, commerce (étape 13).
         self._reactifs = [a for a in acteurs_monde if hasattr(a, "reagir")]
         if commerce is not None:
@@ -314,6 +353,7 @@ class Orchestrateur:
                     self._perturbations.append(event)
                     self._perturbations_vues.add(event.event_id)
 
+        await self._consigner(jour)
         self.bilan.jours = jour
         self.bilan.informations_manquees += len(journee.manquees)
         if self.etat:
@@ -336,6 +376,8 @@ class Orchestrateur:
         t = self.horloge.heure_decision()
         perceptions = self._percevoir(jour, t, barriere=minute0)
         self._perturbations.clear()
+        for agent in self.agents:  # notoriété et lassitude du jour, avant les déclencheurs
+            perceptions[agent.agent_id] = await self._vivre(agent, perceptions[agent.agent_id])
         declenches = [a for a in self.agents if a.doit_decider(perceptions[a.agent_id])]
         for agent in self.agents:  # sans décision aujourd'hui, ses messages attendent la suivante
             if agent not in declenches and perceptions[agent.agent_id].messages:
@@ -442,7 +484,7 @@ class Orchestrateur:
                     s = horloge.maintenant()
                     if premiere:
                         await self._regles_jusqu_a(s, jour, journee)
-                    perception = self._passer(agent, jour, s, journee)
+                    perception = await self._passer(agent, jour, s, journee)
                 if perception is None:
                     continue
                 assert agent.palier is not None
@@ -466,12 +508,12 @@ class Orchestrateur:
         while journee.regles and journee.regles[0][0] <= minute:
             heure, agent_id = journee.regles.pop(0)
             agent = self._par_id[agent_id]
-            perception = self._passer(agent, jour, heure, journee)
+            perception = await self._passer(agent, jour, heure, journee)
             if perception is not None:
                 decision = await self._decider_un(agent, perception, heure)
                 await self._appliquer_async(agent, decision, heure, heure, perception, journee)
 
-    def _passer(
+    async def _passer(
         self, agent: Agent, jour: int, minute: int, journee: _JourneeAsync
     ) -> Perception | None:
         """Passage d'un agent à `minute` : sa perception, et s'il doit décider (règle 10)."""
@@ -481,6 +523,7 @@ class Orchestrateur:
             presents[zone] += 1
             porteurs[zone] += int(porteur)
         perception = self._perception(agent, jour, minute, minute + 1, presents, porteurs)
+        perception = await self._vivre(agent, perception)
         journee.perceptions[agent.agent_id] = perception
         journee.passages[agent.agent_id] = minute
         if not agent.doit_decider(perception):
@@ -612,11 +655,64 @@ class Orchestrateur:
             part_porteurs_zone=porteurs[agent.zone] / presents[agent.zone]
             if self.config.simulation.diffusion
             else None,
+            porteurs_vus=porteurs[agent.zone] - int(agent.porteur)
+            if self.config.simulation.diffusion
+            else 0,
+            rayon=bool(self.commerce and self.commerce.en_rayon(agent.zone)),
             flacon_vide=agent.flacon_jours == 0
             and bool(agent.derniere_decision and agent.derniere_decision.porteur),
             achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),
             promotion_concurrente=bool(self.commerce and self.commerce.promotion_concurrente(jour)),
         )
+
+    async def _vivre(self, agent: Agent, perception: Perception) -> Perception:
+        """Notoriété A et lassitude L du jour (étape 16), mises à jour au passage de l'agent avec
+        ce qu'il perçoit, avant de savoir s'il décide. Un passage du seuil est publié (F6)."""
+        etat = agent.produit
+        if etat is None:
+            return perception
+        vivre_jour(
+            etat, perception, porteur=agent.porteur, contacts=agent.contacts,
+            oubli=self.config.oubli, lassitude=self.config.lassitude,
+        )  # fmt: skip
+        if etat.transition is not None:
+            await self._publier(
+                AgentNotoriete(
+                    **self._dates(perception.minute),
+                    source_agent_id=agent.agent_id,
+                    zone=agent.zone,
+                    caused_by=etat.causes,
+                    payload=AgentNotorietePayload(
+                        nature=etat.transition, notoriete=etat.notoriete, lassitude=etat.lassitude
+                    ),
+                )
+            )
+            self.bilan.compter_notoriete(etat.transition)
+        return dataclasses.replace(
+            perception,
+            notoriete=etat.notoriete,
+            lassitude=etat.lassitude,
+            niveau_lassitude=niveau_de_lassitude(etat.lassitude, self.config.lassitude.niveaux)
+            if self.config.lassitude.actif
+            else 0,
+        )
+
+    async def _consigner(self, jour: int) -> None:
+        """Faits publics du jour vers la mémoire collective, lisibles à partir du lendemain. Rien
+        dans le run témoin. Un échec (embedding) est un incident, pas une panne (A4)."""
+        faits, self._publics_du_jour = self._publics_du_jour, []
+        if self.collectif is None or not self.config.simulation.diffusion:
+            return
+        from rag.collectif import faits_du_jour
+
+        try:
+            await self.collectif.consigner(faits_du_jour(jour, faits))
+        except Exception as exc:
+            await self._incident(
+                NatureIncident.SANS_REPONSE,
+                None,
+                f"mémoire collective : {type(exc).__name__}: {exc}",
+            )
 
     def _regler_flacon(self, agent: Agent, decision: Decision | None, achete: bool) -> None:
         """Un achat remplit le flacon ; une décision qui n'utilise plus le produit le retire."""
@@ -738,9 +834,27 @@ class Orchestrateur:
                     appel_llm=decision.appel_llm,
                     motif=agent.motif,
                     sources=decision.sources,
+                    notoriete=agent.produit.notoriete if agent.produit else None,
+                    lassitude=agent.produit.lassitude if agent.produit else None,
                 ),
             )
             suites = self._suites(agent, decision, event.event_id, t)
+            souvenirs = [
+                AgentSouvenir(
+                    **self._dates(t),
+                    source_agent_id=agent.agent_id,
+                    zone=agent.zone,
+                    caused_by=(event.event_id,),
+                    payload=AgentSouvenirPayload(
+                        source=s.source,
+                        nature=s.nature,
+                        jour=s.jour,
+                        texte=s.texte,
+                        importance=s.importance,
+                    ),
+                )
+                for s in decision.souvenirs
+            ]
         except ValidationError as exc:
             await self._incidents_agent(agent, decision)
             await self._incident(NatureIncident.SORTIE_INVALIDE, agent.agent_id, str(exc))
@@ -749,6 +863,9 @@ class Orchestrateur:
         await self._controler_c6(agent, event, debut)
         await self._publier(event)
         await self._incidents_agent(agent, decision, caused_by=(event.event_id,))
+        for souvenir in souvenirs:
+            await self._publier(souvenir)
+            self.bilan.compter_souvenir(souvenir.payload.nature)
         agent.noter_decision(decision, perception)
         self.bilan.decisions += 1
         if agent.motif is not None:
@@ -842,6 +959,10 @@ class Orchestrateur:
         }
 
     async def _publier(self, event: Envelope) -> None:
+        if self.collectif is not None and isinstance(
+            event, AgentMessage | AgentDecision | Disturbance
+        ):
+            self._publics_du_jour.append(event)
         if self._tampon is not None:  # journée asynchrone : publiée à sa fin, dans l'ordre
             self._tampon.append(event)
             return

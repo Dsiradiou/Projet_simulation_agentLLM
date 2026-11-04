@@ -40,8 +40,10 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
 | [`monde.plan`](#mondeplan) | `sim.world.events` | 1.0 | Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est choisi au lancement. La scène Godot construit son décor à partir de lui. |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
-| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.3 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
+| [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.4 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
 | [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.1 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
+| [`agent.notoriete`](#agentnotoriete) | `sim.agent.decisions` | 1.0 | Un agent découvre, oublie ou redécouvre le produit : sa notoriété A passe son seuil. caused_by cite les expositions du jour qui l'ont fait remonter. |
+| [`agent.souvenir`](#agentsouvenir) | `sim.agent.decisions` | 1.0 | Ce qu'un agent LLM retient, en clair (A1, D2) : ChromaDB n'en est que l'index de recherche. caused_by cite la décision qui l'a produit. |
 | [`indicateur.valeur`](#indicateurvaleur) | `sim.indicators` | 1.1 | Valeur d'un indicateur calculée pendant le run ; caused_by liste ses sources. |
 | [`controle.injection`](#controleinjection) | `sim.control` | 1.1 | Demande d'injection d'une perturbation depuis l'interface (D3). |
 | [`controle.commande`](#controlecommande) | `sim.control` | 1.0 | Commande de pilotage du run depuis l'interface. |
@@ -134,7 +136,7 @@ Payload :
 
 ### agent.decision
 
-Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.3.
+Décision d'un agent : action, sens attribué au produit, justification (D2). Version 1.4.
 
 Payload :
 
@@ -147,8 +149,10 @@ Payload :
 | `moteur` | `llm` \| `regle` \| `repli` | oui |  |  |
 | `palier` | `grand` \| `moyen` \| `petit` ou null | non |  |  |
 | `appel_llm` | LlmCall ou null | non |  |  |
-| `motif` | `premiere_decision` \| `message` \| `perturbation` \| `exposition` \| `meteo` \| `lassitude` \| `flacon_vide` ou null | non |  | Déclencheur de la décision (version 1.1 et suivantes). |
+| `motif` | `premiere_decision` \| `message` \| `perturbation` \| `exposition` \| `meteo` \| `lassitude` \| `flacon_vide` \| `relance` \| `redecouverte` ou null | non |  | Déclencheur de la décision (version 1.1 et suivantes). |
 | `sources` | liste de string | non |  | Passages du corpus et souvenirs montrés à l'agent (version 1.2, F1, F2). |
+| `notoriete` | number ou null | non | ≥ 0, ≤ 1 | Notoriété A au moment de décider (version 1.4). |
+| `lassitude` | number ou null | non | ≥ 0, ≤ 1 | Lassitude L au moment de décider (version 1.4). |
 
 ### agent.deplacement
 
@@ -160,6 +164,32 @@ Payload :
 | --- | --- | --- | --- | --- |
 | `depuis` | string | oui | motif `^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$` | Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires. |
 | `vers` | string | oui | motif `^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$` | Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires. |
+
+### agent.notoriete
+
+Un agent découvre, oublie ou redécouvre le produit : sa notoriété A passe son seuil. caused_by cite les expositions du jour qui l'ont fait remonter. Version 1.0.
+
+Payload :
+
+| Champ | Type | Obligatoire | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `nature` | `decouverte` \| `oubli` \| `redecouverte` | oui |  |  |
+| `notoriete` | number | oui | ≥ 0, ≤ 1 | Notoriété A après la mise à jour du jour. |
+| `lassitude` | number | oui | ≥ 0, ≤ 1 | Lassitude L après la mise à jour du jour. |
+
+### agent.souvenir
+
+Ce qu'un agent LLM retient, en clair (A1, D2) : ChromaDB n'en est que l'index de recherche. caused_by cite la décision qui l'a produit. Version 1.0.
+
+Payload :
+
+| Champ | Type | Obligatoire | Contraintes | Description |
+| --- | --- | --- | --- | --- |
+| `source` | string | oui |  | Identifiant du souvenir, tel que le citent les `sources`. |
+| `nature` | `episode` \| `bilan` | oui |  |  |
+| `jour` | integer | oui | ≥ 1 | Jour du souvenir : lisible à partir du lendemain (C6). |
+| `texte` | string | oui | longueur ≥ 1 |  |
+| `importance` | integer | oui | ≥ 0 |  |
 
 ## Topic `sim.indicators`
 

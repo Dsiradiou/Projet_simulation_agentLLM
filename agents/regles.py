@@ -215,7 +215,9 @@ class AgentRegleC0(AgentAuSeuil):
     - sens : « tendance » s'il a imité, « efficace » s'il a été convaincu par la marque ou après
       plusieurs jours de forte chaleur avec le produit, « dépassé » s'il a abandonné une mode ;
     - messages types sur le canal de son rôle quand il adopte ou abandonne, dans le même budget
-      hebdomadaire que les agents LLM.
+      hebdomadaire que les agents LLM ;
+    - lassitude (étape 16) : un porteur lassé abandonne avec la probabilité `abandon_lassitude`
+      × L (« dépassé »). Sans lassitude, aucun tirage de plus : la baseline reste identique.
     """
 
     def __init__(
@@ -230,8 +232,10 @@ class AgentRegleC0(AgentAuSeuil):
         contacts: list[str],
         jours_campagne: set[int],
         messages_par_semaine: int,
+        abandon_lassitude: float = 0.0,
     ) -> None:
         super().__init__(agent_id, role, zone, rng, seuil, regles)
+        self.abandon_lassitude = abandon_lassitude
         self.palier = None  # agent à règles : aucun modèle à charger, aucun palier
         self.monde = monde
         self.contacts = contacts
@@ -256,6 +260,9 @@ class AgentRegleC0(AgentAuSeuil):
                 return self._avec_message(
                     p, Action.ABANDONNER, Sens.DEPASSE, False, "mode qui recule"
                 )
+            lasse = p.lassitude * self.abandon_lassitude
+            if lasse and rng.random() < lasse:
+                return self._avec_message(p, Action.ABANDONNER, Sens.DEPASSE, False, "lassitude")
             if p.flacon_vide and pression < self.seuil and rng.random() < 0.5:
                 return self._avec_message(p, Action.ABANDONNER, Sens.BANAL, False, "flacon fini")
             chaleur = self._jours_chauds >= _JOURS_DE_CHALEUR

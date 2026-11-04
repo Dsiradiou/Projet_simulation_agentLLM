@@ -9,6 +9,7 @@ import platform
 import random
 import re
 import subprocess
+from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from importlib import metadata
@@ -133,6 +134,7 @@ async def _recuperateur(config: Config, host: str, run: RunInfo) -> "Recuperateu
     from chromadb.config import Settings as ChromaSettings
 
     from rag.base import BaseCorpus, Memoires, client_persistant
+    from rag.collectif import MemoireCollective
     from rag.corpus import lire_corpus
     from rag.embeddings import EmbeddeurOllama
     from rag.recuperation import Recuperateur
@@ -146,7 +148,10 @@ async def _recuperateur(config: Config, host: str, run: RunInfo) -> "Recuperateu
     client = chromadb.PersistentClient(
         path=str(dossier), settings=ChromaSettings(anonymized_telemetry=False)
     )
-    return Recuperateur(corpus, Memoires(client, embeddeur, run.run_id), config.rag, config.monde)
+    memoires = Memoires(client, embeddeur, run.run_id)
+    # Mémoire collective (étape 16) : dans le dossier du run, comme les mémoires personnelles.
+    collectif = MemoireCollective(client, embeddeur, run.run_id) if config.rag.collectif else None
+    return Recuperateur(corpus, memoires, config.rag, config.monde, collectif)
 
 
 async def _verifier_ollama(host: str, modeles: set[str]) -> None:
@@ -282,9 +287,13 @@ async def executer_run(
             controle = LecteurControle(settings.kafka_bootstrap_servers, run.run_id, producer)
             await controle.start()
             try:
+                # Mémoire collective du run (étape 16), tenue par le récupérateur des agents LLM.
+                collectif = next(
+                    (r.collectif for a in agents if (r := getattr(a, "recuperateur", None))), None
+                )
                 orchestrateur = Orchestrateur(
                     config, run, agents, acteurs, producer, etat, afficher, preparer, controle,
-                    Routines(config.routines, config.run.seed), commerce,
+                    Routines(config.routines, config.run.seed), commerce, collectif,
                 )  # fmt: skip
                 bilan = await orchestrateur.executer(jours)
             finally:
@@ -310,6 +319,10 @@ async def executer_run(
     resume["evenements_externes"] = ecrivain.recus - enregistres - ecrivain.recus_de[PRODUCTEUR]
     # Prompts ramenés sous le budget du contexte (étape 12) : état des agents, pas des événements.
     resume["prompts_reduits"] = sum(getattr(a, "prompts_reduits", 0) for a in agents)
+    retraits: Counter[str] = Counter()  # ce que la réduction a retiré (étape 15 ter)
+    for a in agents:
+        retraits.update(getattr(a, "retraits_par_nature", {}))
+    resume["retraits_prompt"] = dict(sorted(retraits.items()))
     recuperateurs = {
         id(a.recuperateur): a.recuperateur for a in agents if getattr(a, "recuperateur", None)
     }

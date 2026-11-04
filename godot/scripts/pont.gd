@@ -44,6 +44,9 @@ func _process(delta: float) -> void:
 				if donnees.get("type", "") == "pont.fin_rejeu":
 					_fin_rejeu = true
 				message_recu.emit(donnees)
+				if _fin_rejeu:  # tout est lu : c'est à nous de fermer (le pont attend)
+					_ws.close()
+					break
 	if etat != _etat_precedent:
 		_etat_precedent = etat
 		if etat == WebSocketPeer.STATE_OPEN:

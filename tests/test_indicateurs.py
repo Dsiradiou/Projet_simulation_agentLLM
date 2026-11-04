@@ -110,7 +110,8 @@ def test_indicators_are_computed_at_each_day_end_and_reproducible() -> None:
     globales = [i for i in premier if i.payload.nom == SENS_PARTAGE and i.payload.groupe is None]
     assert len(globales) == 6  # une valeur par fin de jour
     decisions = {e.event_id for e in events if isinstance(e, ev.AgentDecision)}
-    assert all(set(i.caused_by) <= decisions for i in premier)  # F6 : vers des faits bruts
+    faits = decisions | {e.event_id for e in events if isinstance(e, ev.AgentNotoriete)}
+    assert all(set(i.caused_by) <= faits for i in premier)  # F6 : vers des faits bruts
     noms = {i.payload.nom for i in premier}
     assert {ADOPTION, INFORMATION_MUTUELLE, INFORMATION_MUTUELLE_P} <= noms
     assert DERIVES not in noms  # aucune décision LLM dans la baseline

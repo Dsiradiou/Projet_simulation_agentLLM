@@ -17,6 +17,11 @@ jour 1 de la baseline, tous les agents à règles partent sur « banal » : C = 
 échange) ; l'information mutuelle dit si les groupes pensent encore différemment, et révèle quand
 le sens ne fait que refléter le rôle, donc le modèle (constat de l'étape 14, question Q2).
 
+Oubli (étape 16, décidé par le binôme le 4 nov.) : un habitant qui a oublié le produit (sa
+notoriété est passée sous le seuil) ne compte plus dans le sens partagé ni dans l'information
+mutuelle ; il garde sa place dans l'adoption (un porteur n'oublie pas). L'indicateur `oubli`
+publie à part la part des habitants qui l'ont oublié, en citant leurs événements d'oubli.
+
 Chaque valeur cite les décisions qu'elle compte (`caused_by`, F6). Le même code sert au service
 en direct (`indicators.service`) et au calcul après coup depuis l'historique (`indicators.rapport`).
 """
@@ -42,6 +47,7 @@ ADOPTION = "adoption"
 INFORMATION_MUTUELLE = "information_mutuelle"
 INFORMATION_MUTUELLE_P = "information_mutuelle_p"
 DERIVES = "derives"
+OUBLI = "oubli"
 
 
 def role_de(agent_id: str) -> str:
@@ -140,6 +146,9 @@ class EtatPopulation:
 
     avis: dict[str, Avis] = field(default_factory=dict)
     zones: dict[str, str] = field(default_factory=dict)  # lieu de chacun
+    # Étape 16 : habitants qui ont oublié le produit, avec leur événement d'oubli et son heure.
+    oublis: dict[str, tuple[UUID, int]] = field(default_factory=dict)
+    notoriete_suivie: bool = False  # le run publie la notoriété (sinon : pas d'indicateur oubli)
 
     def appliquer(self, event: ev.Envelope) -> None:
         match event:
@@ -158,6 +167,13 @@ class EtatPopulation:
                 )
             case ev.AgentMove():
                 self.zones[event.source_agent_id] = event.payload.vers
+            case ev.AgentNotoriete():
+                self.notoriete_suivie = True
+                agent_id = event.source_agent_id
+                if event.payload.nature is ev.Notoriete.OUBLI:
+                    self.oublis[agent_id] = (event.event_id, event.sim_time_occurred)
+                else:
+                    self.oublis.pop(agent_id, None)
 
     def mesurer(self, jour: int, graine: int) -> list[Mesure]:
         """Indicateurs de fin de jour : sens partagé (global, par rôle, par zone), adoption et
@@ -166,8 +182,12 @@ class EtatPopulation:
         if not self.avis:
             return []
         fin = debut_du_jour(jour + 1) - 1
-        agents = sorted(self.avis)
-        tous = [self.avis[a] for a in agents]
+        tous = [self.avis[a] for a in sorted(self.avis)]
+        agents = sorted(a for a in self.avis if a not in self.oublis)  # ceux qui y pensent
+        mesures_oubli = self._mesurer_oubli(jour, fin, len(tous))
+        if not agents:
+            return mesures_oubli
+        actifs = [self.avis[a] for a in agents]
 
         def mesure(nom: str, valeur: float, groupe: str | None, avis: list[Avis], **kw) -> Mesure:
             return Mesure(
@@ -175,18 +195,18 @@ class EtatPopulation:
                 min(a.minute for a in avis), fin, len(avis), **kw,
             )  # fmt: skip
 
-        repartition = _repartition(tous)
+        repartition = _repartition(actifs)
         mesures = [
-            mesure(SENS_PARTAGE, convergence(repartition.values()), None, tous,
+            mesure(SENS_PARTAGE, convergence(repartition.values()), None, actifs,
                    repartition=repartition),
             mesure(ADOPTION, sum(a.porteur for a in tous) / len(tous), None, tous),
         ]  # fmt: skip
-        paires = [(a.role, a.sens.value) for a in tous]
+        paires = [(a.role, a.sens.value) for a in actifs]
         _, normalisee = information_mutuelle(paires)
-        mesures.append(mesure(INFORMATION_MUTUELLE, normalisee, None, tous))
+        mesures.append(mesure(INFORMATION_MUTUELLE, normalisee, None, actifs))
         mesures.append(
             mesure(INFORMATION_MUTUELLE_P, p_permutation(paires, rng_du_jour(graine, jour)), None,
-                   tous)
+                   actifs)
         )  # fmt: skip
         groupes: dict[str, list[Avis]] = {}
         for agent_id in agents:
@@ -200,4 +220,16 @@ class EtatPopulation:
             mesures.append(
                 mesure(SENS_PARTAGE, convergence(rep.values()), groupe, avis, repartition=rep)
             )
-        return mesures
+        return mesures + mesures_oubli
+
+    def _mesurer_oubli(self, jour: int, fin: int, habitants: int) -> list[Mesure]:
+        """Part des habitants (ceux qui ont déjà donné un avis) qui ont oublié le produit ; elle
+        cite les événements d'oubli. Rien pour un run sans notoriété (runs d'avant l'étape 16)."""
+        if not self.notoriete_suivie or not habitants:
+            return []
+        oublis = [self.oublis[a] for a in sorted(self.oublis) if a in self.avis]  # par agent
+        debut = min((minute for _, minute in oublis), default=debut_du_jour(jour))
+        return [
+            Mesure(OUBLI, len(oublis) / habitants, None, tuple(i for i, _ in oublis), debut, fin,
+                   habitants)
+        ]  # fmt: skip

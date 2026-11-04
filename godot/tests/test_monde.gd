@@ -48,11 +48,18 @@ func _initialize() -> void:
 	verifier(monde.decor._halos["plage"].visible, "la zone perturbée est signalée")
 	verifier(monde._jour == 4, "le jour avance avec l'horloge")
 
+	monde._sur_message({"type": "agent.notoriete", "source_agent_id": "sceptique_01", "zone": "piscine", "payload": {"nature": "redecouverte", "notoriete": 0.45, "lassitude": 0.3}})
+	monde._sur_message({"type": "agent.souvenir", "source_agent_id": "sceptique_01", "zone": "piscine", "payload": {"source": "bilan:sceptique_01:j14", "nature": "bilan", "jour": 14, "texte": "Semaine 2 : j'ai acheté.", "importance": 3}})
+	verifier(sc.notoriete == 0.45 and sc.lassitude == 0.3, "la notoriété et la lassitude sont gardées")
+	verifier(sc.souvenirs.size() == 1 and sc.souvenirs[0]["nature"] == "bilan", "le souvenir est gardé pour l'inspection")
+
 	monde._selectionner(sc)
 	var fiche: String = monde.ui._fiche_texte.text
 	verifier(fiche.contains("sceptique_01") and fiche.contains("Tout le monde en a."), "la fiche montre la justification")
 	verifier(fiche.contains("qwen3:1.7b"), "la fiche montre le modèle et le coût")
 	verifier(fiche.contains("fiche-produit") and fiche.contains("J2"), "la fiche montre ce que l'agent avait lu et ses souvenirs")
+	verifier(fiche.contains("Notoriété du produit : 45 %") and fiche.contains("Lassitude : 30 %"), "la fiche montre A et L")
+	verifier(fiche.contains("semaine 2 : Semaine 2 : j'ai acheté."), "la fiche montre ce que l'agent a retenu")
 
 	monde._sur_message({"type": "monde.stock", "zone": "pharmacie", "payload": {"produit": "marque", "quantite": 0}})
 	verifier(monde.decor._stocks["pharmacie"].text == "Rupture de stock", "une rupture s'affiche au-dessus de la pharmacie")

@@ -10,6 +10,7 @@ from typing import Annotated
 
 import yaml
 from pydantic import (
+    AliasChoices,
     BaseModel,
     ConfigDict,
     Field,
@@ -165,7 +166,12 @@ class DeclencheursConfig(_Section):
 
     exposition_ecart: float = Field(gt=0, le=1)
     meteo_uv_fort: int = Field(ge=0, le=15)
-    lassitude_jours: PositiveInt
+    # Renommé au début de l'étape 16 : « lassitude » désigne désormais l'état L de l'agent
+    # (section `lassitude`). L'ancien nom reste accepté pour relire les manifestes des runs.
+    relance_jours: PositiveInt = Field(
+        validation_alias=AliasChoices("relance_jours", "lassitude_jours"),
+        description="Un agent qui pense encore au produit y repense après ce nombre de jours.",
+    )
 
 
 class ReseauConfig(_Section):
@@ -203,11 +209,165 @@ class MondeConfig(_Section):
     indice_protection: str = Field(min_length=1)
 
 
+class PoidsConfig(_Section):
+    """Poids du score de sélection (début de l'étape 16, décidé par le binôme le 4 nov.) :
+    score = [α·pertinence + β·rétention + γ·importance + δ·nouveauté + ε·proximité
+    − λ·L·redondance] × accès. Chaque terme est déjà entre 0 et 1."""
+
+    pertinence: float = Field(default=1.0, ge=0, description="α : ressemblance à la question.")
+    retention: float = Field(default=1.0, ge=0, description="β : le souvenir n'est pas effacé.")
+    importance: float = Field(default=1.0, ge=0, description="γ : moment marquant.")
+    nouveaute: float = Field(default=1.0, ge=0, description="δ : pas montré récemment.")
+    proximite: float = Field(default=0.5, ge=0, description="ε : mémoire collective seulement.")
+    redondance: float = Field(default=1.0, ge=0, description="λ : pénalité de la lassitude.")
+
+
+class ProximiteConfig(_Section):
+    """Proximité sociale de l'auteur d'un fait public (mémoire collective) : on écoute davantage
+    ses proches."""
+
+    proche: float = Field(default=1.0, ge=0, le=1)
+    abonnement: float = Field(default=0.7, ge=0, le=1)
+    zone: float = Field(default=0.4, ge=0, le=1)
+    tous: float = Field(default=0.4, ge=0, le=1, description="Fait public pour toute la ville.")
+
+
+class MemoireConfig(_Section):
+    """Mémoire sélective : ce qui entre dans le prompt (début de l'étape 16, voir `rag.selection`).
+
+    Filtres durs d'abord (date, rôle, auteur, portée sociale, déjà dans la perception), puis
+    `candidats` par source, notés et triés, sans doublons. La rétention d'un souvenir décroît avec
+    son âge depuis son dernier rappel ; un souvenir marquant s'efface moins vite."""
+
+    candidats: PositiveInt = Field(
+        default=10, description="Candidats retenus par source avant d'être notés."
+    )
+    demi_vie_jours: PositiveFloat = Field(
+        default=7, description="Âge (jours) auquel la rétention d'un souvenir banal vaut 0,5."
+    )
+    kappa: float = Field(
+        default=1.0,
+        ge=0,
+        description="Demi-vie effective = demi_vie_jours × (1 + κ·importance) : un souvenir "
+        "marquant s'efface moins vite.",
+    )
+    seuil_retention: float = Field(
+        default=0.1,
+        ge=0,
+        lt=1,
+        description="Sous ce seuil, un souvenir n'est plus candidat (il reste en base, F6).",
+    )
+    nouveaute_jours: PositiveInt = Field(
+        default=7, description="Un élément montré depuis moins de ce nombre de jours est déjà vu."
+    )
+    nouveaute_deja_vu: float = Field(default=0.3, ge=0, le=1)
+    doublon: float = Field(
+        default=0.92,
+        gt=0,
+        le=1,
+        description="Similarité cosinus au-delà de laquelle un candidat double un élément choisi.",
+    )
+    poids: PoidsConfig = Field(default_factory=PoidsConfig)
+    proximite: ProximiteConfig = Field(default_factory=ProximiteConfig)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _anciens_poids(cls, data: object) -> object:
+        """Manifestes des runs de l'étape 15 ter (27-28 oct.) : poids à plat, renommés depuis."""
+        if not isinstance(data, dict) or not any(k.startswith("poids_") for k in data):
+            return data
+        data = dict(data)
+        anciens = {"poids_ressemblance": "pertinence", "poids_recence": "retention"}
+        anciens["poids_importance"] = "importance"
+        poids = dict(data.get("poids", {}))
+        for ancien, nouveau in anciens.items():
+            if ancien in data:
+                poids[nouveau] = data.pop(ancien)
+        data["poids"] = poids
+        return data
+
+
 class RagConfig(_Section):
     actif: bool
     modele_embeddings: str = Field(min_length=1)
     passages: NonNegativeInt
     souvenirs: NonNegativeInt
+    collectif: NonNegativeInt = Field(
+        default=0, description="Faits publics retrouvés par décision (mémoire collective)."
+    )
+    memoire: MemoireConfig = Field(default_factory=MemoireConfig)
+
+
+class RenfortsConfig(_Section):
+    """Ce qui remet le produit en tête d'un agent (notoriété A), par exposition du jour."""
+
+    proche: float = Field(default=0.5, ge=0, le=1, description="Message d'un proche.")
+    publication: float = Field(
+        default=0.3, ge=0, le=1, description="Publication « réseaux » ou propos entendu en zone."
+    )
+    article: float = Field(
+        default=0.4,
+        ge=0,
+        le=1,
+        description="Perturbation qui parle du produit (article, publication virale, polémique, "
+        "rupture de stock).",
+    )
+    porteur_vu: float = Field(default=0.1, ge=0, le=1, description="Par porteur vu autour de lui.")
+    porteurs_vus_max: float = Field(
+        default=0.3,
+        ge=0,
+        le=1,
+        description="Plafond du renfort des porteurs vus en un jour (décidé le 4 nov.) : voir des "
+        "porteurs entretient le souvenir sans le saturer.",
+    )
+    rayon: float = Field(default=0.2, ge=0, le=1, description="Le produit est en rayon sur place.")
+
+
+class OubliConfig(_Section):
+    """Notoriété A : l'agent pense-t-il encore au produit ? (début de l'étape 16)
+
+    A(j) = A(j−1)·2^(−1/h) + renforts, plafonnée à 1 ; un porteur reste à 1. Sous `seuil`, plus
+    de relance ni d'appel LLM ; une exposition qui le fait repasser au-dessus déclenche une
+    décision (redécouverte). Inactif : tout le monde connaît le produit, comme avant."""
+
+    actif: bool = False
+    connus_jour_1: float = Field(
+        default=0.2,
+        ge=0,
+        le=1,
+        description="Part des agents qui connaissent le produit au jour 1 (tirée avec la graine).",
+    )
+    demi_vie_jours: PositiveFloat = Field(
+        default=10, description="Demi-vie moyenne de la notoriété, tirée par agent."
+    )
+    demi_vie_ecart: float = Field(default=3, ge=0, description="Écart type de cette demi-vie.")
+    seuil: float = Field(default=0.2, gt=0, le=1)
+    renforts: RenfortsConfig = Field(default_factory=RenfortsConfig)
+
+
+class LassitudeConfig(_Section):
+    """Lassitude L : l'agent connaît le produit mais en a assez (début de l'étape 16).
+
+    L(j) = L(j−1)·(1 − recuperation) + taux·exposition, l'exposition du jour (messages reçus,
+    porteurs vus, jours passés à le porter) étant entre 0 et 1. Elle pénalise la redondance dans
+    la sélection du RAG, donne une phrase au prompt et, dans C0, fait abandonner plus souvent."""
+
+    actif: bool = False
+    taux: float = Field(default=0.15, ge=0, le=1)
+    recuperation: float = Field(default=0.1, ge=0, le=1)
+    niveaux: tuple[float, float, float] = Field(
+        default=(0.3, 0.6, 0.85), description="Seuils des trois phrases de lassitude du prompt."
+    )
+    abandon_c0: float = Field(
+        default=0.3, ge=0, le=1, description="Baseline C0 : abandon d'un porteur avec p = ceci × L."
+    )
+
+    @field_validator("niveaux")
+    @classmethod
+    def _croissants(cls, value: tuple[float, float, float]) -> tuple[float, float, float]:
+        if not 0 < value[0] < value[1] < value[2] <= 1:
+            raise ValueError("trois seuils croissants entre 0 et 1")
+        return value
 
 
 class Config(_Section):
@@ -222,6 +382,8 @@ class Config(_Section):
     reseau: ReseauConfig
     routines: RoutinesConfig
     rag: RagConfig
+    oubli: OubliConfig = Field(default_factory=OubliConfig)
+    lassitude: LassitudeConfig = Field(default_factory=LassitudeConfig)
     monde: MondeConfig
     population: dict[Role, NonNegativeInt] = Field(
         description="Nombre d'agents par rôle. Un rôle absent compte zéro agent."

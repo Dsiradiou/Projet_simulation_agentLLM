@@ -87,8 +87,10 @@ def test_factice_run_goes_through_kafka_and_redis(settings) -> None:
 
     assert bilan.jours == 3 and bilan.incidents == 0
     # Le plan du monde (étape 15 bis) ; par jour : début, météo et fin du jour (étape 14), puis
-    # les faits des agents.
-    assert publies == 1 + 3 * 3 + bilan.decisions + bilan.deplacements + bilan.messages
+    # les faits des agents, dont les passages du seuil de notoriété (étape 16).
+    notoriete = bilan.decouvertes + bilan.oublis + bilan.redecouvertes
+    agents_publies = bilan.decisions + bilan.deplacements + bilan.messages + notoriete
+    assert publies == 1 + 3 * 3 + agents_publies
     assert [e.payload.jour for e in lus if isinstance(e, ev.ClockStep)] == [1, 2, 3]
     assert sum(isinstance(e, ev.AgentDecision) for e in lus) == bilan.decisions
     assert sum(z["presents"] for z in zones.values()) == len(agents)

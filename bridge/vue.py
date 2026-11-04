@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from bus import events as ev
 
 HISTORIQUE_MAX = 10
+SOUVENIRS_MAX = 5
 
 
 @dataclass
@@ -20,10 +21,15 @@ class FicheAgent:
     sens: str | None = None
     porteur: bool = False
     palier: str | None = None
+    notoriete: float | None = None  # A et L (étape 16), None sans suivi du produit
+    lassitude: float | None = None
     decisions: deque[dict] = field(default_factory=lambda: deque(maxlen=HISTORIQUE_MAX))
     messages_envoyes: deque[dict] = field(default_factory=lambda: deque(maxlen=HISTORIQUE_MAX))
     messages_directs_recus: deque[dict] = field(
         default_factory=lambda: deque(maxlen=HISTORIQUE_MAX)
+    )
+    souvenirs: deque[dict] = field(  # agents LLM (étape 16) : épisodes et bilans de semaine
+        default_factory=lambda: deque(maxlen=SOUVENIRS_MAX)
     )
 
     def resume(self) -> dict:
@@ -33,6 +39,8 @@ class FicheAgent:
             "sens": self.sens,
             "porteur": self.porteur,
             "palier": self.palier,
+            "notoriete": self.notoriete,
+            "lassitude": self.lassitude,
         }
 
     def detail(self) -> dict:
@@ -42,6 +50,7 @@ class FicheAgent:
             "decisions": list(self.decisions),
             "messages_envoyes": list(self.messages_envoyes),
             "messages_directs_recus": list(self.messages_directs_recus),
+            "souvenirs": list(self.souvenirs),
         }
 
 
@@ -73,6 +82,8 @@ class VueMonde:
                 f.zone = event.zone or f.zone
                 f.sens, f.porteur = p.sens.value, p.porteur
                 f.palier = p.palier.value if p.palier else "regles"
+                if p.notoriete is not None:
+                    f.notoriete, f.lassitude = p.notoriete, p.lassitude
                 f.decisions.append(
                     {
                         "jour": self.jour,
@@ -90,6 +101,13 @@ class VueMonde:
                 )
             case ev.AgentMove():
                 self._fiche(event.source_agent_id).zone = event.payload.vers
+            case ev.AgentNotoriete():  # découverte, oubli, redécouverte (étape 16)
+                f = self._fiche(event.source_agent_id)
+                f.notoriete, f.lassitude = event.payload.notoriete, event.payload.lassitude
+            case ev.AgentSouvenir():  # ce que l'agent a retenu, en clair (étape 16)
+                self._fiche(event.source_agent_id).souvenirs.append(
+                    event.payload.model_dump(mode="json")
+                )
             case ev.AgentMessage():
                 p = event.payload
                 message = {

@@ -37,6 +37,8 @@ async def ecouter(url: str) -> None:
             texte = ligne(message)
             if texte:
                 print(texte, flush=True)
+            if '"pont.fin_rejeu"' in message:  # le client ferme lui-même la fin d'un rejeu
+                return
 
 
 def main() -> None:

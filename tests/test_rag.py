@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from agents.agent_llm import AgentLLM
-from agents.base import Perception
+from agents.base import Decision, Perception
 from agents.roles import Role
 from bus import events as ev
 from llm.routeur import Routeur
@@ -21,7 +21,7 @@ from rag.corpus import TYPES, lire_corpus
 from rag.evaluation import DecisionLue, charger_reference, controler, evaluer
 from rag.recuperation import Recuperateur
 from sim.config import load_config
-from sim.domaine import Canal, Sens, Zone, debut_du_jour
+from sim.domaine import Action, Canal, Sens, Zone, debut_du_jour
 from tests.test_llm import ClientScripte, _json
 
 DEFAULT = Path(__file__).parent.parent / "configs" / "default.yaml"
@@ -163,8 +163,12 @@ def test_memories_are_private_and_only_from_past_days() -> None:
 
 
 def test_retrieval_prefers_documents_not_yet_read() -> None:
+    """Un document montré au modèle compte comme déjà vu pendant `nouveaute_jours` (étape 16)."""
     rec = _recuperateur()
     premiers = asyncio.run(rec.contexte("sceptique_01", Role.SCEPTIQUE, _perception(5)))
+    vue = Decision(Action.IGNORER, Sens.BANAL, "Rien.", False, ev.Moteur.LLM,
+                   sources=premiers.sources)  # fmt: skip
+    asyncio.run(rec.retenir("sceptique_01", _perception(5), vue))
     seconds = asyncio.run(rec.contexte("sceptique_01", Role.SCEPTIQUE, _perception(9)))
     assert len(premiers.passages) == len(seconds.passages) == CONFIG.rag.passages
     deja_vus = set(premiers.sources) & set(seconds.sources)
@@ -183,7 +187,7 @@ def test_agent_remembers_an_exchange_several_days_later() -> None:
     agent.motif = ev.Motif.MESSAGE
     premiere = asyncio.run(agent.decider(_perception(3, (message,))))
     agent.noter_decision(premiere, _perception(3))
-    agent.motif = ev.Motif.LASSITUDE
+    agent.motif = ev.Motif.RELANCE
     seconde = asyncio.run(agent.decider(_perception(9)))
     prompt_jour_9 = client.appels[1]["prompt"]
     assert "Ce dont tu te souviens" in prompt_jour_9
@@ -196,6 +200,9 @@ def test_agent_remembers_an_exchange_several_days_later() -> None:
 
 def test_agent_still_decides_when_retrieval_fails() -> None:
     class EnPanne:
+        async def consolider(self, *args):
+            raise ConnectionError("Ollama injoignable")
+
         async def contexte(self, *args):
             raise ConnectionError("Ollama injoignable")
 
@@ -207,7 +214,8 @@ def test_agent_still_decides_when_retrieval_fails() -> None:
                      recuperateur=EnPanne())  # fmt: skip
     decision = asyncio.run(agent.decider(_perception(2)))
     assert decision.moteur is ev.Moteur.LLM and decision.sources == ()
-    assert [i.detail.split(" :")[0] for i in decision.incidents] == ["récupération", "mémoire"]
+    natures = [i.detail.split(" :")[0] for i in decision.incidents]
+    assert natures == ["consolidation", "récupération", "mémoire"] and decision.souvenirs == ()
 
 
 # --- contrôle d'un run -------------------------------------------------------------------------
@@ -223,6 +231,9 @@ def test_run_check_detects_future_and_foreign_sources() -> None:
                               "memoire:sceptique_01:j10", "memoire:sceptique_02:j3"))]  # fmt: skip
     ecarts = controler(mauvaises, MONDE)
     assert (ecarts["futur"], ecarts["hors_role"], ecarts["souvenir_invalide"]) == (1, 1, 2)
+    collectif = ("collectif:j9:resume:plage", "collectif:j10:4f2c", "collectif:j11:resume:plage")
+    publics = controler([DecisionLue("e3", "sceptique_01", 10, None, "x", collectif)], MONDE)
+    assert publics["futur"] == 2  # étape 16 : un fait public du jour même ou d'après (C6)
 
 
 @pytest.mark.ollama
@@ -276,6 +287,47 @@ def test_prompt_stays_within_the_context_budget() -> None:
     assert all(f"Jour {s[-1]} :" in prompt for s in vus)  # source citée = texte présent
 
 
+def test_reduction_keeps_two_memories_and_one_passage_before_cutting_messages() -> None:
+    """Étape 15 ter : quand le prompt déborde, les messages au-delà de 5 partent d'abord, puis
+    le 3e souvenir (deux gardés), puis les passages (un seul gardé) ; la mémoire (A1) n'est plus
+    la première sacrifiée, le corpus (F1) garde au moins un passage."""
+    rec = _recuperateur()
+    sujets = {1: "texture grasse au soleil", 2: "prix trop élevé en pharmacie", 3: "odeur florale"}
+    for jour, sujet in sujets.items():  # des souvenirs distincts : pas des doublons (étape 16)
+        texte = f"Jour {jour} : Vaelys à la plage, on parle de {sujet}. " * 2
+        asyncio.run(rec.memoires.ajouter("sceptique_01", jour, texte, 3))
+    client = ClientScripte(_json())
+    agent = AgentLLM("sceptique_01", Role.SCEPTIQUE, Zone.PLAGE, random.Random(0),
+                     Routeur(client, CONFIG.llm), MONDE, 42, [], 0.3, recuperateur=rec)  # fmt: skip
+    longs = tuple(
+        _message(f"habitue_soin_{i:02d}", "Vaelys ? " + "Fluide, un peu cher, ça brille. " * 13, 5)
+        for i in range(8)
+    )
+    agent.motif = ev.Motif.MESSAGE
+    decision = asyncio.run(agent.decider(_perception(5, longs)))
+    assert len(client.appels[0]["prompt"]) <= agent.budget_caracteres()
+    retraits = agent.retraits_par_nature
+    assert retraits["message"] >= 3 and retraits["souvenir"] == 1 and retraits["passage"] >= 1
+    souvenirs = [s for s in decision.sources if s.startswith("memoire:")]
+    passages = [s for s in decision.sources if s.startswith("corpus:")]
+    assert len(souvenirs) == 2  # le 3e souvenir est parti avant tout passage
+    assert len(passages) == CONFIG.rag.passages - retraits["passage"] >= 1
+
+
+def test_memories_are_compact_and_keep_who_said_what() -> None:
+    from rag.recuperation import souvenir
+
+    recus = tuple(
+        _message(f"pharmacien_0{i}", "La crème Vaelys colle au sable. " * 6, 3) for i in (1, 2, 3)
+    )
+    decision = Decision(Action.CRITIQUER, Sens.BANAL, "Trop collante. " * 20, False, ev.Moteur.LLM)
+    texte, importance = souvenir(_perception(3, recus), decision, MONDE)
+    assert len(texte) <= 400 and "…" in texte
+    assert "pharmacien_02 « La crème Vaelys colle au sable" in texte
+    assert "pharmacien_01" not in texte  # les deux derniers messages seulement
+    assert texte.startswith("Jour 3, plage.") and importance == 4
+
+
 def test_embedding_is_retried_once_after_a_server_crash() -> None:
     from ollama import ResponseError
 
@@ -299,3 +351,31 @@ def test_embedding_is_retried_once_after_a_server_crash() -> None:
     embeddeur._client = ClientInstable()
     assert asyncio.run(embeddeur.questions(["Vaelys"])) == [[0.1, 0.2]]
     assert (embeddeur.appels, embeddeur.relances) == (1, 1)
+
+
+def test_analysis_counts_memories_shown_against_memories_available() -> None:
+    """Étape 15 ter : la part de souvenirs montrés se lit dans les seules sources publiées."""
+    from rag.analyse import mesurer
+
+    def decision_llm(jour: int, sources: tuple[str, ...]) -> ev.AgentDecision:
+        t = debut_du_jour(jour) + 600
+        return ev.AgentDecision(
+            run_id="r", sim_time_occurred=t, sim_time_processed=t, source_agent_id="sceptique_01",
+            payload=ev.AgentDecisionPayload(
+                action="ignorer", sens="banal", justification="Test.", porteur=False,
+                moteur="llm", palier="petit", sources=sources,
+                appel_llm=ev.LlmCall(modele="m", tokens_entree=1, tokens_sortie=1, duree_s=0),
+            ),
+        )  # fmt: skip
+
+    corpus = tuple(f"corpus:doc-{i}" for i in range(4))
+    events = [
+        decision_llm(1, corpus),  # aucun souvenir disponible
+        decision_llm(2, corpus + ("memoire:sceptique_01:j1",)),  # 1 sur 1
+        decision_llm(3, corpus[:1]),  # 0 sur 2 : privée de toute mémoire, 3 passages retirés
+    ]
+    vue = mesurer("r", events, passages=4, souvenirs=3)
+    assert (vue.decisions, vue.souvenirs_disponibles, vue.souvenirs_montres) == (3, 3, 1)
+    assert (vue.sans_un_souvenir, vue.sans_aucun_souvenir, vue.passage_retire) == (1, 1, 1)
+    assert vue.par_tranche[0]["decisions"] == 3
+    assert vue.ages_souvenirs == [1]  # souvenir du jour 1, montré le jour 2

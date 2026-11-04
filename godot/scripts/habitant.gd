@@ -25,6 +25,9 @@ var sens := ""
 var porteur := false
 var decisions: Array[Dictionary] = []  # dernières décisions reçues (inspection, y compris en rejeu)
 var messages: Array[Dictionary] = []  # derniers messages envoyés
+var notoriete := -1.0  # notoriété A et lassitude L (étape 16) ; -1 : pas suivies dans ce run
+var lassitude := -1.0
+var souvenirs: Array[Dictionary] = []  # derniers souvenirs retenus (agent.souvenir, étape 16)
 
 var _modele: Node3D
 var _lecteur: AnimationPlayer

@@ -80,6 +80,36 @@
           },
           "title": "Sources",
           "type": "array"
+        },
+        "notoriete": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Notoriété A au moment de décider (version 1.4).",
+          "title": "Notoriete"
+        },
+        "lassitude": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Lassitude L au moment de décider (version 1.4).",
+          "title": "Lassitude"
         }
       },
       "required": [
@@ -150,7 +180,9 @@
         "exposition",
         "meteo",
         "lassitude",
-        "flacon_vide"
+        "flacon_vide",
+        "relance",
+        "redecouverte"
       ],
       "title": "Motif",
       "type": "string"
@@ -186,12 +218,13 @@
       "type": "string"
     },
     "schema_version": {
-      "default": "1.3",
+      "default": "1.4",
       "enum": [
         "1.0",
         "1.1",
         "1.2",
-        "1.3"
+        "1.3",
+        "1.4"
       ],
       "title": "Schema Version",
       "type": "string"

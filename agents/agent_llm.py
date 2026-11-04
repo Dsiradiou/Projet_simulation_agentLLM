@@ -12,9 +12,18 @@ rendus avec la décision ; l'orchestrateur les publie (un agent ne parle jamais 
 import dataclasses
 import random
 import time
+from collections import Counter
 from typing import TYPE_CHECKING
 
-from agents.base import Agent, Decision, IncidentAgent, MessageIntent, Perception, porteur_apres
+from agents.base import (
+    Agent,
+    Decision,
+    IncidentAgent,
+    MessageIntent,
+    Perception,
+    SouvenirRetenu,
+    porteur_apres,
+)
 from agents.prompts import MESSAGES_MAX, prompt_jour, prompt_systeme
 from agents.regles import ChoixRegle, repli_seuil_continuite
 from agents.roles import Role
@@ -34,6 +43,11 @@ TENTATIVES = 2  # un appel et une relance (règle 4 de CLAUDE.md)
 CARACTERES_PAR_TOKEN = 3.2
 SURCOUT_TOKENS = 40
 _EXTRAIT = 300  # caractères de la réponse brute recopiés dans l'incident
+# Réduction du prompt (étape 15 ter) : ce qui reste quand le prompt déborde du contexte.
+MESSAGES_GARDES = 5  # messages reçus gardés avant de toucher au RAG
+PASSAGES_PLANCHER = 1  # au moins un passage du corpus (F1)
+SOUVENIRS_PLANCHER = 2  # au moins deux souvenirs (A1), avant de descendre sous 3 messages
+COLLECTIF_PLANCHER = 1  # au moins un fait public (étape 16), avant de toucher à la mémoire
 
 
 class AgentLLM(Agent):
@@ -66,6 +80,7 @@ class AgentLLM(Agent):
         self.recuperateur = recuperateur  # corpus et mémoire (RAG, étape 12) ; None : sans
         self.prompts_reduits = 0  # prompts ramenés sous le budget du contexte
         self.retraits_prompt = 0
+        self.retraits_par_nature: Counter[str] = Counter()  # message, passage, souvenir, collectif
 
     def messages_restants(self, jour: int) -> int | None:
         if self.messages_par_semaine is None:
@@ -80,9 +95,20 @@ class AgentLLM(Agent):
         schema = schema_sortie(self.contacts, peut_parler)
         incidents: list[IncidentAgent] = []
         contexte = None
+        bilans: tuple[SouvenirRetenu, ...] = ()
         if self.recuperateur:
+            try:  # bilan des semaines passées d'abord : il peut servir dès aujourd'hui
+                bilans = await self.recuperateur.consolider(self.agent_id, perception.jour)
+            except Exception as exc:
+                incidents.append(
+                    IncidentAgent(
+                        NatureIncident.SANS_REPONSE, f"consolidation : {type(exc).__name__}: {exc}"
+                    )
+                )
             try:
-                contexte = await self.recuperateur.contexte(self.agent_id, self.role, perception)
+                contexte = await self.recuperateur.contexte(
+                    self.agent_id, self.role, perception, self.abonnements, self.contacts
+                )
             except Exception as exc:  # sans base de connaissances, l'agent décide quand même
                 incidents.append(
                     IncidentAgent(
@@ -136,9 +162,10 @@ class AgentLLM(Agent):
             decision = self._depuis_sortie(
                 sortie, self._cout(reponses, duree_s, tentative), caused_by, incidents, sources
             )
-            if await self._retenir(perception, decision, incidents):
-                return decision
-            return dataclasses.replace(decision, incidents=tuple(incidents))
+            retenus = await self._retenir(perception, decision, incidents)
+            return dataclasses.replace(
+                decision, incidents=tuple(incidents), souvenirs=(*bilans, *retenus)
+            )
 
         incidents.append(
             IncidentAgent(
@@ -146,7 +173,8 @@ class AgentLLM(Agent):
             )
         )
         choix = repli_seuil_continuite(self.derniere_decision, perception, self.seuil)
-        return self._depuis_regle(choix, self._cout(reponses, duree_s, TENTATIVES), incidents)
+        decision = self._depuis_regle(choix, self._cout(reponses, duree_s, TENTATIVES), incidents)
+        return dataclasses.replace(decision, souvenirs=bilans)  # un repli ne laisse pas d'épisode
 
     def budget_caracteres(self) -> int:
         """Place laissée au prompt du jour dans le contexte du modèle, réponse comprise."""
@@ -155,13 +183,22 @@ class AgentLLM(Agent):
         return int(tokens * CARACTERES_PAR_TOKEN) - len(self.systeme)
 
     def _prompt_dans_le_budget(self, perception: Perception, restants: int | None, contexte):
-        """Construit le prompt du jour sous le budget (décision du 18 oct.) : s'il déborde, on
-        retire les messages anciens au-delà de 3, puis le souvenir le moins proche, puis le
-        passage le moins proche. Au-delà du contexte, Ollama tronquerait le début du prompt,
-        c'est-à-dire la consigne de rôle."""
+        """Construit le prompt du jour sous le budget (décision du 18 oct., ordre revu à l'étape
+        15 ter puis à l'étape 16). S'il déborde, on retire, un à un, toujours le moins bien noté :
+        1. les messages anciens au-delà de 5 ;
+        2. les faits publics, jusqu'à en garder 1 (mémoire collective) ;
+        3. les souvenirs, jusqu'à en garder 2 (plancher de la mémoire, A1) ;
+        4. les passages du corpus, jusqu'à n'en garder qu'un (F1) ;
+        5. les messages au-delà de 3 ;
+        6. le dernier fait public, les derniers souvenirs, puis les messages jusqu'au dernier.
+        Avant, les souvenirs partaient en premier : 40 % n'étaient jamais montrés en C1. Passages
+        avant souvenirs, la mémoire restait entière mais 20 % des décisions perdaient un passage
+        (45 % au 8b) : le 3e souvenir part d'abord, les pertes se répartissent (décidé le 27 oct.).
+        Au-delà du contexte, Ollama tronquerait le début du prompt, c'est-à-dire la consigne de
+        rôle."""
         budget = self.budget_caracteres()
         messages_max = MESSAGES_MAX
-        retraits = 0
+        retraits: Counter[str] = Counter()
         while True:
             prompt, montres = prompt_jour(
                 perception, self.derniere_decision, self.contacts, self.monde, self.motif,
@@ -169,22 +206,34 @@ class AgentLLM(Agent):
             )  # fmt: skip
             if len(prompt) <= budget:
                 break
-            if messages_max > 3 and len(perception.messages) > 3:
-                messages_max = min(messages_max, len(perception.messages)) - 1
-            elif contexte and contexte.souvenirs:
-                loin = max(contexte.souvenirs, key=lambda p: p.distance)
-                souvenirs = tuple(p for p in contexte.souvenirs if p is not loin)
-                contexte = dataclasses.replace(contexte, souvenirs=souvenirs)
-            elif contexte and len(contexte.passages) > 1:
+            messages = min(messages_max, len(perception.messages))
+            passages = len(contexte.passages) if contexte else 0
+            souvenirs = len(contexte.souvenirs) if contexte else 0
+            collectif = len(contexte.collectif) if contexte else 0
+            if messages > MESSAGES_GARDES:
+                messages_max, nature = messages - 1, "message"
+            elif collectif > COLLECTIF_PLANCHER:
+                contexte, nature = _sans_le_moins_utile(contexte, "collectif"), "collectif"
+            elif souvenirs > SOUVENIRS_PLANCHER:
+                contexte, nature = _sans_le_moins_utile(contexte, "souvenirs"), "souvenir"
+            elif passages > PASSAGES_PLANCHER:
                 contexte = dataclasses.replace(contexte, passages=contexte.passages[:-1])
-            elif messages_max > 1 and len(perception.messages) > 1:
-                messages_max = min(messages_max, len(perception.messages)) - 1
+                nature = "passage"
+            elif messages > 3:
+                messages_max, nature = messages - 1, "message"
+            elif collectif > 0:
+                contexte, nature = _sans_le_moins_utile(contexte, "collectif"), "collectif"
+            elif souvenirs > 0:
+                contexte, nature = _sans_le_moins_utile(contexte, "souvenirs"), "souvenir"
+            elif messages > 1:
+                messages_max, nature = messages - 1, "message"
             else:
                 break  # rien de plus à retirer : on envoie tel quel
-            retraits += 1
-        self.retraits_prompt += retraits
+            retraits[nature] += 1
+        self.retraits_prompt += retraits.total()
+        self.retraits_par_nature.update(retraits)
         self.prompts_reduits += bool(retraits)
-        return prompt, montres, contexte, retraits
+        return prompt, montres, contexte, retraits.total()
 
     def _cout(self, reponses: list[Reponse], duree_s: float, tentatives: int) -> LlmCall:
         assert self.palier is not None
@@ -198,19 +247,21 @@ class AgentLLM(Agent):
 
     async def _retenir(
         self, perception: Perception, decision: Decision, incidents: list[IncidentAgent]
-    ) -> bool:
+    ) -> tuple[SouvenirRetenu, ...]:
         """Enregistre le souvenir de la décision (A1). Un échec est un incident, pas une panne :
-        il est ajouté à `incidents` et la fonction renvoie False."""
+        il est ajouté à `incidents` et rien n'est retenu."""
         if self.recuperateur is None:
-            return True
+            return ()
         try:
-            await self.recuperateur.retenir(self.agent_id, perception, decision)
+            retenu = await self.recuperateur.retenir(
+                self.agent_id, perception, decision, self.derniere_decision
+            )
         except Exception as exc:
             incidents.append(
                 IncidentAgent(NatureIncident.SANS_REPONSE, f"mémoire : {type(exc).__name__}: {exc}")
             )
-            return False
-        return True
+            return ()
+        return (retenu,)
 
     def _depuis_sortie(
         self,
@@ -253,3 +304,13 @@ class AgentLLM(Agent):
             appel_llm=cout,
             incidents=tuple(incidents),
         )
+
+
+def _sans_le_moins_utile(contexte, champ: str):
+    """Le contexte sans l'élément le moins bien noté de `champ` (souvenirs ou collectif) ; pour
+    des éléments non notés, le moins proche de la question."""
+    elements = getattr(contexte, champ)
+    loin = min(
+        elements, key=lambda p: (p.score, p.jour) if p.score is not None else (-p.distance, 0)
+    )
+    return dataclasses.replace(contexte, **{champ: tuple(p for p in elements if p is not loin)})

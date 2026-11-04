@@ -10,7 +10,8 @@ configuration complète (E2), et sa sortie est gardée dans `sortie.log`, à cô
 configuration.
 
 Le pont ne pilote pas le run qu'il a lancé autrement que par `sim.control` (pause, reprise,
-arrêt) : le processus lui survit s'il est fermé, et un seul run lancé par le pont tourne à la fois.
+arrêt) : le processus est détaché et lui survit s'il est fermé (`_detachements`) ; un seul run
+lancé par le pont tourne à la fois.
 """
 
 import os
@@ -168,21 +169,23 @@ class Lanceur:
         maintenant = maintenant or datetime.now()
         dossier = self.dossier / maintenant.strftime("%Y%m%d-%H%M%S")
         config = ecrire_configuration(demande, dossier, self.configs_dir, maintenant)
-        options: dict = {}
-        if sys.platform == "win32":  # un Ctrl+C dans le terminal du pont n'arrête pas le run
-            options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
-        else:
-            options["start_new_session"] = True
         env = os.environ | {"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8"}
         with (dossier / "sortie.log").open("wb") as journal:
-            self._processus = subprocess.Popen(
-                self.commande(config),
-                stdout=journal,
-                stderr=subprocess.STDOUT,
-                stdin=subprocess.DEVNULL,
-                env=env,
-                **options,
-            )
+            for options in _detachements():
+                try:
+                    self._processus = subprocess.Popen(
+                        self.commande(config),
+                        stdout=journal,
+                        stderr=subprocess.STDOUT,
+                        stdin=subprocess.DEVNULL,
+                        env=env,
+                        **options,
+                    )
+                    break
+                except OSError:  # sortie du groupe de processus refusée : option suivante
+                    continue
+            else:
+                raise OSError("impossible de démarrer le processus du run")
         self._config = config
         return self.etat()
 
@@ -205,6 +208,21 @@ class Lanceur:
             "journal": (self._config.parent / "sortie.log").as_posix(),
             "dernieres_lignes": lignes[-LIGNES_JOURNAL:],
         }
+
+
+def _detachements() -> list[dict]:
+    """Options de création du processus du run, de la plus détachée à la moins détachée. Le run
+    doit survivre au pont : à un Ctrl+C dans son terminal, à la fermeture de ce terminal, et à
+    l'arrêt de l'arbre de processus du pont (constaté le 27 oct. : un run de 119 agents arrêté
+    au jour 18 avec le pont). Sous Windows, sans console ni groupe, et hors de l'objet de tâche
+    du pont quand celui-ci le permet."""
+    if sys.platform != "win32":
+        return [{"start_new_session": True}]
+    base = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+    return [
+        {"creationflags": base | subprocess.CREATE_BREAKAWAY_FROM_JOB, "close_fds": True},
+        {"creationflags": base, "close_fds": True},
+    ]
 
 
 def _fin_du_journal(chemin: Path) -> list[str]:

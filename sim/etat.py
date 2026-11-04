@@ -51,6 +51,9 @@ def _fiche(agent: Agent, jour: int, recus: Perception | None) -> dict[str, str |
         "sens": agent.sens.value if agent.sens else "",
         "porteur": int(agent.porteur),
         "seuil": "" if seuil is None else f"{seuil:.3f}",
+        # Notoriété A et lassitude L (étape 16), vides sans suivi du produit.
+        "notoriete": f"{agent.produit.notoriete:.3f}" if agent.produit else "",
+        "lassitude": f"{agent.produit.lassitude:.3f}" if agent.produit else "",
         "jour": jour,
         "action": d.action.value if d else "",
         "moteur": d.moteur.value if d else "",

@@ -178,7 +178,7 @@ def test_each_trigger_has_its_motive_and_respects_the_reflection_delay() -> None
     assert _decide(a, _p(9, part=0.40, messages=(message,))) is None  # le message attendra
     assert _decide(a, _p(11, part=0.40, messages=(message,))) is ev.Motif.MESSAGE
     assert _decide(a, _p(20, part=0.40)) is None
-    assert _decide(a, _p(21, part=0.40)) is ev.Motif.LASSITUDE  # 10 jours sans y repenser
+    assert _decide(a, _p(21, part=0.40)) is ev.Motif.RELANCE  # 10 jours sans y repenser
     perturbation = exemples()[ev.Disturbance]
     assert _decide(a, _p(22, part=0.4, evenements=(perturbation,))) is ev.Motif.PERTURBATION
 

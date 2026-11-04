@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from uuid import UUID
 
+from agents.notoriete import EtatProduit
 from agents.roles import Palier, Role, palier_du_role
 from bus.events import (
     AgentMessage,
@@ -17,6 +18,7 @@ from bus.events import (
     Moteur,
     Motif,
     NatureIncident,
+    NatureSouvenir,
     WeatherPayload,
 )
 from sim.config import DeclencheursConfig
@@ -39,6 +41,12 @@ class Perception:
     flacon_vide: bool = False  # son flacon est fini (étape 13) : il doit racheter pour continuer
     achat_rate: bool = False  # la veille, il a voulu acheter mais le rayon était vide
     promotion_concurrente: bool = False  # le concurrent est en promotion (fait public du monde)
+    # Début de l'étape 16 : ce qui remet le produit en tête (notoriété) ou en lasse.
+    porteurs_vus: int = 0  # autres porteurs dans sa zone (état de la veille) ; 0 dans le témoin
+    rayon: bool = False  # le produit est en rayon là où il se trouve
+    notoriete: float = 1.0  # A après la mise à jour du jour (1 sans oubli)
+    lassitude: float = 0.0  # L après la mise à jour du jour (0 sans lassitude)
+    niveau_lassitude: int = 0  # 0 à 3 : phrase de lassitude du prompt
 
 
 @dataclass(frozen=True)
@@ -61,6 +69,18 @@ class IncidentAgent:
 
 
 @dataclass(frozen=True)
+class SouvenirRetenu:
+    """Souvenir enregistré pendant une décision (épisode, ou bilan d'une semaine passée).
+    L'orchestrateur le publie en `agent.souvenir`, rattaché à la décision (M7, décidé le 4 nov.)."""
+
+    source: str
+    nature: NatureSouvenir
+    jour: int
+    texte: str
+    importance: int
+
+
+@dataclass(frozen=True)
 class Decision:
     action: Action
     sens: Sens
@@ -74,6 +94,7 @@ class Decision:
     caused_by: tuple[UUID, ...] = field(default=())  # événements de la perception utilisés
     incidents: tuple[IncidentAgent, ...] = ()
     sources: tuple[str, ...] = ()  # passages du corpus et souvenirs montrés au modèle (RAG)
+    souvenirs: tuple[SouvenirRetenu, ...] = ()  # ce que l'agent a retenu (étape 16)
 
 
 def porteur_apres(action: Action, porteur_avant: bool) -> bool:
@@ -99,6 +120,9 @@ class Agent(ABC):
         self.derniere_decision: Decision | None = None
         # Comptes suivis sur les réseaux ; None : reçoit toutes les publications (agents de test).
         self.abonnements: tuple[str, ...] | None = None
+        self.contacts: list[str] = []  # proches (messages directs)
+        # Notoriété et lassitude (début de l'étape 16) ; None : le produit est toujours en tête.
+        self.produit: EtatProduit | None = None
         # Déclencheurs supplémentaires (configuration) ; None : seulement messages et perturbations.
         self.declencheurs: DeclencheursConfig | None = None
         self.motif: Motif | None = None  # motif du jour, fixé par `doit_decider`
@@ -126,8 +150,9 @@ class Agent(ABC):
 
     def doit_decider(self, perception: Perception) -> bool:
         """Déclencheur (règle 10 de CLAUDE.md) : sans changement de situation, l'agent garde sa
-        décision précédente et ne coûte aucun appel. Appelé une fois par jour pour chaque agent ;
-        le motif retenu est gardé dans `motif` et publié avec la décision (F6)."""
+        décision précédente et ne coûte aucun appel. Appelé une fois par jour pour chaque agent,
+        après la mise à jour de sa notoriété ; le motif retenu est gardé dans `motif` et publié
+        avec la décision (F6)."""
         self.motif = self._motif(perception)
         return self.motif is not None
 
@@ -136,6 +161,11 @@ class Agent(ABC):
         m = p.meteo
         forte = bool(d and m and (m.conditions == "canicule" or m.indice_uv >= d.meteo_uv_fort))
         meteo_nouvelle, self._meteo_forte_veille = forte and not self._meteo_forte_veille, forte
+        if self.produit is not None:  # oubli (étape 16) : qui n'y pense pas n'y réfléchit pas
+            if not self.produit.connu:
+                return None
+            if self.produit.decouvre and self.derniere_decision is not None:
+                return Motif.REDECOUVERTE  # sans délai de réflexion, comme un flacon vide
         if self.derniere_decision is None:
             return Motif.PREMIERE_DECISION
         if p.evenements:
@@ -153,13 +183,13 @@ class Agent(ABC):
         part = p.part_porteurs_zone
         if part is not None and abs(part - self._part_vue) >= d.exposition_ecart:
             return Motif.EXPOSITION
-        if p.jour - self._jour_decision >= d.lassitude_jours:
-            return Motif.LASSITUDE
+        if p.jour - self._jour_decision >= d.relance_jours:
+            return Motif.RELANCE
         return None
 
     def noter_decision(self, decision: Decision, perception: Perception) -> None:
         """Appelé par l'orchestrateur quand la décision est publiée : point de départ des
-        déclencheurs d'exposition et de lassitude."""
+        déclencheurs d'exposition et de relance."""
         self.derniere_decision = decision
         self._part_vue = perception.part_porteurs_zone or 0.0
         self._jour_decision = perception.jour

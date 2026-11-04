@@ -119,8 +119,17 @@ MOTIFS_LISIBLES: dict[Motif, str] = {
     Motif.PERTURBATION: "il s'est passé quelque chose",
     Motif.EXPOSITION: "autour de toi, la part de gens qui l'utilisent a nettement changé",
     Motif.METEO: "le soleil tape fort aujourd'hui",
-    Motif.LASSITUDE: "cela fait longtemps que tu n'y as pas repensé",
+    Motif.LASSITUDE: "cela fait longtemps que tu n'y as pas repensé",  # runs d'avant l'étape 16
     Motif.FLACON_VIDE: "ton flacon est fini",
+    Motif.RELANCE: "cela fait longtemps que tu n'y as pas repensé",
+    Motif.REDECOUVERTE: "tu l'avais un peu oubliée, et on vient de te la rappeler",
+}
+
+# Lassitude L (étape 16), trois niveaux : ce que l'agent ressent quand le produit se répète.
+LASSITUDE_LISIBLE = {
+    1: "On commence à beaucoup te parler de {marque}.",
+    2: "Les messages et les gens qui utilisent {marque} se répètent : on en parle partout.",
+    3: "Tu en as assez d'entendre parler de {marque}.",
 }
 
 _SYSTEME = """\
@@ -206,6 +215,8 @@ def prompt_jour(
         lignes.append(f"Hier, tu as voulu acheter {marque}, mais il n'y en avait plus en rayon.")
     if motif is not None:
         lignes.append(f"Tu y repenses aujourd'hui parce que {MOTIFS_LISIBLES[motif]}.")
+    if perception.niveau_lassitude:
+        lignes.append(LASSITUDE_LISIBLE[perception.niveau_lassitude].format(marque=marque))
 
     montres = perception.messages[-messages_max:]
     if montres:
@@ -232,6 +243,9 @@ def prompt_jour(
     if contexte and contexte.souvenirs:
         lignes.append("Ce dont tu te souviens :")
         lignes += [f"- {p.texte}" for p in contexte.souvenirs]
+    if contexte and contexte.collectif:  # mémoire collective (étape 16) : faits publics passés
+        lignes.append("Ce qui s'est dit en ville ces derniers jours :")
+        lignes += [f"- {p.texte}" for p in contexte.collectif]
     if contacts:
         lignes.append(f"Tes contacts : {', '.join(contacts)}.")
     if messages_restants is not None:

@@ -293,6 +293,28 @@ def test_replay_websocket_streams_the_recorded_run(tmp_path: Path) -> None:
         assert ws.receive_json()["type"] == "pont.erreur"
 
 
+def test_replay_end_is_closed_by_the_client(tmp_path: Path, monkeypatch) -> None:
+    """Fermé par le pont juste après la dernière rafale, Godot perdait la fin du rejeu : le pont
+    attend que le client ferme, et ne ferme lui-même qu'après un délai."""
+    from starlette.websockets import WebSocketDisconnect
+
+    from bridge import app as module_pont
+
+    monkeypatch.setattr(module_pont, "ATTENTE_FERMETURE_S", 0.3)
+    _, events, _ = _run_en_memoire(1)
+    _ecrire_historique(_avec_run_id(events, "run_f"), tmp_path, "run_f")
+    client, _ = _client(runs_dir=tmp_path)
+    with client, client.websocket_connect("/ws?rejeu=run_f") as ws:
+        debut = ws.receive_json()
+        for _ in range(debut["evenements"]):
+            ws.receive_text()
+        assert ws.receive_json()["type"] == "pont.fin_rejeu"
+        t0 = time.perf_counter()
+        with pytest.raises(WebSocketDisconnect):
+            ws.receive_text()  # le pont n'a pas fermé de lui-même avant le délai
+        assert time.perf_counter() - t0 >= 0.25
+
+
 # --- de bout en bout : le vrai pont pilote un vrai run ---------------------------------------
 
 

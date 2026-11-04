@@ -72,6 +72,8 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 14 | Indicateurs d'émergence | ✅ terminée |
 | 15 | Mode asynchrone et cohérence temporelle | ✅ terminée |
 | 15 bis | Interface de paramétrage et zones multiples | ✅ terminée |
+| 15 ter | Souvenirs dans le prompt | ✅ terminée |
+| 16 | Mémoire sélective, oubli et mémoire collective (1re partie) | ✅ terminée |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
@@ -232,9 +234,12 @@ ouvert entre les runs. Référence complète : [`docs/pont.md`](docs/pont.md).
 
 ## Base de connaissances (RAG)
 
-Avant chaque décision, un agent LLM retrouve 4 passages du **corpus fictif** (`corpus/documents/`,
-37 documents : fiche produit, communiqués, avis, articles, notes internes) et 3 de ses **souvenirs**,
-ajoutés à son prompt. Toute recherche est filtrée par date simulée (rien du futur) et par rôle (une
+Avant chaque décision, un agent LLM retrouve 3 passages du **corpus fictif** (`corpus/documents/`,
+37 documents : fiche produit, communiqués, avis, articles, notes internes), 3 de ses **souvenirs** et
+2 faits de la **mémoire collective** (ce qui s'est dit en public les jours précédents), ajoutés à son
+prompt. Ils sont choisis par un score (pertinence, rétention, importance, nouveauté, proximité,
+redondance pénalisée par la lassitude) ; les souvenirs s'oublient s'ils ne sont plus rappelés, et un
+bilan de chaque semaine est calculé par règle. Toute recherche est filtrée par date simulée (rien du futur) et par rôle (une
 note interne n'est lue que par son destinataire) ; chaque décision publie ses sources. Embeddings :
 `bge-m3` via Ollama (`ollama pull bge-m3`), index ChromaDB local dans `data/chroma/` (reconstruit
 quand le corpus change), mémoires de chaque run dans `runs/<run_id>/memoires/`.
@@ -243,7 +248,14 @@ quand le corpus change), mémoires de chaque run dans `runs/<run_id>/memoires/`.
 .venv\Scripts\python -m rag.evaluation --modeles bge-m3       # jeu de référence (40 questions)
 .venv\Scripts\python -m rag.evaluation --annoter <run_id>      # échantillon à annoter + contrôle C6
 .venv\Scripts\python -m rag.evaluation --noter docs/mesures/annotation_<run_id>.csv
+.venv\Scripts\python -m rag.analyse <run_id> ...                # ce que le modèle a vraiment vu
 ```
+
+**Notoriété et lassitude** (étape 16) : au jour 1, seuls 20 % des habitants connaissent le produit ;
+les autres le découvrent par exposition. Un habitant qui n'y est plus exposé finit par l'oublier
+(il ne décide plus), et la lassitude monte quand le produit se répète autour de lui. Les deux se
+coupent dans la configuration (`oubli.actif`, `lassitude.actif` ; comparaison :
+`configs/dev-sans-oubli.yaml`).
 
 Règles d'écriture du corpus et relecture : [`corpus/README.md`](corpus/README.md).
 

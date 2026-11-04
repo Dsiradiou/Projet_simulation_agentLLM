@@ -207,7 +207,8 @@ def decisions_avec_sources(run_id: str, runs_dir: Path | None = None) -> list[De
 
 def controler(decisions: list[DecisionLue], monde: MondeConfig) -> dict[str, int]:
     """Contrôle C6 sur tout un run : aucune source lue avant sa date, ni hors de son rôle, aucun
-    souvenir du jour même ou d'un autre agent."""
+    souvenir du jour même ou d'un autre agent, aucun fait public (mémoire collective, étape 16)
+    livré le jour même ou après."""
     documents = {d.id: d for d in lire_corpus(monde)}
     ecarts = {"futur": 0, "hors_role": 0, "souvenir_invalide": 0, "sources": 0}
     for d in decisions:
@@ -218,6 +219,8 @@ def controler(decisions: list[DecisionLue], monde: MondeConfig) -> dict[str, int
                 doc = documents[source.removeprefix("corpus:")]
                 ecarts["futur"] += doc.jour > d.jour
                 ecarts["hors_role"] += not doc.lisible_par(role)
+            elif source.startswith("collectif:"):  # collectif:j<jour>:…
+                ecarts["futur"] += int(source.split(":")[1][1:]) >= d.jour
             else:
                 _, agent, jour = source.split(":")
                 ecarts["souvenir_invalide"] += agent != d.agent_id or int(jour[1:]) >= d.jour

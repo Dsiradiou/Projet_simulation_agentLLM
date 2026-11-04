@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from agents.agent_llm import AgentLLM
 from agents.base import Agent, WorldActor
+from agents.notoriete import etat_initial
 from agents.regles import AgentAuSeuil, AgentConcurrent, AgentRegleC0, tirer_seuil
 from agents.roles import Role, palier_du_role
 from llm.routeur import Routeur
@@ -144,10 +145,15 @@ def jours_de_campagne(config: Config) -> set[int]:
 
 def equiper(agent: Agent, identite: Identite, config: Config) -> Agent:
     """Place l'agent dans le réseau social et dans ses lieux habituels, et lui donne ses
-    déclencheurs."""
+    déclencheurs, sa notoriété de départ et sa lassitude (étape 16). La marque concurrente suit
+    son calendrier : elle n'oublie pas le produit."""
     agent.abonnements = identite.abonnements
     agent.lieux = identite.lieux
+    agent.contacts = identite.contacts
     agent.declencheurs = config.declencheurs
+    suivi = config.oubli.actif or config.lassitude.actif
+    if suivi and not isinstance(agent, AgentConcurrent):
+        agent.produit = etat_initial(config.oubli, config.run.seed, identite.agent_id)
     return agent
 
 
@@ -172,6 +178,7 @@ def construire_population(
             agent = AgentRegleC0(
                 x.agent_id, x.role, x.zone, x.rng, seuil, regles, config.monde, x.contacts,
                 campagne, config.agents.messages_par_semaine.get(x.role, 0),
+                config.lassitude.abandon_c0 if config.lassitude.actif else 0.0,
             )  # fmt: skip
         else:
             if routeur is None:

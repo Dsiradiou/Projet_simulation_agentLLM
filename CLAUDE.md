@@ -134,6 +134,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
 | Lancer depuis la scène | pont + scène : interface de paramétrage (« Nouvelle simulation », `-- --parametrage`) |
 | Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
+| Ce que le modèle a vu | `.venv\Scripts\python -m rag.analyse <run_id> ...` (souvenirs et passages restés dans le prompt) |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
 | Indicateurs | `.venv\Scripts\python -m indicators.rapport <run_id> ...` ; `indicators.trace <run_id> --variation` |
 | Deux horloges (C5) | `.venv\Scripts\python -m replay.horloges <run_id> ...` |
@@ -214,7 +215,8 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 - Routines (`routines`) : déplacements du matin par règles, selon le rôle et le temps
   (`sim/routines.py`), publiés à 08:00 avec la météo pour cause.
 - Déclencheurs (`declencheurs`) : en plus des messages et perturbations, exposition aux porteurs,
-  météo marquée et lassitude. Chaque décision publie son `motif` ; le bilan les compte.
+  météo marquée et relance (`relance_jours`, motif appelé « lassitude » avant l'étape 16). Chaque
+  décision publie son `motif` ; le bilan les compte.
 - Budget de parole (`agents.messages_par_semaine`) : c'est le rôle qui décide de parler ; budget
   épuisé, le schéma JSON n'autorise plus que `message: null`.
 
@@ -288,10 +290,30 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   pluie précédée le même jour d'une perturbation `orage`. Effets légers (particules CPU, brume) ;
   nuages à l'horizon, jamais entre la caméra plongeante et la ville.
 
+## Mémoire, oubli et lassitude (étape 16, première partie, décidé le 4 nov.)
+
+- Trois sources pour le prompt d'un agent LLM : corpus, souvenirs personnels, mémoire collective
+  (`rag.collectif`, faits publics du jour consignés le soir, lisibles le lendemain dans la portée
+  sociale ; rien dans le témoin). Quotas `rag.passages` / `rag.souvenirs` / `rag.collectif`.
+- Choix par score (`rag/selection.py`, réglages `rag.memoire`) : pertinence, rétention (demi-vie
+  allongée par l'importance, remise à 1 quand le souvenir est montré), importance, nouveauté,
+  proximité, moins la redondance pénalisée par la lassitude, le tout multiplié par la notoriété.
+  Filtres d'abord (date, rôle, auteur, rétention), doublons écartés.
+- Bilan hebdomadaire par règle (`Recuperateur.consolider`), daté du dernier jour de la semaine.
+  Épisodes et bilans sont publiés en `agent.souvenir` : ChromaDB n'est que l'index de recherche.
+- Notoriété A et lassitude L (`agents/notoriete.py`, sections `oubli` et `lassitude`) : mises à jour
+  par l'orchestrateur au passage de chaque agent, mêmes règles en C0 et en C1 (E1), tirages avec un
+  générateur à part. Sous le seuil, plus de relance ni d'appel ; un porteur n'oublie pas ; un agent qui
+  a oublié sort du sens partagé et est compté à part (`oubli`). Passages du seuil publiés en
+  `agent.notoriete` et recomptés par le rejeu.
+- Comparaison : `configs/dev-sans-oubli.yaml`. Mesuré le 4 nov. : la lassitude fait reculer la mode,
+  l'oubli ne joue presque pas et la découverte est immédiate (calibrage prévu au début des campagnes).
+
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- Ajouter ou non une mesure de déplacement du sens par rapport au jour 1 : la convergence seule
-  ne distingue pas la baseline de son témoin (B3, étape 14).
+- Ville à taille et plan urbain choisis (petite, moyenne, grande ; étoile, anneaux…) à la place du
+  nombre de zones par type, carte peuplée automatiquement : en discussion depuis le 4 nov., rien de
+  tranché (effet sur la simulation ou visuel seul, lien avec le nombre d'agents, moment de le faire).
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

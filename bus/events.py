@@ -116,6 +116,7 @@ class Perturbation(StrEnum):
 VERSIONS_1_1 = Literal["1.0", "1.1"]
 VERSIONS_1_2 = Literal["1.0", "1.1", "1.2"]
 VERSIONS_1_3 = Literal["1.0", "1.1", "1.2", "1.3"]
+VERSIONS_1_4 = Literal["1.0", "1.1", "1.2", "1.3", "1.4"]
 
 
 class ClockStepPayload(_Strict):
@@ -267,8 +268,10 @@ class Motif(StrEnum):
     PERTURBATION = "perturbation"  # perturbation dans sa zone
     EXPOSITION = "exposition"  # la part de porteurs autour de lui a nettement changé
     METEO = "meteo"  # début d'une journée de canicule ou d'UV fort
-    LASSITUDE = "lassitude"  # pas reconsidéré depuis longtemps
+    LASSITUDE = "lassitude"  # ancien nom de RELANCE, lisible dans les runs d'avant la 1.4
     FLACON_VIDE = "flacon_vide"  # son flacon est fini : racheter ou non (version 1.3)
+    RELANCE = "relance"  # pas reconsidéré depuis longtemps (version 1.4)
+    REDECOUVERTE = "redecouverte"  # il l'avait oublié, une exposition le lui rappelle (1.4)
 
 
 class LlmCall(_Strict):
@@ -296,13 +299,20 @@ class AgentDecisionPayload(_Strict):
         default=(),
         description="Passages du corpus et souvenirs montrés à l'agent (version 1.2, F1, F2).",
     )
+    notoriete: float | None = Field(
+        default=None, ge=0, le=1, description="Notoriété A au moment de décider (version 1.4)."
+    )
+    lassitude: float | None = Field(
+        default=None, ge=0, le=1, description="Lassitude L au moment de décider (version 1.4)."
+    )
 
 
 class AgentDecision(Envelope):
     TOPIC = Topic.AGENT_DECISIONS
     DESCRIPTION = "Décision d'un agent : action, sens attribué au produit, justification (D2)."
     type: Literal["agent.decision"] = "agent.decision"
-    schema_version: VERSIONS_1_3 = "1.3"  # 1.1 : motif ; 1.2 : sources ; 1.3 : flacon vide
+    # 1.1 : motif ; 1.2 : sources ; 1.3 : flacon vide ; 1.4 : relance, redécouverte, A et L
+    schema_version: VERSIONS_1_4 = "1.4"
     payload: AgentDecisionPayload
 
     @model_validator(mode="after")
@@ -315,6 +325,57 @@ class AgentDecision(Envelope):
         if p.moteur is Moteur.LLM and p.appel_llm is None:
             raise ValueError("une décision LLM indique le coût de son appel")
         return self
+
+
+class Notoriete(StrEnum):
+    """Passage de la notoriété A d'un agent par son seuil (début de l'étape 16)."""
+
+    DECOUVERTE = "decouverte"  # il n'avait jamais pensé au produit
+    OUBLI = "oubli"  # il n'y pense plus : plus de relance ni d'appel
+    REDECOUVERTE = "redecouverte"  # une exposition le lui rappelle
+
+
+class AgentNotorietePayload(_Strict):
+    nature: Notoriete
+    notoriete: float = Field(ge=0, le=1, description="Notoriété A après la mise à jour du jour.")
+    lassitude: float = Field(ge=0, le=1, description="Lassitude L après la mise à jour du jour.")
+
+
+class AgentNotoriete(Envelope):
+    TOPIC = Topic.AGENT_DECISIONS
+    DESCRIPTION = (
+        "Un agent découvre, oublie ou redécouvre le produit : sa notoriété A passe son seuil. "
+        "caused_by cite les expositions du jour qui l'ont fait remonter."
+    )
+    type: Literal["agent.notoriete"] = "agent.notoriete"
+    schema_version: Literal["1.0"] = "1.0"
+    payload: AgentNotorietePayload
+
+
+class NatureSouvenir(StrEnum):
+    """Ce qu'un agent LLM retient (étape 16, décidé le 4 nov.)."""
+
+    EPISODE = "episode"  # le souvenir d'une décision : ce qu'il a reçu, décidé, dit
+    BILAN = "bilan"  # le bilan d'une semaine passée, calculé par règle (consolidation)
+
+
+class AgentSouvenirPayload(_Strict):
+    source: str = Field(description="Identifiant du souvenir, tel que le citent les `sources`.")
+    nature: NatureSouvenir
+    jour: int = Field(ge=1, description="Jour du souvenir : lisible à partir du lendemain (C6).")
+    texte: str = Field(min_length=1)
+    importance: int = Field(ge=0)
+
+
+class AgentSouvenir(Envelope):
+    TOPIC = Topic.AGENT_DECISIONS
+    DESCRIPTION = (
+        "Ce qu'un agent LLM retient, en clair (A1, D2) : ChromaDB n'en est que l'index de "
+        "recherche. caused_by cite la décision qui l'a produit."
+    )
+    type: Literal["agent.souvenir"] = "agent.souvenir"
+    schema_version: Literal["1.0"] = "1.0"
+    payload: AgentSouvenirPayload
 
 
 class AgentMovePayload(_Strict):
@@ -459,6 +520,8 @@ EVENT_CLASSES: tuple[type[Envelope], ...] = (
     AgentMessage,
     AgentDecision,
     AgentMove,
+    AgentNotoriete,
+    AgentSouvenir,
     Indicator,
     Injection,
     Command,
@@ -476,6 +539,8 @@ Event = Annotated[
     | AgentMessage
     | AgentDecision
     | AgentMove
+    | AgentNotoriete
+    | AgentSouvenir
     | Indicator
     | Injection
     | Command

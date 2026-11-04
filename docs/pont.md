@@ -27,7 +27,7 @@ soit des **messages du pont**, dont le type commence par `pont.` :
 | `pont.instantane` | À la connexion en direct | `run` (run_id, statut, jour, minute), `jour`, `meteo`, `lieux` (zones du run, les sept d'origine pour un run sans plan), `zones` (présents et porteurs par zone), `agents` (fiche de chaque agent, avec son `agent_id`), `perturbations` récentes |
 | `pont.nouveau_run` | Un nouveau run démarre (son `monde.plan`, ou le pas du jour 1 d'un run plus ancien) | `run_id` (repartir d'un monde vide) |
 | `pont.rejeu` | Début d'un rejeu | `run_id`, `evenements` (nombre à venir) |
-| `pont.fin_rejeu` | Fin d'un rejeu | `run_id` |
+| `pont.fin_rejeu` | Fin d'un rejeu : c'est au client de fermer la connexion (le pont attend 30 s, puis ferme) | `run_id` |
 | `pont.erreur` | Rejeu impossible | `detail` |
 
 Un run commence par l'événement `monde.plan` (étape 15 bis) : la liste de ses zones, `lieux`. Un type
@@ -45,7 +45,7 @@ lent (plus de 10 000 messages en attente) est déconnecté plutôt que de ralent
 | --- | --- |
 | `GET /etat` | Run courant et statut (`en_cours`, `pause`, `termine`, `arrete`), jour, météo, zones, perturbations récentes |
 | `GET /agents` | Fiche de chaque agent du run courant |
-| `GET /agents/{agent_id}` | `etat` : fiche Redis (rôle, palier, zone, sens, porteur, seuil, dernière action et sa justification, moteur, modèle et coût du dernier appel, 5 derniers messages reçus ; pour un agent à règles, la règle appliquée). `historique` : 10 dernières décisions (avec `caused_by`), messages envoyés et messages directs reçus |
+| `GET /agents/{agent_id}` | `etat` : fiche Redis (rôle, palier, zone, sens, porteur, seuil, notoriété A et lassitude L depuis l'étape 16, dernière action et sa justification, moteur, modèle et coût du dernier appel, 5 derniers messages reçus ; pour un agent à règles, la règle appliquée). `historique` : 10 dernières décisions (avec `caused_by`), messages envoyés et messages directs reçus, 5 derniers souvenirs (`agent.souvenir` : épisodes et bilans de semaine, depuis l'étape 16) |
 | `GET /runs` | Runs enregistrés, rejouables |
 
 La mémoire proprement dite des agents arrive avec le RAG (étape 12) ; d'ici là, l'historique des
@@ -71,7 +71,10 @@ vide).
 | `GET /lancements` | — | État du dernier run lancé par le pont : `statut` (`aucun`, `en_cours`, `termine`, `echec`), `code` de sortie, `run_id` (dès que le run l'a affiché), `configuration`, `journal`, `dernieres_lignes` de sa sortie |
 
 Le run lancé est un run ordinaire : son manifeste recopie la configuration complète, il se pilote par
-`POST /commandes` et survit à l'arrêt du pont. Un seul run lancé par le pont tourne à la fois.
+`POST /commandes`. Son processus est détaché : il survit à un Ctrl+C dans le terminal du pont et à la
+fermeture de ce terminal, mais **pas** à l'arrêt de toute l'arborescence de processus du pont
+(gestionnaire des tâches, tâche de fond d'un outil) : ne pas arrêter ainsi un pont dont un run tourne.
+Un seul run lancé par le pont tourne à la fois.
 
 Une injection est datée de l'heure simulée courante du run (`sim_time_occurred`) ; la perturbation
 qui en découle l'est du début du jour où elle prend effet. L'écart entre les deux est le délai de

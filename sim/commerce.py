@@ -70,6 +70,10 @@ class Commerce:
     def promotion_concurrente(self, jour: int) -> bool:
         return jour <= self._promotion_jusqu_a
 
+    def en_rayon(self, lieu: str) -> bool:
+        """Le produit est visible en rayon dans ce lieu (renfort de notoriété, étape 16)."""
+        return self.stock.get(lieu, 0) > 0
+
     # --- effets des perturbations --------------------------------------------------------------
 
     def reagir(self, perturbation: Disturbance, jour: int) -> None:

@@ -68,6 +68,24 @@ def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
             zone="plage_2",
             payload=ev.AgentMovePayload(depuis="domicile", vers="plage_2"),
         ),
+        ev.AgentNotoriete: ev.AgentNotoriete(
+            **base,
+            source_agent_id="sceptique_03",
+            zone="plage",
+            payload=ev.AgentNotorietePayload(nature="redecouverte", notoriete=0.3, lassitude=0.1),
+        ),
+        ev.AgentSouvenir: ev.AgentSouvenir(
+            **base,
+            source_agent_id="sceptique_03",
+            zone="plage",
+            payload=ev.AgentSouvenirPayload(
+                source="bilan:sceptique_03:j14",
+                nature="bilan",
+                jour=14,
+                texte="Semaine 2 (jours 8 à 14) : 2 décisions ; je me suis renseigné.",
+                importance=3,
+            ),
+        ),
         ev.WorldPlan: ev.WorldPlan(
             **base,
             source_agent_id="orchestrateur",

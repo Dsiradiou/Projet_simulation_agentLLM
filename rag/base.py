@@ -23,6 +23,8 @@ from chromadb.config import Settings as ChromaSettings
 from agents.roles import Role
 from rag.corpus import Document
 from rag.embeddings import Embeddeur
+from rag.selection import Candidat, retention
+from sim.config import MemoireConfig
 
 DOSSIER_INDEX = Path("data/chroma")
 
@@ -51,6 +53,9 @@ class Passage:
     jour: int
     type: str
     distance: float
+    importance: int = 0  # souvenir : voir `recuperation.souvenir`
+    score: float | None = None  # noté par `selection.choisir` : le plus utile a le plus haut score
+    retention: float | None = None  # souvenir ou fait public : ce qu'il en reste (0 à 1)
 
 
 class BaseCorpus:
@@ -118,7 +123,16 @@ class BaseCorpus:
         }
         if self.collection is None:
             raise RuntimeError("corpus non indexé : appeler indexer() d'abord")
-        r = self.collection.query(query_embeddings=[vecteur], n_results=k, where=filtre)
+        r = self.collection.query(
+            query_embeddings=[vecteur],
+            n_results=k,
+            where=filtre,
+            include=["documents", "metadatas", "distances", "embeddings"],
+        )
+        self._vecteurs = {
+            f"corpus:{i}": tuple(float(x) for x in v)
+            for i, v in zip(r["ids"][0], r["embeddings"][0], strict=True)
+        }
         return [
             Passage(f"corpus:{i}", texte, int(meta["jour"]), str(meta["type"]), float(dist))
             for i, texte, meta, dist in zip(
@@ -126,9 +140,20 @@ class BaseCorpus:
             )
         ]
 
+    def candidats(
+        self, vecteur: list[float], jour: int, role: Role, reglage: MemoireConfig
+    ) -> list[Candidat]:
+        """Documents candidats (`selection.choisir`) : publiés avant le jour de l'agent et lisibles
+        par son rôle. Un document ne s'efface pas (rétention 1, importance 0)."""
+        passages = self.rechercher_vecteur(vecteur, jour, role, reglage.candidats)
+        return [Candidat(p, self._vecteurs[p.source]) for p in passages]
+
 
 class Memoires:
-    """Épisodes vécus par les agents d'un run. Chaque agent ne retrouve que les siens (A1)."""
+    """Épisodes vécus par les agents d'un run. Chaque agent ne retrouve que les siens (A1).
+
+    Chaque souvenir garde son jour, son importance et le jour de son dernier rappel (`rappel`,
+    mis à jour quand il est montré au modèle) : sa rétention se compte depuis ce rappel."""
 
     def __init__(self, client: chromadb.ClientAPI, embeddeur: Embeddeur, run_id: str) -> None:
         self.embeddeur = embeddeur
@@ -136,31 +161,84 @@ class Memoires:
             _nom_collection(f"memoires-{run_id}", embeddeur.modele),
             metadata={"hnsw:space": "cosine"},
         )
+        self._importance_max: dict[str, int] = {}  # par agent : l'importance se lit relative
 
-    async def ajouter(self, agent_id: str, jour: int, texte: str, importance: int) -> str:
-        source = f"memoire:{agent_id}:j{jour}"
+    async def ajouter(
+        self, agent_id: str, jour: int, texte: str, importance: int, prefixe: str = "memoire"
+    ) -> str:
+        """Enregistre un souvenir. `prefixe` : `memoire` (épisode) ou `bilan` (bilan d'une
+        semaine) ; les deux se cherchent et s'oublient de la même façon."""
+        source = f"{prefixe}:{agent_id}:j{jour}"
         (vecteur,) = await self.embeddeur.documents([texte])
         self.collection.upsert(
             ids=[source],
             embeddings=[vecteur],
             documents=[texte],
-            metadatas=[{"agent_id": agent_id, "jour": jour, "importance": importance}],
+            metadatas=[
+                {"agent_id": agent_id, "jour": jour, "importance": importance, "rappel": jour}
+            ],
         )
+        self._importance_max[agent_id] = max(importance, self._importance_max.get(agent_id, 0))
         return source
+
+    def rappeler(self, sources: list[str], jour: int) -> None:
+        """Souvenirs montrés au modèle ce jour-là : leur rétention repart à 1."""
+        if not sources:
+            return
+        r = self.collection.get(ids=sorted(sources), include=["metadatas"])
+        metas = [dict(meta) | {"rappel": jour} for meta in r["metadatas"]]
+        self.collection.update(ids=r["ids"], metadatas=metas)
+
+    def _requete(self, vecteur: list[float], agent_id: str, jour: int, n: int) -> dict | None:
+        if not self.collection.count():
+            return None
+        return self.collection.query(
+            query_embeddings=[vecteur],
+            n_results=min(n, self.collection.count()),
+            where={"$and": [{"agent_id": agent_id}, {"jour": {"$lt": jour}}]},  # jours passés (C6)
+            include=["documents", "metadatas", "distances", "embeddings"],
+        )
 
     def rechercher_vecteur(
         self, vecteur: list[float], agent_id: str, jour: int, k: int = 3
     ) -> list[Passage]:
-        filtre = {"$and": [{"agent_id": agent_id}, {"jour": {"$lt": jour}}]}  # jours passés
-        disponibles = self.collection.count()
-        if not disponibles:
-            return []
-        r = self.collection.query(
-            query_embeddings=[vecteur], n_results=min(k, disponibles), where=filtre
+        """Les `k` souvenirs de l'agent les plus proches de la question, des jours passés
+        seulement (C6), sans score."""
+        return [p for p, _, _ in self._lire(self._requete(vecteur, agent_id, jour, k))]
+
+    def candidats(
+        self, vecteur: list[float], agent_id: str, jour: int, reglage: MemoireConfig
+    ) -> list[Candidat]:
+        """Souvenirs candidats (`selection.choisir`) : les `candidats` plus proches, sans ceux
+        dont la rétention est passée sous le seuil (ils restent en base pour la trace, F6).
+        L'importance se lit par rapport à la plus forte de l'agent."""
+        lus = self._lire(self._requete(vecteur, agent_id, jour, reglage.candidats))
+        plus_forte = self._importance_max.get(agent_id) or max(
+            (p.importance for p, _, _ in lus), default=0
         )
+        resultat = []
+        for passage, vecteur_souvenir, rappel in lus:
+            relative = min(1.0, passage.importance / plus_forte) if plus_forte else 0.0
+            reste = retention(jour - rappel, relative, reglage)
+            if reste >= reglage.seuil_retention:
+                resultat.append(Candidat(passage, vecteur_souvenir, reste, relative))
+        return resultat
+
+    @staticmethod
+    def _lire(r: dict | None) -> list[tuple[Passage, tuple[float, ...], int]]:
+        """Résultat brut de ChromaDB : chaque souvenir, son vecteur et son dernier rappel."""
+        if r is None:
+            return []
         return [
-            Passage(i, texte, int(meta["jour"]), "souvenir", float(dist))
-            for i, texte, meta, dist in zip(
-                r["ids"][0], r["documents"][0], r["metadatas"][0], r["distances"][0], strict=True
+            (
+                Passage(
+                    i, texte, int(meta["jour"]), "souvenir", float(dist), int(meta["importance"])
+                ),
+                tuple(float(x) for x in vec),
+                int(meta.get("rappel", meta["jour"])),
             )
-        ]
+            for i, texte, meta, dist, vec in zip(
+                r["ids"][0], r["documents"][0], r["metadatas"][0], r["distances"][0],
+                r["embeddings"][0], strict=True,
+            )
+        ]  # fmt: skip

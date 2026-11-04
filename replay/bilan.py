@@ -27,6 +27,11 @@ COMPARABLES = (
     "incidents_par_nature",
     "injections",
     "declenchements",
+    "decouvertes",
+    "oublis",
+    "redecouvertes",
+    "souvenirs",
+    "bilans_semaine",
     "relances",
     "replis",
     "tokens_entree",
@@ -66,6 +71,10 @@ def bilan_depuis(events: list[ev.Envelope], population: int) -> dict:
                 bilan.messages += 1
             case ev.AgentMove():
                 bilan.deplacements += 1
+            case ev.AgentNotoriete():  # étape 16 : passages du seuil de notoriété
+                bilan.compter_notoriete(event.payload.nature)
+            case ev.AgentSouvenir():  # étape 16 : épisodes et bilans de semaine
+                bilan.compter_souvenir(event.payload.nature)
             case ev.Incident():
                 nature = event.payload.nature
                 bilan.incidents += 1

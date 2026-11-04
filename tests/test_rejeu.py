@@ -44,6 +44,7 @@ def _petite_config() -> Config:
         "vendeur": 2,
         "meteo": 1,
     }
+    data["oubli"]["connus_jour_1"] = 1.0  # tous décident au jour 1 (scénario de ces tests)
     return Config.model_validate(data)
 
 

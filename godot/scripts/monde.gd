@@ -166,6 +166,15 @@ func _sur_message(d: Dictionary) -> void:
 			_decision(qui, d.get("zone"), p)
 		"agent.deplacement":
 			_installer(qui, p["vers"], false)
+		"agent.notoriete":  # découverte, oubli, redécouverte (étape 16)
+			var hn := _habitant(qui, d.get("zone") if d.get("zone") else "domicile")
+			hn.notoriete = float(p["notoriete"])
+			hn.lassitude = float(p["lassitude"])
+		"agent.souvenir":  # ce que l'agent a retenu, en clair (étape 16)
+			var hs := _habitant(qui, d.get("zone") if d.get("zone") else "domicile")
+			hs.souvenirs.push_front({"jour": int(p["jour"]), "nature": p["nature"], "texte": p["texte"]})
+			if hs.souvenirs.size() > 5:
+				hs.souvenirs.resize(5)
 		"monde.stock":
 			decor.afficher_stock(d.get("zone", ""), int(p["quantite"]))
 		"agent.message":
@@ -229,6 +238,9 @@ func _decision(agent_id: String, zone, p: Dictionary) -> void:
 	h.decisions.push_front({"jour": _jour, "sens": p["sens"], "action": p["action"], "porteur": p["porteur"], "moteur": p["moteur"], "justification": p["justification"], "appel": p.get("appel_llm"), "motif": p.get("motif"), "sources": p.get("sources", [])})
 	if h.decisions.size() > 10:
 		h.decisions.resize(10)
+	if p.get("notoriete") != null:
+		h.notoriete = float(p["notoriete"])
+		h.lassitude = float(p["lassitude"])
 	var avant := h.sens
 	h.definir_sens(p["sens"], Decor.COULEURS_SENS[p["sens"]], decor.materiau)
 	h.definir_porteur(p["porteur"])
@@ -423,6 +435,8 @@ func _afficher_fiche() -> void:
 		lignes.append("Seuil d'adoption : %d %%" % round(float(etat["seuil"]) * 100))
 	if etat.has("regle"):
 		lignes.append("[i]Règle : %s[/i]" % etat["regle"])
+	if h.notoriete >= 0.0:
+		lignes.append("Notoriété du produit : %d %% · Lassitude : %d %%" % [round(h.notoriete * 100), round(h.lassitude * 100)])
 	if h.decisions.size() > 0:
 		var d: Dictionary = h.decisions[0]
 		var cout := ""
@@ -436,15 +450,24 @@ func _afficher_fiche() -> void:
 			lignes.append("[i]Pourquoi aujourd'hui : %s[/i]" % d["motif"])
 		var lus: Array = []
 		var souvenirs: Array = []
+		var en_ville: Array = []
 		for s in d.get("sources", []):
-			if str(s).begins_with("corpus:"):
-				lus.append(str(s).trim_prefix("corpus:"))
-			else:
-				souvenirs.append("J" + str(s).rsplit(":", true, 1)[1].trim_prefix("j"))
+			var parties: PackedStringArray = str(s).split(":")
+			match parties[0]:
+				"corpus":
+					lus.append(str(s).trim_prefix("corpus:"))
+				"collectif":  # collectif:j<jour>:… (mémoire collective, étape 16)
+					en_ville.append("J" + parties[1].trim_prefix("j"))
+				"bilan":  # bilan:<agent>:j<dernier jour de la semaine> (étape 16)
+					souvenirs.append("semaine %d" % (int(parties[2].trim_prefix("j")) / 7))
+				_:
+					souvenirs.append("J" + parties[parties.size() - 1].trim_prefix("j"))
 		if lus.size() > 0:
 			lignes.append("Avait lu : %s" % ", ".join(lus))
 		if souvenirs.size() > 0:
 			lignes.append("Se souvenait de : %s" % ", ".join(souvenirs))
+		if en_ville.size() > 0:
+			lignes.append("Avait entendu en ville : %s" % ", ".join(en_ville))
 	elif etat.get("justification", "") != "":
 		lignes.append("\n[b]Dernière décision[/b] : %s — « %s »" % [etat.get("action", ""), etat["justification"]])
 	var recus: Array = etat.get("messages_recus", [])
@@ -456,6 +479,11 @@ func _afficher_fiche() -> void:
 		lignes.append("\n[b]Messages envoyés[/b]")
 		for m in h.messages.slice(0, 4):
 			lignes.append("· J%d [%s] %s" % [m["jour"], m["canal"], m["contenu"].left(100)])
+	if h.souvenirs.size() > 0:
+		lignes.append("\n[b]Ce qu'il a retenu[/b]")
+		for s in h.souvenirs.slice(0, 3):
+			var quand := "semaine %d" % (int(s["jour"]) / 7) if s["nature"] == "bilan" else "J%d" % s["jour"]
+			lignes.append("· %s : %s" % [quand, str(s["texte"]).left(160)])
 	if h.decisions.size() > 1:
 		lignes.append("\n[b]Décisions précédentes[/b]")
 		for d in h.decisions.slice(1, 6):
@@ -492,6 +520,8 @@ func _sur_reponse(chemin: String, code: int, donnees) -> void:
 		match code:
 			202:  # demande acceptée : configuration écrite, processus du run démarré
 				menu.fermer()
+				if pont.rejeu != "":  # le nouveau run se suit en direct, pas dans un rejeu
+					pont.passer_en_direct()
 				_etat_lancement = ""
 				ui.ajouter_au_fil("[b]Lancement[/b] : run en préparation (modèles, corpus)…")
 				_suivre_lancement(donnees)

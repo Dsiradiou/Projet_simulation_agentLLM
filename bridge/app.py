@@ -41,6 +41,7 @@ from sim.run import RUNS_DIR
 
 STATUTS_ACTIFS = ("en_cours", "pause")
 FILE_MAX = 10_000  # au-delà, un client trop lent est déconnecté plutôt que de bloquer le pont
+ATTENTE_FERMETURE_S = 30.0  # fin d'un rejeu : délai laissé au client pour fermer lui-même
 
 
 class LecteurEtat(Protocol):
@@ -404,6 +405,11 @@ async def _flux_rejeu(
         async for event in rejouer(events, vitesse):
             await websocket.send_text(ev.encode(event).decode("utf-8"))
         await websocket.send_json({"type": "pont.fin_rejeu", "run_id": run_id})
-        await websocket.close()
+        # C'est le client qui ferme, après avoir tout lu : fermé par le pont juste après la
+        # dernière rafale, Godot perdait les derniers messages, dont la fin du rejeu.
+        try:
+            await asyncio.wait_for(websocket.receive(), timeout=ATTENTE_FERMETURE_S)
+        except TimeoutError:
+            await websocket.close()
     except WebSocketDisconnect:
         pass

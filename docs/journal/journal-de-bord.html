@@ -79,7 +79,9 @@ exigences de l'énoncé.</p>
   <tr><td>14</td><td>Indicateurs</td><td>Sens partagé, adoption, traçabilité, run témoin, taux de sortie de rôle (B1-B3, F6)</td><td class="ok">terminée</td></tr>
   <tr><td>15</td><td>Mode asynchrone</td><td>Deuxième mode d'exécution, violations temporelles comptées (C4, C6)</td><td class="ok">terminée</td></tr>
   <tr><td>15 bis</td><td>Paramétrage et zones multiples</td><td>Lancer un run depuis la scène : agents par rôle, zones par type, mode synchrone ou asynchrone (C2, C4, D3)</td><td class="ok">terminée</td></tr>
+  <tr><td>15 ter</td><td>Souvenirs dans le prompt</td><td>Souvenirs compacts, ordre de réduction du prompt, rejeu complet dans la scène (A1, F1, E3)</td><td class="ok">terminée</td></tr>
   <tr><td colspan="4"><strong>Phase 5 — Preuves et soutenance</strong></td></tr>
+  <tr><td>16 (1<sup>re</sup> partie)</td><td>Mémoire et oubli</td><td>Mémoire sélective, oubli des souvenirs, bilan hebdomadaire, mémoire collective, notoriété et lassitude (A1, F2, C6, E1, E3)</td><td class="ok">terminée</td></tr>
   <tr><td>16</td><td>Expériences</td><td>Configurations C0 à C3, au moins 5 runs chacune, Bass, synchrone/asynchrone, coûts (E1, E2, E4, E5, C5)</td><td class="todo">à venir</td></tr>
   <tr><td>17</td><td>Charge et pannes</td><td>Agent muet, pic d'événements, latence jusqu'aux indicateurs (O4, C7)</td><td class="todo">à venir</td></tr>
   <tr><td>18</td><td>Soutenance</td><td>Configuration de démo réduite, deux tailles de population (C8), README, run enregistré, rapport</td><td class="todo">à venir</td></tr>
@@ -2501,6 +2503,215 @@ d'intégration et de la scène compris. Aucune remarque de ruff.</p>
 <h3>Prochaine étape</h3>
 <p>Étape 16 — Campagnes d'expériences, comme prévu ; le nombre de zones devient un facteur possible à
 comparer (même population, même graine, une ou plusieurs plages).</p>
+</section>
+
+<section class="step">
+<h2>Étape 15 ter — Les souvenirs dans le prompt</h2>
+<p class="meta">27 et 28 octobre 2026 · Exigences concernées : A1 (se souvenir d'un échange vieux de
+plusieurs jours), F1 (les passages du corpus arrivent jusqu'au modèle), E3 (rejeu complet).</p>
+
+<h3>Objectif</h3>
+<p>Vérifier ce que le modèle voit vraiment de sa base de connaissances. Le constat de l'étape 14 : 69 % des
+prompts de C1 étaient réduits pour tenir dans le contexte de 2 048 tokens, et la réduction retirait d'abord
+les souvenirs. Une mémoire qui n'arrive pas jusqu'au modèle ne sert à rien (A1).</p>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Mesure</strong> (<code>python -m rag.analyse &lt;run_id&gt;...</code>, nouveau) : lue dans les seules
+    <code>sources</code> publiées par chaque décision. Sur le run C1 de référence
+    (<code>20261024-154113-dev-s42</code>), 60 % seulement des souvenirs disponibles étaient montrés, et 69 % des
+    décisions perdaient au moins un souvenir.</li>
+  <li><strong>Souvenirs compacts</strong> (<code>rag/recuperation.py</code>) : qui a dit quoi, la décision et sa
+    raison, en abrégé. Les souvenirs étaient la brique la plus lourde du prompt (452 caractères en médiane).</li>
+  <li><strong>Ordre de réduction revu</strong> : au-delà de 5 messages reçus, les plus anciens partent d'abord ;
+    puis le troisième souvenir, puis les passages du corpus jusqu'à un seul. Mettre les passages avant les
+    souvenirs gardait toute la mémoire, mais 20 % des décisions perdaient un passage (45 % au 8b) : le
+    binôme a choisi de répartir les pertes (27 oct.). Chaque retrait est compté par nature dans le bilan.</li>
+  <li><strong>Rejeu complet dans la scène</strong> : le pont fermait la connexion juste après la dernière rafale
+    et Godot perdait les derniers messages (519 sur 581), dont la fin du rejeu, d'où « pont injoignable ».
+    Désormais, la scène ferme elle-même après <code>pont.fin_rejeu</code> (le pont attend 30 s). Le constat
+    ouvert à l'étape 15 bis est réglé.</li>
+  <li><strong>Run lancé par le pont</strong> : détaché de son terminal et, sous Windows, de l'arborescence du
+    pont. Un run de 119 agents avait été perdu au jour 18 en arrêtant le pont.</li>
+</ul>
+
+<h3>Résultat</h3>
+<p>Après les souvenirs compacts, 100 % des souvenirs disponibles sont montrés au modèle (run de 119 agents,
+<code>docs/mesures/rag_2026-10-27_1306.md</code>). Cette étape n'avait pas été consignée à part : elle est
+commitée avec la première partie de l'étape 16, qui s'appuie dessus.</p>
+</section>
+
+<section class="step">
+<h2>Étape 16, première partie — Mémoire sélective, oubli et mémoire collective</h2>
+<p class="meta">4 novembre 2026 · Exigences concernées : A1 (mémoire des agents), F1 et F2 (RAG cité), C6
+(rien du futur), E1 (même monde en C0 et en C1), E3 (rejeu sans LLM), F6 (traçabilité), D2 (inspection
+d'un agent), B1 (sens partagé).</p>
+
+<h3>Objectif</h3>
+<p>Jusqu'ici, un souvenir était choisi par sa seule ressemblance avec la situation du jour : son importance était
+enregistrée mais jamais utilisée, et rien ne s'oubliait. Le binôme a proposé une autre organisation de la
+mémoire, en trois sources (corpus, souvenirs personnels, mémoire collective) et avec deux chemins vers le
+déclin d'une mode : l'oubli et la lassitude. Cette partie l'implémente avant les campagnes, pour que les
+mesures portent sur le modèle final.</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>Comment choisir ce qui entre dans le prompt ?</td><td>Un <strong>score</strong> (formule ci-dessous)
+    sur une dizaine de candidats par source, après des filtres stricts (date, rôle, auteur, rétention), sans
+    doublons, avec un quota par source.</td></tr>
+  <tr><td>Que se passe-t-il au jour 1 ?</td><td><strong>Une part des agents, tirée au hasard</strong> (20 %),
+    connaît le produit ; les autres le découvrent par exposition, comme l'innovation externe de Bass.</td></tr>
+  <tr><td>Un agent qui a oublié le produit compte-t-il dans le sens partagé ?</td><td><strong>Non</strong> :
+    il en est exclu et compté à part (indicateur <code>oubli</code>) ; l'adoption, elle, compte tout le
+    monde.</td></tr>
+  <tr><td>Un porteur peut-il oublier le produit ?</td><td><strong>Non</strong> : sa notoriété reste à 1.</td></tr>
+  <tr><td>Le motif « lassitude » (jours sans décision)</td><td><strong>Renommé « relance »</strong> : « lassitude »
+    désigne désormais l'état L de l'agent.</td></tr>
+  <tr><td>Réglages (questionnaire du 4 nov., M1 à M9)</td><td>Valeurs de départ gardées, à calibrer à l'étape 16
+    (M1) ; renfort des porteurs vus plafonné à 0,3 par jour (M2) ; exposition de L gardée (M3) ; quotas
+    3 passages / 3 souvenirs / 2 faits publics (M4) ; facteur accès(A) gardé et expliqué (M5) ; <strong>bilan
+    hebdomadaire par règle</strong> (M6) ; <strong>événement <code>agent.souvenir</code></strong> (M7) ;
+    comparaison C0 sur 5 graines et C1 sur une graine (M8) ; fin de partie après un run C1 de mesure (M9).</td></tr>
+</table>
+
+<h3>Le score d'un candidat</h3>
+<p><code>score = [α·pertinence + β·rétention + γ·importance + δ·nouveauté + ε·proximité − λ·L·redondance] × accès(A)</code></p>
+<table>
+  <tr><th>Terme</th><th>Ce qu'il mesure</th></tr>
+  <tr><td>pertinence</td><td>ressemblance (cosinus) avec la question du jour</td></tr>
+  <tr><td>rétention</td><td>2<sup>−âge / h</sup>, la demi-vie h (7 jours) allongée par l'importance ; l'âge se compte
+    depuis le dernier rappel : un souvenir montré au modèle repart à 1. Sous 0,1, il n'est plus proposé, mais
+    reste en base (F6)</td></tr>
+  <tr><td>importance</td><td>1, plus les messages reçus (3 au plus), plus 2 par moment marquant (événement,
+    changement d'avis, achat raté), lue par rapport au plus fort souvenir de l'agent</td></tr>
+  <tr><td>nouveauté</td><td>1 pour ce qui n'a pas été montré depuis 7 jours, 0,3 sinon</td></tr>
+  <tr><td>proximité</td><td>pour la mémoire collective : un proche (1), un abonnement (0,7), sa zone ou tout le
+    monde (0,4)</td></tr>
+  <tr><td>redondance</td><td>ressemblance avec ce qui a déjà été montré ; pénalisée d'autant plus que l'agent est
+    lassé</td></tr>
+  <tr><td>accès(A)</td><td>la notoriété : elle multiplie tous les scores par la même valeur, donc agit comme une
+    porte (rien à 0), sans changer l'ordre</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Sélection</strong> (<code>rag/selection.py</code>) : score, tri, doublons écartés (cosinus ≥ 0,92),
+    historique de ce qui a été montré à chaque agent. Poids et seuils dans <code>rag.memoire</code>.</li>
+  <li><strong>Souvenirs personnels</strong> (<code>rag/base.py</code>) : rétention et rappel ; <strong>bilan
+    hebdomadaire</strong> calculé par règle à la première décision d'une nouvelle semaine (« Semaine 2 (jours 8
+    à 14) : 3 décisions. J'ai décidé : ignorer, acheter. Vaelys m'a surtout paru « tendance ». Je l'utilise. Ceux
+    qui m'en ont parlé : pharmacien_02 (3). »), daté du dernier jour de la semaine, lisible à partir de la
+    suivante.</li>
+  <li><strong>Mémoire collective</strong> (<code>rag/collectif.py</code>) : chaque soir, les faits publics du jour
+    (publications « réseaux », propos de zone, perturbations, et un résumé par lieu calculé par règle) sont
+    consignés, lisibles à partir du lendemain dans la portée de chacun. Les messages directs n'y entrent pas ;
+    elle reste vide dans le run témoin.</li>
+  <li><strong>Notoriété A et lassitude L</strong> (<code>agents/notoriete.py</code>) : mises à jour chaque jour
+    au passage de l'agent, avec les mêmes règles en C0 et en C1 (E1). A s'efface avec une demi-vie individuelle
+    (10 ± 3 jours, tirée avec la graine) et remonte par exposition ; sous le seuil, l'agent n'est plus relancé et
+    ne coûte aucun appel, et une exposition qui le fait remonter déclenche une décision (redécouverte). L monte
+    avec l'exposition (messages, porteurs vus, port du produit) et pénalise la redondance, ajoute une phrase au
+    prompt (trois niveaux) et, en C0, peut faire abandonner un porteur.</li>
+  <li><strong>Traçabilité et rejeu</strong> : deux nouveaux événements, <code>agent.notoriete</code> (passage du
+    seuil, avec les expositions qui l'ont causé) et <code>agent.souvenir</code> (texte en clair des épisodes et
+    des bilans, rattaché à sa décision) ; <code>agent.decision</code> passe en 1.4 (A et L). Le rejeu recompte
+    découvertes, oublis, redécouvertes, souvenirs et bilans. ChromaDB n'est plus que l'index de recherche.</li>
+  <li><strong>Inspection (D2)</strong> : la fiche d'un habitant, dans le pont et dans la scène, montre sa
+    notoriété, sa lassitude et ses derniers souvenirs ; les sources de la mémoire collective et des bilans
+    s'affichent à part.</li>
+  <li><strong>Interrupteurs</strong> : <code>oubli.actif</code> et <code>lassitude.actif</code>, coupés dans
+    <code>configs/dev-sans-oubli.yaml</code> pour la comparaison.</li>
+</ul>
+
+<h3>Mesures</h3>
+<p><strong>Baseline C0</strong> (5 graines, 90 jours, <code>docs/mesures/memoire-c0_2026-11-04.md</code>) :</p>
+<table>
+  <tr><th>Combinaison</th><th>Porteurs au pic</th><th>Au jour 60</th><th>Au jour 90</th><th>Oublis</th></tr>
+  <tr><td>Sans oubli ni lassitude</td><td>59</td><td>57,8</td><td>57,4</td><td>0</td></tr>
+  <tr><td>Oubli seul</td><td>59</td><td>56,4</td><td>58,0</td><td>4,4</td></tr>
+  <tr><td>Lassitude seule</td><td>52,6</td><td>45,4</td><td>43,4</td><td>0</td></tr>
+  <tr><td>Les deux</td><td>53,4</td><td>45,4</td><td>43,0</td><td>4,4</td></tr>
+</table>
+<p><strong>C1, une graine</strong> (<code>20261104-121332-dev-s42</code> contre
+<code>20261104-211130-dev-sans-oubli-s42</code>, 60 agents, 60 jours) :</p>
+<table>
+  <tr><th></th><th>Avec oubli et lassitude</th><th>Sans</th></tr>
+  <tr><td>Porteurs aux jours 1, 30, 60</td><td>9, 36, 44</td><td>14, 40, 53</td></tr>
+  <tr><td>Sens au jour 60 (efficace / tendance / banal / dépassé)</td><td>18 / 21 / 18 / 3</td><td>31 / 23 / 5 / 1</td></tr>
+  <tr><td>Convergence du sens, jour 1 → jour 60</td><td>0,51 → 0,11</td><td>0,41 → 0,31</td></tr>
+  <tr><td>Agents LLM porteurs dès leur première décision</td><td>16 sur 42</td><td>14 sur 42</td></tr>
+  <tr><td>Découvertes / oublis</td><td>49 / 0</td><td>–</td></tr>
+  <tr><td>Appels LLM, durée</td><td>833, 30 min</td><td>877, 27 min</td></tr>
+</table>
+<ul>
+  <li><strong>La lassitude agit</strong>, en C0 comme en C1 : une dizaine de porteurs en moins, et des avis qui
+    restent partagés (« banal » résiste). La mode recule après son pic sans s'effondrer.</li>
+  <li><strong>L'oubli ne joue presque pas.</strong> A perd 6,7 % par jour : 0,013 de renfort quotidien suffit à
+    la garder au-dessus du seuil, et un seul porteur vu (0,1) ou le produit en rayon (0,2) la maintient à 1.
+    Le plafond de M2 n'y change rien.</li>
+  <li><strong>La découverte est presque immédiate</strong> : 44 des 49 découvertes ont lieu aux jours 1 et 2, car
+    le renfort du rayon égale le seuil.</li>
+</ul>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>Les deux runs C1 : aucun incident, aucun repli, aucune violation temporelle ; 4 128 et 4 176 événements
+    publiés et enregistrés ; <strong>rejeu fidèle</strong> pour les deux.</li>
+  <li>Contrôle C6 sur toutes les sources citées : 5 818 et 6 289 (dont 1 292 et 1 425 faits publics, 357 et 333
+    bilans de semaine), <strong>aucune</strong> lue avant sa date, hors de son rôle ou venant d'un autre agent.</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li>Oubli inopérant et découverte immédiate : les renforts sont trop forts face à l'effacement. À calibrer en
+    début d'étape 16 (M1).</li>
+  <li>L'adoption dès le premier contact reste forte (16 agents LLM sur 42) : la notoriété retarde le premier
+    contact, mais ne rend pas les agents plus prudents (X2).</li>
+  <li>38 % des décisions perdent un fait public à la réduction du prompt (26 % sans lassitude, dont la phrase
+    allonge le prompt) ; au palier grand, 35 % perdent un passage du corpus.</li>
+  <li><code>rag.analyse</code> ne compte pas encore les faits publics ni les bilans, et ses « souvenirs
+    disponibles » ignorent la rétention : sa part de souvenirs montrés est désormais une borne basse.</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Notoriété et lassitude</strong> : effacement à la demi-vie, porteur qui n'oublie pas, exposition
+    comptée une seule fois, plafond des porteurs vus, part connue au jour 1 reproductible, mêmes tirages en C0 et
+    en C1, agent oublié jamais relancé, redécouverte sans délai, phrase du prompt, abandon C0 sans tirage de
+    plus.</li>
+  <li><strong>Sélection</strong> : chaque terme du score déplace le choix, doublons écartés, redondance pénalisée
+    par la lassitude, souvenir oublié mais toujours en base, rappel, importance.</li>
+  <li><strong>Mémoire collective</strong> : faits du jour sans messages privés, résumé par lieu, date et portée
+    sociale respectées, lecture par l'agent, rien dans le témoin ; contrôle C6 des faits publics.</li>
+  <li><strong>Consolidation et traçabilité</strong> : bilan d'une semaine passée, une seule fois, lisible à partir
+    de la suivante ; souvenirs publiés avec leur décision et recomptés par le rejeu ; passages du seuil recomptés ;
+    sens partagé sans les agents qui ont oublié.</li>
+  <li><strong>Scène</strong> : notoriété, lassitude et souvenirs dans la fiche d'un habitant.</li>
+</ul>
+<p>Résultat : 280 tests (dont 19 nouveaux dans <code>tests/test_memoire.py</code>), <span class="ok">tous
+réussis</span>, tests d'intégration, Ollama et scène compris. Aucune remarque de ruff. Une première exécution
+complète a vu échouer <code>test_retrieval_prefers_documents_not_yet_read</code> (erreur interne de ChromaDB),
+réussi à la relance : la même instabilité que les deux tests du RAG déjà notés, à chercher à l'étape 17 (R3).
+Le test d'intégration du run factice comptait les événements avec une formule d'avant les passages de seuil :
+corrigé.</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Un agent ne relit pas toute sa mémoire : un score choisit ce qui entre dans son prompt, comme dans les
+    Generative Agents (pertinence, récence, importance), plus la nouveauté, la proximité sociale et la lassitude.</li>
+  <li>Deux façons de lâcher une mode : l'oublier (on n'y pense plus) ou s'en lasser (on la voit partout). Seule la
+    seconde agit vraiment dans nos mesures, et c'est un résultat à calibrer.</li>
+  <li>La mémoire collective est faite de faits publics, livrés le lendemain, dans la portée de chacun : elle reste
+    vide dans le témoin, ce qui garde la comparaison B3 honnête.</li>
+  <li>Tout reste rejouable sans LLM : le texte des souvenirs est dans le journal du run.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Étape 16, suite — Campagnes d'expériences. D'abord : calibrer l'oubli et la découverte (M1) ; appliquer les
+choix du 4 nov. sur les constats (écart du sens au jour 1, durée du flacon selon l'usage, sens des seuls agents
+LLM). Avant de lancer les campagnes, trancher le projet de ville à taille et plan urbain choisis : s'il change la
+simulation, il doit précéder les mesures.</p>
 </section>
 
 </body>

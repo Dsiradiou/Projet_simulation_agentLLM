@@ -1,0 +1,10 @@
+# Run C1 de développement sans oubli ni lassitude (M8, décidé le 4 nov.) : à comparer à dev.yaml de
+# même graine pour illustrer ce que les deux mécanismes changent chez les agents LLM. La mémoire
+# collective et le score de sélection du RAG restent ceux de dev.yaml.
+herite_de: dev.yaml
+
+oubli:
+  actif: false
+
+lassitude:
+  actif: false

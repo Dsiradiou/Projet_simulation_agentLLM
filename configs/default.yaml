@@ -119,7 +119,7 @@ declencheurs:
   delai_reflexion_ecart: 1
   exposition_ecart: 0.15     # la part de porteurs autour de lui a changé d'au moins 15 points
   meteo_uv_fort: 9           # début d'une journée de canicule ou d'indice UV >= 9
-  lassitude_jours: 10        # pas reconsidéré depuis 10 jours
+  relance_jours: 10          # pas reconsidéré depuis 10 jours (s'il pense encore au produit)
 
 # Réseau social : qui suit qui (publications « réseaux ») et cercle de proches (messages directs).
 reseau:
@@ -177,8 +177,59 @@ rag:
   # Choisi sur mesure (docs/mesures/embeddings_*.md) : 100 % de réussite au rang 4 sur 40 questions
   # françaises, 633 Mo de VRAM (tient à côté du 8b) ; nomic-embed-text, anglophone, plafonne à 87 %.
   modele_embeddings: bge-m3
-  passages: 4                # documents du corpus retrouvés par décision
+  # Quotas par source (étape 16) : le contexte de 2 048 tokens se partage entre le corpus, la
+  # mémoire personnelle et la mémoire collective (faits publics : publications, perturbations,
+  # résumé du jour par zone).
+  passages: 3                # documents du corpus retrouvés par décision
   souvenirs: 3               # souvenirs retrouvés par décision (jours précédents seulement)
+  collectif: 2               # faits publics retrouvés par décision (livrés avant aujourd'hui)
+  # Mémoire sélective (décidée par le binôme le 4 nov.) : après les filtres durs (date, rôle,
+  # auteur, portée sociale, déjà dans la perception), chaque candidat reçoit
+  # score = [α·pertinence + β·rétention + γ·importance + δ·nouveauté + ε·proximité
+  #          − λ·L·redondance] × accès, chaque terme entre 0 et 1. Valeurs de départ, à calibrer.
+  memoire:
+    candidats: 10            # candidats par source, avant le score
+    demi_vie_jours: 7        # rétention d'un souvenir banal : 0,5 à 7 jours de son dernier rappel
+    kappa: 1.0               # demi-vie effective = 7 × (1 + κ·importance) : jusqu'à 14 jours
+    seuil_retention: 0.1     # en dessous, le souvenir n'est plus candidat (il reste en base)
+    nouveaute_jours: 7       # montré depuis moins de 7 jours : déjà vu
+    nouveaute_deja_vu: 0.3   # nouveauté d'un élément déjà vu (1 sinon)
+    doublon: 0.92            # similarité cosinus au-delà de laquelle un candidat est un doublon
+    poids:
+      pertinence: 1.0        # α
+      retention: 1.0         # β
+      importance: 1.0        # γ
+      nouveaute: 1.0         # δ
+      proximite: 0.5         # ε (mémoire collective)
+      redondance: 1.0        # λ
+    proximite: {proche: 1.0, abonnement: 0.7, zone: 0.4, tous: 0.4}
+
+# Notoriété A (étape 16) : l'agent pense-t-il encore au produit ? A(j) = A(j−1)·2^(−1/h) +
+# renforts, plafonnée à 1 ; un porteur reste à 1. Sous le seuil : plus de relance ni d'appel LLM ;
+# s'il y est de nouveau exposé et repasse le seuil, il décide (redécouverte). Mêmes règles en C0.
+oubli:
+  actif: true
+  connus_jour_1: 0.2         # part qui connaît le produit au jour 1 (Bass p), tirée avec la graine
+  demi_vie_jours: 10         # demi-vie h tirée par agent, 10 ± 3 jours (paramètre individuel, A5)
+  demi_vie_ecart: 3
+  seuil: 0.2
+  renforts:
+    proche: 0.5              # message d'un proche (direct, ou d'un de ses contacts)
+    publication: 0.3         # publication « réseaux » ou propos entendu dans sa zone
+    article: 0.4             # article, publication virale, polémique ou rupture de stock
+    porteur_vu: 0.1          # par porteur vu autour de lui
+    porteurs_vus_max: 0.3    # plafond par jour (4 nov.) : sinon une mode visible ne s'oublie jamais
+    rayon: 0.2               # le produit est en rayon là où il se trouve
+
+# Lassitude L (étape 16) : il connaît le produit mais en a assez. L(j) = L(j−1)·(1 − récupération)
+# + taux·exposition (messages reçus, porteurs vus, jours à le porter). Elle pénalise la redondance
+# dans le RAG, ajoute une phrase au prompt et, dans C0, fait abandonner plus souvent.
+lassitude:
+  actif: true
+  taux: 0.15
+  recuperation: 0.1
+  niveaux: [0.3, 0.6, 0.85]  # seuils des trois phrases du prompt
+  abandon_c0: 0.3            # C0 : un porteur abandonne avec la probabilité 0,3 × L
 
 monde:
   # Choisis à l'étape 11 après le test de contamination (docs/mesures/contamination_*.md) :
