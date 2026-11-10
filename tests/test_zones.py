@@ -30,12 +30,15 @@ from tests.test_pont import EtatEnMemoire
 from tests.test_regles import _perturbation
 
 CONFIGS = Path(__file__).parent.parent / "configs"
-DEFAULT = load_config(CONFIGS / "default.yaml")
+# Le monde à zones (étape 15 bis), sans la ville que default.yaml a depuis le 10 nov.
+_SANS_VILLE = load_config(CONFIGS / "default.yaml").model_dump(mode="json") | {"ville": None}
+DEFAULT = Config.model_validate(_SANS_VILLE)
 
 
 def _config(zones: dict[str, int], base: Config = DEFAULT) -> Config:
     data = base.model_dump(mode="json")
     data["zones"] = zones
+    data["ville"] = None
     return Config.model_validate(data)
 
 

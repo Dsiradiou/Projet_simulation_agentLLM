@@ -20,7 +20,7 @@ from bus import events as ev
 from llm.routeur import Routeur
 from replay.bilan import bilan_depuis
 from sim.config import ConfigError, load_config
-from sim.domaine import Action, Canal, Sens, Zone, debut_du_jour
+from sim.domaine import Action, Canal, Sens, Zone, debut_du_jour, type_de_lieu
 from sim.orchestrateur import Orchestrateur
 from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import new_run
@@ -80,8 +80,9 @@ def test_social_network_favours_creators_and_is_reproducible() -> None:
 def test_starting_zone_follows_role_routine() -> None:
     config = load_config(DEFAULT)
     for x in identites(config):
-        if x.role in config.routines.roles:
-            assert x.zone in config.routines.roles[x.role]["beau"]
+        if x.role in config.routines.roles:  # un type de la routine, dans son quartier (ville)
+            assert type_de_lieu(x.zone) in config.routines.roles[x.role]["beau"]
+            assert x.lieux.get(type_de_lieu(x.zone), x.zone) == x.zone
 
 
 def _meteo(conditions: str, uv: int = 6) -> ev.WeatherPayload:

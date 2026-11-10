@@ -35,7 +35,7 @@ from indicators.derives import Detecteur
 from indicators.service import CalculateurDuRun
 from replay.rejeu import charger
 from sim.domaine import jour
-from sim.run import RUNS_DIR
+from sim.run import RUNS_DIR, avertissement_versions, version_du_monde
 
 OUT_DIR = Path("docs/mesures")
 EXEMPLES_MAX = 12
@@ -46,6 +46,7 @@ class Serie:
     run_id: str
     recalcule: bool
     complete: bool = False  # mesures ajoutées après le run (X1, X10), recalculées
+    monde: str = ""  # version du monde simulé (manifeste)
     par_jour: dict[int, dict[tuple[str, str | None], ev.Indicator]] = field(default_factory=dict)
     premieres: Counter[str] = field(default_factory=Counter)  # premières décisions LLM
     exemples: list[tuple[int, str, list[str], str]] = field(default_factory=list)
@@ -68,7 +69,7 @@ def serie(run_id: str, runs_dir: Path = RUNS_DIR) -> Serie:
     recalcule = not indicateurs
     if recalcule:  # run antérieur à l'étape 14 : même calcul, après coup
         indicateurs = _recalcul(run_id, manifeste["seed"], events)
-    s = Serie(run_id, recalcule)
+    s = Serie(run_id, recalcule, monde=version_du_monde(manifeste))
     for i in indicateurs:
         s.par_jour.setdefault(jour(i.sim_time_occurred), {})[(i.payload.nom, i.payload.groupe)] = i
     if not recalcule and not any(i.payload.nom == ECART_JOUR_1 for i in indicateurs):
@@ -139,7 +140,9 @@ def _f(v: float | None, chiffres: int = 2) -> str:
 
 
 def rapport(series: list[Serie], titre: str) -> str:
-    lignes = [f"# {titre}", "", "## Synthèse", ""]
+    lignes = [f"# {titre}", ""]
+    lignes += avertissement_versions({s.run_id: s.monde for s in series})
+    lignes += ["## Synthèse", ""]
     lignes += [
         "| Run | Jours | Sens partagé J1 → fin | Information mutuelle J1 → fin (p fin) "
         "| Écart au jour 1, fin | Adoption fin | Porteurs à la 1re décision LLM "

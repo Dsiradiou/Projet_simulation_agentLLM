@@ -1,0 +1,5 @@
+# Le monde d'avant la ville (10 nov.) sur la population de développement : sept zones, une de chaque
+# type, sans quartiers ni distances. Pour comparer à dev.yaml de même graine ce que la ville change.
+herite_de: dev.yaml
+
+ville: null

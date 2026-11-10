@@ -201,7 +201,8 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 
 ## Population et configurations (décidé le 18 oct.)
 
-- `configs/default.yaml` : la référence, 120 agents sur 90 jours.
+- `configs/default.yaml` : la référence, 120 agents sur 90 jours, dans une ville (taille auto, plan tiré
+  avec la graine, depuis le 10 nov.).
 - `configs/dev.yaml` : 60 agents sur 60 jours, mêmes proportions, pour les essais de développement.
 - `configs/tranche.yaml` : la tranche verticale (4 agents, 5 jours).
 - Une population réduite de soutenance sera ajoutée à l'étape 18 (C8).
@@ -319,8 +320,9 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 
 ## Ville à taille et plan urbain (décidé le 10 nov.)
 
-- Section `ville` (`taille`, `plan`, `demi_distance`), à la place de `zones` (les deux s'excluent) ;
-  absente, le monde d'avant (`zones`). Code : `sim/ville.py` ; essai : `configs/dev-ville.yaml`.
+- Section `ville` (`taille`, `plan`, `demi_distance`), à la place de `zones` (les deux s'excluent).
+  `default.yaml` : `auto` et `hasard` (décidé le 10 nov.) ; `ville: null` garde le monde à sept zones
+  (`tranche.yaml`, trop petite pour une ville ; `dev-sept-zones.yaml` pour comparer). Code : `sim/ville.py`.
 - Taille `petite` / `moyenne` / `grande` (8, 12, 18 lieux, `LIEUX_PAR_TAILLE`) ou `auto` d'après le
   nombre d'agents (hors météo) ; chaque taille impose un minimum d'agents (`AGENTS_PAR_TAILLE`), pour
   qu'aucun lieu ne reste vide. Plans réels : `radioconcentrique`, `hippodamien`, `etoile` (éventail
@@ -332,13 +334,14 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 - Géométrie et attribution calculées en Python, publiées dans `monde.plan` 1.1 (`payload.ville`) et
   dans Redis ; Godot dessine lieux et routes à leurs positions, sans logique.
 - Mesuré le 10 nov. (C0, 3 graines, 30 jours) : aucun lieu vide ; à 120 agents, une paire d'agents sur
-  deux se croise contre 95 % avec sept zones, et l'adoption est nettement plus lente.
+  deux se croise contre 95 % avec sept zones, et l'adoption est nettement plus lente. Le calibrage de
+  l'oubli tient avec la ville (C0, 5 graines, 90 jours).
+- Version du monde (`VERSION_MONDE` dans `sim/run.py`, `monde_simulation` du manifeste) : à changer
+  quand une règle change la dynamique. Les anciens runs restent rejouables mais sont exclus des
+  campagnes ; `replay.comparaison` et `indicators.rapport` signalent un mélange de versions.
 
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- Ville (codée le 10 nov., voir plus haut) : encore ouvert, la migration des anciennes
-  configurations et des runs (`zones`), et le passage de `default.yaml` à une ville (aujourd'hui sans
-  ville : seul `dev-ville.yaml` et l'interface en utilisent une).
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

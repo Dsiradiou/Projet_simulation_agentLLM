@@ -29,6 +29,16 @@ if TYPE_CHECKING:  # imports de typage seulement : sim.run est importé par les 
     from sim.settings import Settings
 
 RUNS_DIR = Path("runs")
+
+# Version du monde simulé (10 nov.) : elle change quand les règles changent la dynamique, ce que le
+# commit git ne dit pas. Deux runs de versions différentes ne se comparent pas dans une campagne ;
+# `replay.comparaison` et `indicators.rapport` le signalent. Historique :
+# - (absente) : runs lancés avant la ville (10 nov. 2026, 11 h) : sept zones ou zones multiples, et,
+#   jusqu'au commit 32a2a77, oubli non calibré et flacons de 12 jours ; gardés rejouables pour
+#   l'historique et le rapport (avant/après), exclus des campagnes.
+# - "2026-11-10" : oubli calibré, flacons selon l'usage, ville à taille et plan urbain.
+VERSION_MONDE = "2026-11-10"
+AVANT_VERSIONS = "sans version (antérieur à la ville)"
 _PAQUETS = ("pydantic", "aiokafka", "redis", "ollama")
 
 
@@ -75,6 +85,7 @@ def write_manifest(run: RunInfo, config: Config, runs_dir: Path = RUNS_DIR) -> P
         "run_id": run.run_id,
         "seed": run.seed,
         "config_name": run.config_name,
+        "monde_simulation": VERSION_MONDE,
         "started_at": run.started_at.isoformat(),
         "config": config.model_dump(mode="json"),
         "git": _git_state(),
@@ -84,6 +95,26 @@ def write_manifest(run: RunInfo, config: Config, runs_dir: Path = RUNS_DIR) -> P
     path = run_dir / "manifest.json"
     path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return path
+
+
+def version_du_monde(manifeste: dict) -> str:
+    """Version du monde d'un run, d'après son manifeste (les plus anciens n'en ont pas)."""
+    return manifeste.get("monde_simulation") or AVANT_VERSIONS
+
+
+def avertissement_versions(versions: dict[str, str]) -> list[str]:
+    """Lignes Markdown à placer en tête d'un rapport qui mélange des versions du monde ; vide
+    sinon. `versions` : run_id -> version."""
+    if len(set(versions.values())) <= 1:
+        return []
+    lignes = [
+        "> **Attention : ces runs ne simulent pas le même monde.** Leurs écarts mêlent l'effet de "
+        "la configuration et celui des changements de règles ; ne pas les comparer dans une "
+        "campagne (voir `VERSION_MONDE` dans `sim/run.py`).",
+        ">",
+    ]
+    lignes += [f"> - `{run_id}` : monde {v}" for run_id, v in versions.items()]
+    return lignes + [""]
 
 
 def _version(package: str) -> str | None:

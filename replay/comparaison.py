@@ -20,8 +20,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from replay.bilan import population_agents
 from replay.historique import connexion
-from sim.run import RUNS_DIR
+from sim.run import RUNS_DIR, avertissement_versions, version_du_monde
 
 OUT_DIR = Path("docs/mesures")
 SENS = ("efficace", "tendance", "banal", "depasse")
@@ -35,6 +36,7 @@ class Courbe:
     porteurs: list[int] = field(default_factory=list)  # indice : jour - 1
     sens_fin: dict[str, int] = field(default_factory=dict)
     sens_fin_llm: dict[str, int] = field(default_factory=dict)  # X10 : rôles LLM seulement
+    monde: str = ""  # version du monde simulé (manifeste)
     appels_llm: int = 0
     duree_s: float = 0.0
     messages: int = 0
@@ -72,18 +74,22 @@ def courbes(
             jours_run = jours_run[:jours]
         dernier = jours_run[-1]
         bilan = json.loads((runs_dir / run_id / "bilan.json").read_text(encoding="utf-8"))
+        manifeste = json.loads((runs_dir / run_id / "manifest.json").read_text(encoding="utf-8"))
         configuration = run_id.split("-", 2)[2].rsplit("-s", 1)[0]
         resultat.append(
             Courbe(
                 run_id=run_id,
                 configuration=configuration,
-                agents=dernier[3],
+                # Toute la population (hors météo) : depuis le calibrage de l'oubli (10 nov.), des
+                # agents n'ont pas encore décidé, ils ne figurent pas dans les décisions.
+                agents=population_agents(manifeste),
                 porteurs=[r[2] for r in jours_run],
                 sens_fin=dict(zip(SENS, dernier[4:8], strict=True)),
                 sens_fin_llm=dict(zip(SENS, dernier[8:12], strict=True)),
                 appels_llm=bilan.get("appels_llm", 0),
                 duree_s=bilan.get("duree_reelle_s", 0.0),
                 messages=bilan.get("messages", 0),
+                monde=version_du_monde(manifeste),
             )
         )
     return resultat
@@ -100,7 +106,9 @@ def _moyenne(courbes_config: list[Courbe]) -> tuple[list[float], list[float]]:
 
 
 def rapport(liste: list[Courbe], titre: str) -> str:
-    lignes = [f"# {titre}", "", "## Runs", ""]
+    lignes = [f"# {titre}", ""]
+    lignes += avertissement_versions({c.run_id: c.monde for c in liste})
+    lignes += ["## Runs", ""]
     lignes += [
         "| Run | Configuration | Agents | Pic (jour, porteurs) | Déclin depuis le pic | Fin : "
         "efficace / tendance / banal / dépassé | Dont rôles LLM | Messages | Appels LLM "

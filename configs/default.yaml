@@ -249,6 +249,17 @@ monde:
   concurrent: Zelvane      # marque concurrente du corpus (test de contamination : 8 %, aucune marque réelle)
   indice_protection: Halo 4 (sur une échelle de 1 à 5)
 
+# Ville (décidé le 10 nov., sim/ville.py) : taille et plan urbain à la place du nombre de zones par
+# type. Taille auto d'après le nombre d'agents (120 : grande ville, 18 lieux ; 60 : moyenne, 12 lieux),
+# plan tiré avec la graine (radioconcentrique, hippodamien, en étoile ou linéaire), comme décidé pour
+# les campagnes. Chaque agent habite un quartier et fréquente les lieux attribués à son quartier ; un
+# lieu à `demi_distance` mètres de son quartier l'attire deux fois moins. `ville: null` dans une
+# variante : le monde d'avant, à sept zones (configs/dev-sept-zones.yaml).
+ville:
+  taille: auto
+  plan: hasard
+  demi_distance: 120
+
 # Nombre d'agents par rôle (exigence C2 : fixé au lancement, sans modifier le code).
 population:
   # Agents LLM (84)

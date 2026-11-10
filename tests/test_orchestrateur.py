@@ -19,7 +19,16 @@ from sim.config import Config, load_config
 from sim.domaine import HEURE_DECISION, Action, Canal, Sens, Zone, debut_du_jour
 from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.orchestrateur import Orchestrateur
-from sim.run import RunInfo, agent_rng, new_run, write_manifest
+from sim.run import (
+    AVANT_VERSIONS,
+    VERSION_MONDE,
+    RunInfo,
+    agent_rng,
+    avertissement_versions,
+    new_run,
+    version_du_monde,
+    write_manifest,
+)
 
 DEFAULT = Path(__file__).parent.parent / "configs" / "default.yaml"
 
@@ -128,6 +137,17 @@ def test_run_identity_and_manifest(tmp_path: Path) -> None:
     manifest = json.loads(write_manifest(run, cfg, tmp_path).read_text(encoding="utf-8"))
     assert manifest["seed"] == 42 and manifest["config"]["population"]["pharmacien"] == 6
     assert manifest["git"]["commit"]
+
+
+def test_world_version_is_recorded_and_mixed_versions_are_flagged(tmp_path: Path) -> None:
+    """10 nov. : un rapport qui mélange des runs de mondes différents le signale."""
+    cfg = load_config(DEFAULT)
+    manifeste = json.loads(write_manifest(new_run(cfg, DEFAULT), cfg, tmp_path).read_text("utf-8"))
+    assert version_du_monde(manifeste) == VERSION_MONDE
+    assert version_du_monde({"config": {}}) == AVANT_VERSIONS  # runs plus anciens
+    assert avertissement_versions({"a": VERSION_MONDE, "b": VERSION_MONDE}) == []
+    lignes = avertissement_versions({"a": VERSION_MONDE, "b": AVANT_VERSIONS})
+    assert "pas le même monde" in lignes[0] and any("`b`" in ligne for ligne in lignes)
 
 
 def test_agent_rng_depends_only_on_seed_and_id() -> None:

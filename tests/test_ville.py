@@ -195,8 +195,12 @@ def test_same_seed_same_city_in_c0_and_c1() -> None:
 
 
 def test_old_worlds_without_a_city_are_unchanged() -> None:
-    assert DEV.ville is None and DEV.plan_ville is None
-    assert Routines.du_monde(DEV)._attraits == {}
+    """`ville: null` (tranche, monde à sept zones) : le monde d'avant le 10 nov."""
+    sept = load_config(CONFIGS / "dev-sept-zones.yaml")
+    assert sept.ville is None and sept.plan_ville is None and len(sept.lieux) == len(Zone)
+    assert Routines.du_monde(sept)._attraits == {}
+    assert load_config(CONFIGS / "tranche.yaml").ville is None
+    assert DEV.plan_ville is not None  # dev.yaml hérite de la ville de default.yaml
 
 
 # --- pont ----------------------------------------------------------------------------------------

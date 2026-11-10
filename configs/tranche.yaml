@@ -2,6 +2,9 @@
 # Hérite de default.yaml : seules la durée et la population changent.
 herite_de: default.yaml
 
+# Trop peu d'agents pour une ville (une petite ville en demande 12) : le monde à sept zones.
+ville: null
+
 simulation:
   duree_jours: 5
 

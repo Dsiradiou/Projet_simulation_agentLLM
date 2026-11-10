@@ -2714,5 +2714,157 @@ LLM). Avant de lancer les campagnes, trancher le projet de ville à taille et pl
 simulation, il doit précéder les mesures.</p>
 </section>
 
+<section class="step">
+<h2>Étape 16, deuxième partie — Calibrage de l'oubli, constats réglés et ville à plan urbain</h2>
+<p class="meta">10 novembre 2026 · Exigences concernées : B1 et B3 (sens partagé, témoin), E1 (même monde en C0 et
+en C1), E2 (comparaison de runs), E3 (rejeu sans LLM), C2 (nombre d'agents au lancement), D3 (interface), F6
+(traçabilité).</p>
+
+<h3>Objectif</h3>
+<p>Mettre le modèle dans son état final avant les campagnes : calibrer l'oubli et la découverte, appliquer les
+choix du 4 nov. sur trois constats (écart du sens au jour 1, durée des flacons, sens des seuls agents LLM), puis
+remplacer le réglage des zones par une ville dont la taille et le plan agissent sur la simulation.</p>
+
+<h3>Décisions du binôme</h3>
+<table>
+  <tr><th>Question</th><th>Décision</th></tr>
+  <tr><td>La ville agit-elle sur la simulation ou seulement sur le décor ?</td><td><strong>Sur la
+    simulation.</strong></td></tr>
+  <tr><td>Sa taille dépend-elle du nombre d'agents ?</td><td><strong>Oui</strong> : pas de lieux vides, pas
+    d'agents qui ne se croisent jamais.</td></tr>
+  <tr><td>Quels plans ?</td><td>Des <strong>morphologies urbaines réelles</strong> : radioconcentrique,
+    hippodamien (damier), en étoile, linéaire.</td></tr>
+  <tr><td>Quelle ville pour les campagnes ?</td><td><strong>Tirée au hasard</strong> avec la graine du run.</td></tr>
+  <tr><td><code>default.yaml</code></td><td><strong>Passe à la ville</strong> (taille automatique, plan tiré au
+    hasard), après vérification du calibrage avec la ville ; la tranche verticale (5 agents) garde le monde à
+    sept zones.</td></tr>
+  <tr><td>Les anciens runs</td><td>On ne peut pas les convertir : ce serait inventer des décisions qu'aucun modèle
+    n'a prises. Ils restent <strong>rejouables</strong> (E3) et servent au rapport (avant/après), mais sont
+    <strong>obsolètes pour les campagnes</strong>. Chaque manifeste porte désormais une version du monde, et les
+    rapports signalent un mélange de versions.</td></tr>
+</table>
+
+<h3>Ce qui a été fait</h3>
+<ul>
+  <li><strong>Oubli calibré</strong> (M1, <code>docs/mesures/oubli-calibrage_2026-11-10.md</code>) : seuil de
+    découverte relevé à 0,3, <strong>seuil d'oubli</strong> à 0,15 (hystérésis : on garde en tête plus facilement
+    qu'on ne découvre), <strong>habituation</strong> aux expositions répétées (un rayon vu chaque jour devient le
+    décor), renforts réduits. La demi-vie reste à 10 ± 3 jours.</li>
+  <li><strong>Flacons selon l'usage</strong> (X4) : un flacon contient 16 journées d'usage ordinaire ; une journée à
+    la plage ou à la piscine en consomme 2, au terrain de sport 1,5.</li>
+  <li><strong>Écart au jour 1</strong> (X1) : divergence de Jensen-Shannon entre la répartition des sens du jour
+    et celle du premier jour, publiée comme indicateur. <strong>Rôles LLM</strong> (X10) : convergence,
+    information mutuelle et écart publiés aussi pour les seuls rôles tenus par un modèle (groupe
+    <code>roles_llm</code>). Les deux sont dans <code>indicators.rapport</code> et
+    <code>replay.comparaison</code>, et recalculés après coup pour les anciens runs.</li>
+  <li><strong>Ville</strong> (<code>sim/ville.py</code>, section <code>ville</code>) :
+    <ul>
+      <li>trois tailles (8, 12 et 18 lieux) ou une taille automatique d'après le nombre d'agents ; chaque taille
+        impose un minimum d'agents ;</li>
+      <li>quatre plans, ou un plan tiré avec la graine. Les commerces sont au centre, les quartiers en périphérie,
+        les plages le long de la côte ;</li>
+      <li>chaque agent habite un quartier (réparti rôle par rôle) et fréquente les lieux attribués à son quartier,
+        chaque lieu servant au moins un quartier. Un lieu éloigné attire moins dans les routines du matin
+        (atténuation par la distance, <code>2^(−d / 120 m)</code>), avec les mêmes tirages qu'avant ;</li>
+      <li>la géographie est publiée dans <code>monde.plan</code> 1.1 et dans Redis ; la scène construit chaque
+        lieu à sa position et trace les routes ; le menu de paramétrage propose taille, plan et nombre d'agents,
+        avec la fourchette conseillée.</li>
+    </ul></li>
+  <li><strong>Version du monde</strong> : <code>monde_simulation</code> dans le manifeste ; un avertissement en
+    tête des rapports qui mélangent des versions. La colonne « Agents » de la comparaison compte désormais toute
+    la population : depuis le calibrage, certains agents n'ont pas encore décidé.</li>
+</ul>
+
+<h3>Mesures</h3>
+<p><strong>Calibrage, baseline C0</strong> (5 graines, 90 jours) :</p>
+<table>
+  <tr><th></th><th>Avant</th><th>Après</th><th>Après, avec la ville</th></tr>
+  <tr><td>Découverte médiane</td><td>jour 2,4</td><td>jour 13,8</td><td>jour 17,4</td></tr>
+  <tr><td>Découvertes aux jours 1 et 2</td><td>27,8</td><td>1</td><td>1</td></tr>
+  <tr><td>Oublis par run</td><td>4,4, redécouverts en 1 à 3 jours</td><td>2,2, redécouverts en 4 à 8 jours</td>
+    <td>5,8 (0 à 19), redécouverts en 10 jours (médiane)</td></tr>
+  <tr><td>Durée d'un flacon</td><td>12 jours pour tous</td><td>11,3 jours (8 à 16)</td><td>11,7 jours (8 à 16)</td></tr>
+</table>
+<p><strong>Contrôle en C1</strong> (<code>20261110-101324-dev-s42</code>, sans ville, comparé au run du 4 nov.) :
+plus aucune découverte aux jours 1 et 2, médiane au jour 11 ; pic de 45 porteurs au jour 40 puis
+<strong>recul de 8</strong> (aucun recul le 4 nov.) ; 12 agents LLM sur 42 porteurs dès leur première décision
+(16 avant) ; rachats à 12 jours pile : 8 sur 126 (60 sur 143 avant) ; 13 % d'appels et 21 % de durée en moins.
+Toujours aucun oubli.</p>
+<p><strong>Ville, baseline C0</strong> (3 graines, 30 jours, <code>docs/mesures/ville_2026-11-10.md</code>) :</p>
+<table>
+  <tr><th></th><th>Sept zones</th><th>Ville</th></tr>
+  <tr><td>Lieux jamais fréquentés</td><td>0</td><td>0, pour toutes les tailles et tous les plans</td></tr>
+  <tr><td>Paires d'agents qui se croisent (120 agents)</td><td>95 %</td><td>44 à 47 % selon le plan</td></tr>
+  <tr><td>Porteurs au jour 30 (120 agents)</td><td>80</td><td>32 à 43 selon le plan</td></tr>
+</table>
+<ul>
+  <li><strong>La taille pèse plus que le plan.</strong> Sans l'atténuation par la distance, le plan ne changeait
+    presque rien (et rien dans une petite ville, où chaque service est unique) ; avec elle, brassage et adoption
+    varient d'un plan à l'autre, à confirmer sur 5 graines.</li>
+  <li><strong>L'oubli joue quand la mode ne prend pas</strong> : dans une ville où l'adoption reste faible (graine
+    2, plan hippodamien, 7 porteurs au jour 60), 15 agents oublient le produit, sans sauts autour du seuil.</li>
+  <li><strong>L'écart au jour 1 règle le constat B3</strong> : la baseline (tous passent à « tendance ») et son
+    témoin (tous restent « banal ») avaient des convergences voisines (0,79 et 0,68) ; leur écart au jour 1 vaut
+    0,83 et 0,00.</li>
+</ul>
+
+<h3>Vérifications</h3>
+<ul>
+  <li>Run C1 de contrôle : aucun incident, aucun repli, aucune violation temporelle ; 3 784 événements publiés
+    et enregistrés ; <strong>rejeu fidèle</strong>.</li>
+  <li>Run de bout en bout en ville (baseline dev, Kafka et Redis) : <code>monde.plan</code> 1.1 publié, rejeu
+    fidèle.</li>
+  <li>Captures de la scène pour les quatre plans : anneaux, damier, avenues en éventail depuis le front de mer,
+    ruban côtier. Le terrain a été élargi autour de la ville.</li>
+</ul>
+
+<h3>Constats</h3>
+<ul>
+  <li>L'oubli reste rare tant que la mode sature : un porteur n'oublie pas. Il jouera dans les runs où la mode
+    recule ou ne prend pas.</li>
+  <li>Avec les graines prévues pour les campagnes (42, 7, 1, 2, 3), le plan tiré au hasard ne donne jamais
+    « radioconcentrique » (linéaire, étoile, puis trois fois hippodamien). Sans gêne pour comparer C0 et C1 à
+    graine égale, mais aucun plan ne pourra être comparé aux autres sur 5 graines.</li>
+  <li>Avec environ 36 agents, l'adoption de la baseline est très lente, même sans ville (2 porteurs au jour 30) :
+    à regarder pour la population de démonstration (S1, étape 18).</li>
+  <li>Les tests du RAG instables (R3) ont échoué deux fois <strong>sans</strong> les tests Ollama, pendant qu'un
+    run tournait : à chercher à l'étape 17.</li>
+</ul>
+
+<h3>Les tests</h3>
+<ul>
+  <li><strong>Oubli</strong> : hystérésis (pas de saut entre les deux seuils), habituation (un rayon seul ne fait
+    pas découvrir, son effet décroît), oubli au jour attendu.</li>
+  <li><strong>Flacons</strong> : un flacon dure 8 jours à la plage, 16 au domicile.</li>
+  <li><strong>Indicateurs</strong> : bornes de Jensen-Shannon, baseline et témoin séparés par l'écart au jour 1,
+    rôles LLM mesurés à part ; avertissement quand des versions du monde se mélangent.</li>
+  <li><strong>Ville</strong> (<code>tests/test_ville.py</code>) : taille selon la population et minimum imposé,
+    ville et zones exclusives, plan tiré selon la graine, pour chaque taille et chaque plan des lieux sans
+    chevauchement et tous fréquentés, quartiers équilibrés, mêmes ville et quartiers en C0 et en C1, atténuation
+    par la distance, run sans lieu vide, pont qui décrit et écrit la ville.</li>
+  <li><strong>Scène</strong> : lieux à leurs positions, routes, ville annoncée, instantané, retour à la maquette au
+    rejeu d'un ancien run ; menu Ville (taille automatique, avertissement si trop peu d'agents, demande
+    envoyée).</li>
+</ul>
+<p>Résultat : 319 tests hors Ollama (dont 37 dans <code>tests/test_ville.py</code>), <span class="ok">tous
+réussis</span>, scène et intégration compris ; aucune remarque de ruff. Les tests Ollama n'ont pas été relancés
+(aucune modification de la couche LLM).</p>
+
+<h3>À retenir pour l'oral</h3>
+<ul>
+  <li>Un seuil unique fait clignoter un état : l'oubli suivi d'une redécouverte le lendemain n'est pas un oubli.
+    Deux seuils (découvrir à 0,3, oublier à 0,15) suffisent à le régler.</li>
+  <li>La forme de la ville est une hypothèse de diffusion : qui habite où décide qui voit qui. Dans une grande
+    ville, une paire d'habitants sur deux ne se croise jamais en un mois.</li>
+  <li>Un run ne se convertit pas : il est l'enregistrement de ce que les modèles ont décidé. On le garde rejouable,
+    on le date (version du monde), et on ne le mélange pas aux campagnes.</li>
+</ul>
+
+<h3>Prochaine étape</h3>
+<p>Run C1 dev de contrôle dans la ville, puis trancher X2 (adoption au premier contact), puis les campagnes
+d'expériences (C0 à C3 sur 5 graines, synchrone et asynchrone avec témoin, C1 avec et sans RAG, un run de
+référence 120 × 90).</p>
+</section>
+
 </body>
 </html>

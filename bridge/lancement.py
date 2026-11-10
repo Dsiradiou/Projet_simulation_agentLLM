@@ -163,8 +163,9 @@ def ecrire_configuration(
     }
     if demande.ville is not None:
         variante["ville"] = {"taille": demande.ville.taille.value, "plan": demande.ville.plan.value}
-    else:
+    elif demande.zones:  # ancien réglage : le monde à zones, sans la ville de la base
         variante["zones"] = {z.value: n for z, n in demande.zones.items()}
+        variante["ville"] = None
     if demande.graine is not None:
         variante["run"] = {"seed": demande.graine}
     quand = (maintenant or datetime.now()).strftime("%d/%m/%Y à %H:%M")
