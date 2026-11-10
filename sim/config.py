@@ -129,6 +129,14 @@ class AgentsConfig(_Section):
     messages_par_semaine: dict[Role, NonNegativeInt] = Field(
         description="Messages qu'un agent LLM peut envoyer par semaine simulée, par rôle."
     )
+    innovateurs: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+        description="Part des agents des rôles LLM, aux seuils d'adoption les plus bas, qui "
+        "peuvent acheter dès leur première décision (X2, 10 nov.) ; les autres découvrent "
+        "d'abord. 1 : tout le monde (comme avant).",
+    )
 
 
 class MeteoConfig(_Section):

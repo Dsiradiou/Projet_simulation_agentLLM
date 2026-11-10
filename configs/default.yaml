@@ -48,6 +48,10 @@ agents:
   seuil_adoption:
     moyenne: 0.35
     ecart_type: 0.15
+  # Premier contact (X2, décidé le 10 nov.) : parmi les rôles LLM, les 10 % aux seuils d'adoption les
+  # plus bas (les innovateurs) peuvent acheter dès leur première décision ; les autres découvrent
+  # d'abord (ni acheter ni appliquer ce jour-là). Même règle et mêmes agents en C0 et en C1.
+  innovateurs: 0.1
   # Messages qu'un agent LLM peut envoyer par semaine simulée, selon son rôle : c'est le rôle,
   # et non la taille du modèle, qui décide de la propension à parler (constat de l'étape 6).
   messages_par_semaine:

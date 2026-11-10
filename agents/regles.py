@@ -49,6 +49,18 @@ def regle_seuil(perception: Perception, seuil: float) -> ChoixRegle:
     )
 
 
+def sans_adoption(choix: ChoixRegle) -> ChoixRegle:
+    """Premier contact d'un non-innovateur (X2) : il découvre, il n'achète pas encore."""
+    if not choix.porteur:
+        return choix
+    return ChoixRegle(
+        Action.IGNORER,
+        Sens.BANAL,
+        False,
+        "Premier contact : il découvre le produit, il ne l'achète pas encore.",
+    )
+
+
 def repli_seuil_continuite(
     precedente: Decision | None, perception: Perception, seuil: float
 ) -> ChoixRegle:
@@ -271,6 +283,9 @@ class AgentRegleC0(AgentAuSeuil):
             return self._decision(
                 action, sens, True, f"Règle C0 : il continue ({part:.0%} autour de lui)."
             )
+        if not self.peut_adopter():  # premier contact d'un non-innovateur (X2) : il découvre
+            raison = f"Règle C0 : premier contact ({pression:.0%} de pression sociale), il attend."
+            return self._decision(Action.IGNORER, Sens.BANAL, False, raison)
         if pression >= self.seuil or p.achat_rate:
             self._part_adoption, self._jours_chauds = part, 0
             return self._avec_message(p, Action.ACHETER, Sens.TENDANCE, True, "imitation")

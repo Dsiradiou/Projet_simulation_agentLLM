@@ -37,7 +37,8 @@ RUNS_DIR = Path("runs")
 #   jusqu'au commit 32a2a77, oubli non calibré et flacons de 12 jours ; gardés rejouables pour
 #   l'historique et le rapport (avant/après), exclus des campagnes.
 # - "2026-11-10" : oubli calibré, flacons selon l'usage, ville à taille et plan urbain.
-VERSION_MONDE = "2026-11-10"
+# - "2026-11-10b" : premier contact (X2) : seuls les innovateurs achètent à leur première décision.
+VERSION_MONDE = "2026-11-10b"
 AVANT_VERSIONS = "sans version (antérieur à la ville)"
 _PAQUETS = ("pydantic", "aiokafka", "redis", "ollama")
 

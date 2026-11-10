@@ -97,10 +97,15 @@ class Decision:
     souvenirs: tuple[SouvenirRetenu, ...] = ()  # ce que l'agent a retenu (étape 16)
 
 
+# Actions qui font d'un agent un porteur. Au premier contact, seuls les innovateurs peuvent les
+# choisir (X2, décidé le 10 nov.).
+ACTIONS_D_ADOPTION = frozenset({Action.ACHETER, Action.APPLIQUER})
+
+
 def porteur_apres(action: Action, porteur_avant: bool) -> bool:
     """L'agent utilise-t-il le produit après cette action ? Acheter ou appliquer en fait un
     porteur, abandonner l'en retire ; les autres actions ne changent rien."""
-    if action in (Action.ACHETER, Action.APPLIQUER):
+    if action in ACTIONS_D_ADOPTION:
         return True
     if action is Action.ABANDONNER:
         return False
@@ -133,6 +138,15 @@ class Agent(ABC):
         # Journées d'usage ordinaire restant dans son flacon (étape 13) ; la plage et la piscine
         # en consomment plus (X4, 10 nov.). None : pas de commerce simulé.
         self.flacon: float | None = None
+        # Premier contact (X2, 10 nov.) : seul un innovateur (seuil d'adoption parmi les plus bas
+        # des rôles LLM, `agents.innovateurs`) peut acheter dès sa première décision ; les autres
+        # découvrent d'abord. Vrai par défaut : aucune contrainte (agents à règles, tests).
+        self.innovateur = True
+
+    def peut_adopter(self) -> bool:
+        """Peut-il devenir porteur aujourd'hui ? Pas à sa première décision s'il n'est pas un
+        innovateur."""
+        return self.innovateur or self.derniere_decision is not None
 
     def lieu_de(self, zone: Zone) -> str:
         """Le lieu où il va quand il se rend dans une zone de ce type."""

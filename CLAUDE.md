@@ -314,6 +314,10 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   seuil d'oubli 0,15 (hystérésis, plus de sauts autour du seuil), habituation aux expositions
   ambiantes répétées (rayon, porteurs vus), renforts réduits. Découverte médiane au jour 14 en C0 ;
   l'oubli reste rare tant que l'adoption sature (un porteur n'oublie pas).
+- Premier contact (X2, décidé le 10 nov.) : `agents.innovateurs` (0,1) ; parmi les rôles LLM, les
+  seuils d'adoption les plus bas peuvent acheter dès la première décision, les autres non (schéma
+  JSON sans « acheter » ni « appliquer », phrase du prompt, repli et baseline C0 alignés). Mêmes
+  innovateurs en C0 et en C1 (E1). Version du monde `2026-11-10b`.
 - Indicateurs ajoutés le 10 nov. : écart au jour 1 (`ecart_jour_1`, Jensen-Shannon, X1) et groupe
   `roles_llm` (sens des seuls rôles tenus par un LLM en C1, X10), aussi dans `indicators.rapport` et
   `replay.comparaison` ; recalculés après coup pour les runs antérieurs.

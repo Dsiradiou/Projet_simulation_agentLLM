@@ -25,7 +25,7 @@ from agents.base import (
     porteur_apres,
 )
 from agents.prompts import MESSAGES_MAX, prompt_jour, prompt_systeme
-from agents.regles import ChoixRegle, repli_seuil_continuite
+from agents.regles import ChoixRegle, repli_seuil_continuite, sans_adoption
 from agents.roles import Role
 from bus.events import LlmCall, Moteur, NatureIncident
 from llm.client import Reponse
@@ -92,7 +92,8 @@ class AgentLLM(Agent):
         assert self.palier is not None
         restants = self.messages_restants(perception.jour)
         peut_parler = restants is None or restants > 0
-        schema = schema_sortie(self.contacts, peut_parler)
+        adoption = self.peut_adopter()  # X2 : premier contact d'un non-innovateur
+        schema = schema_sortie(self.contacts, peut_parler, adoption)
         incidents: list[IncidentAgent] = []
         contexte = None
         bilans: tuple[SouvenirRetenu, ...] = ()
@@ -143,7 +144,7 @@ class AgentLLM(Agent):
             duree_s += reponse.duree_s
             reponses.append(reponse)
             try:
-                sortie = lire_sortie(reponse.texte, self.contacts, peut_parler)
+                sortie = lire_sortie(reponse.texte, self.contacts, peut_parler, adoption)
             except SortieInvalide as exc:
                 incidents.append(
                     IncidentAgent(
@@ -173,6 +174,8 @@ class AgentLLM(Agent):
             )
         )
         choix = repli_seuil_continuite(self.derniere_decision, perception, self.seuil)
+        if not adoption:
+            choix = sans_adoption(choix)
         decision = self._depuis_regle(choix, self._cout(reponses, duree_s, TENTATIVES), incidents)
         return dataclasses.replace(decision, souvenirs=bilans)  # un repli ne laisse pas d'épisode
 
@@ -202,7 +205,7 @@ class AgentLLM(Agent):
         while True:
             prompt, montres = prompt_jour(
                 perception, self.derniere_decision, self.contacts, self.monde, self.motif,
-                restants, contexte, messages_max,
+                restants, contexte, messages_max, self.peut_adopter(),
             )  # fmt: skip
             if len(prompt) <= budget:
                 break

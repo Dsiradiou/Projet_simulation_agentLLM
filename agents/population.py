@@ -207,4 +207,20 @@ def construire_population(
                 recuperateur=recuperateur,
             )  # fmt: skip
         agents.append(equiper(agent, x, config))
+    designer_innovateurs(agents, config.agents.innovateurs)
     return agents, acteurs_monde(config)
+
+
+def designer_innovateurs(agents: list[Agent], part: float) -> None:
+    """X2 (10 nov.) : parmi les rôles tenus par un LLM en C1 (par la baseline en C0), la part
+    `part` aux seuils d'adoption les plus bas peut acheter dès le premier contact (les innovateurs
+    de Rogers, le p de Bass) ; les autres découvrent d'abord. Le seuil est un paramètre individuel
+    tiré avec la graine, jamais un attribut social (A5) ; mêmes seuils en C0 et en C1, donc mêmes
+    innovateurs (E1). Égalité : l'identifiant départage."""
+    candidats = sorted(
+        (a for a in agents if palier_du_role(a.role) is not None),
+        key=lambda a: (a.seuil, a.agent_id),
+    )
+    nombre = round(part * len(candidats))
+    for rang, agent in enumerate(candidats):
+        agent.innovateur = rang < nombre

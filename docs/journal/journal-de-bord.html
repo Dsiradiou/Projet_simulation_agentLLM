@@ -2860,10 +2860,39 @@ réussis</span>, scène et intégration compris ; aucune remarque de ruff. Les t
     on le date (version du monde), et on ne le mélange pas aux campagnes.</li>
 </ul>
 
+<h3>Contrôle en C1 dans la ville</h3>
+<p><code>20261110-113342-dev-s42</code> (ville moyenne, plan linéaire), comparé au run sans ville de même
+graine : rejeu fidèle, aucun lieu délaissé, 84 % des paires d'agents se croisent (98 % sans ville) ; la
+diffusion ne démarre qu'au jour 11 (2 découvertes avant, contre 22) ; pic de 40 porteurs au jour 49 ; premier
+oubli observé en C1 ; le lien rôle × sens des agents LLM n'est plus significatif (p = 0,09). Les prompts sont
+plus souvent réduits (31 % des décisions contre 12 %) : la mémoire collective résume chaque lieu, et la ville
+en compte plus (constat ouvert).</p>
+
+<h3>Premier contact (X2)</h3>
+<p>Décision du binôme (10 nov.) : <strong>première décision sans achat, sauf pour les innovateurs</strong>.
+Parmi les rôles tenus par un modèle, les 10 % aux seuils d'adoption les plus bas (<code>agents.innovateurs</code>,
+4 agents sur 42 en dev) peuvent acheter dès leur première décision : ce sont les innovateurs de Rogers, le
+p de Bass. Le seuil est un paramètre individuel tiré avec la graine, jamais un attribut social (A5). Pour les
+autres, ce jour-là, le schéma JSON ne propose ni « acheter » ni « appliquer », une phrase du prompt l'explique,
+la lecture refuse ces actions et le repli par règle s'y plie ; la baseline C0 applique la même règle, aux mêmes
+agents (E1). La version du monde passe à <code>2026-11-10b</code>.</p>
+<table>
+  <tr><th>Baseline C0, ville, 5 graines, 90 jours</th><th>Avant</th><th>Après</th></tr>
+  <tr><td>Porteurs dès la première décision (rôles LLM)</td><td>10 sur 42 (4 à 18)</td><td>2,8 sur 42 (2 à 4)</td></tr>
+  <tr><td>Porteurs au jour 30</td><td>26</td><td>6,6</td></tr>
+  <tr><td>Pic (porteurs, jour moyen)</td><td>50,8, jour 47</td><td>51,8, jour 62</td></tr>
+  <tr><td>Porteurs au jour 90</td><td>42</td><td>42,8</td></tr>
+</table>
+<p>La mode démarre plus lentement, sans changer de hauteur : son pic recule de deux semaines. En 60 jours
+(runs de développement), il risque de tomber après la fin du run. Tests : schéma et lecture fermés au premier
+contact, innovateurs aux seuils les plus bas et identiques en C0 et en C1, baseline qui attend, agent LLM et
+repli contraints, seconde décision libre (6 tests, <code>tests/test_premier_contact.py</code>) ; 325 tests hors
+Ollama, tous réussis.</p>
+
 <h3>Prochaine étape</h3>
-<p>Run C1 dev de contrôle dans la ville, puis trancher X2 (adoption au premier contact), puis les campagnes
-d'expériences (C0 à C3 sur 5 graines, synchrone et asynchrone avec témoin, C1 avec et sans RAG, un run de
-référence 120 × 90).</p>
+<p>Run C1 dev de contrôle avec X2, puis décider de la durée des runs de campagne (60 ou 90 jours, vu le pic
+plus tardif), puis les campagnes d'expériences (C0 à C3 sur 5 graines, synchrone et asynchrone avec témoin, C1
+avec et sans RAG, un run de référence 120 × 90).</p>
 </section>
 
 </body>

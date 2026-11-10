@@ -24,6 +24,9 @@ from pydantic import (
 
 from sim.domaine import Action, Canal, Sens
 
+# Actions qui font d'un agent un porteur : fermées au premier contact d'un non-innovateur (X2).
+ADOPTION = (Action.ACHETER, Action.APPLIQUER)
+
 # Mots proposés au modèle pour les catégories fermées du sens (B1). « depasse », sans accent, était
 # lu « dépasse (mes attentes) » : 17 décisions « dépassé » sur 23 allaient avec appliquer,
 # recommander ou acheter (mesure du 18 oct.). Le modèle choisit donc « demode », traduit ici vers
@@ -79,13 +82,17 @@ class SortieAgent(_Strict):
     message: MessageSortie | None = None
 
 
-def schema_sortie(contacts: Sequence[str], message_possible: bool = True) -> dict:
+def schema_sortie(
+    contacts: Sequence[str], message_possible: bool = True, adoption_possible: bool = True
+) -> dict:
     """Schéma JSON propre à un agent : un message direct ne peut viser qu'un de ses contacts.
 
     `message` vaut null (rien dit), une diffusion (zone ou réseaux) ou un message direct. Les
     deux formes de message sont distinctes pour que le destinataire soit imposé en direct. Quand
-    l'agent a épuisé son budget de messages de la semaine, seul null est possible.
+    l'agent a épuisé son budget de messages de la semaine, seul null est possible. Au premier
+    contact d'un non-innovateur (X2), « acheter » et « appliquer » ne sont pas proposés.
     """
+    actions = [a.value for a in Action if adoption_possible or a not in ADOPTION]
     diffusion = {
         "type": "object",
         "properties": {
@@ -114,14 +121,19 @@ def schema_sortie(contacts: Sequence[str], message_possible: bool = True) -> dic
         "properties": {
             "justification": {"type": "string", "maxLength": LONGUEUR_JUSTIFICATION},
             "sens": {"type": "string", "enum": list(SENS_POUR_LE_MODELE)},
-            "action": {"type": "string", "enum": [a.value for a in Action]},
+            "action": {"type": "string", "enum": actions},
             "message": {"anyOf": formes},
         },
         "required": ["justification", "sens", "action", "message"],
     }
 
 
-def lire_sortie(texte: str, contacts: Sequence[str], message_possible: bool = True) -> SortieAgent:
+def lire_sortie(
+    texte: str,
+    contacts: Sequence[str],
+    message_possible: bool = True,
+    adoption_possible: bool = True,
+) -> SortieAgent:
     """Valide la réponse brute du modèle. Lève `SortieInvalide` avec la raison, réutilisée
     dans le prompt de relance et dans l'incident publié."""
     try:
@@ -135,6 +147,8 @@ def lire_sortie(texte: str, contacts: Sequence[str], message_possible: bool = Tr
         raise SortieInvalide(erreurs) from exc
     if sortie.message and not message_possible:
         raise SortieInvalide("budget de messages épuisé : message doit valoir null")
+    if sortie.action in ADOPTION and not adoption_possible:
+        raise SortieInvalide("premier contact : ni acheter ni appliquer aujourd'hui")
     if sortie.message and sortie.message.destinataire not in (None, *contacts):
         raise SortieInvalide(f"destinataire inconnu : {sortie.message.destinataire}")
     return sortie

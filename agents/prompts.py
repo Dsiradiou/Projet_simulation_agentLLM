@@ -182,6 +182,7 @@ def prompt_jour(
     messages_restants: int | None = None,
     contexte: "Contexte | None" = None,
     messages_max: int = MESSAGES_MAX,
+    adoption_possible: bool = True,
 ) -> tuple[str, tuple[AgentMessage, ...]]:
     """Prompt du jour et messages effectivement montrés au modèle : seuls ceux-là sont cités
     dans `caused_by` de la décision (F6)."""
@@ -201,6 +202,12 @@ def prompt_jour(
             f"Tu n'as pas encore d'avis sur {marque} et tu ne l'as jamais essayée : tu ne sais "
             "pas encore si elle est efficace."
         )
+        if not adoption_possible:  # X2 (10 nov.) : seuls les innovateurs achètent d'emblée
+            lignes.append(
+                "C'est la première fois que tu en entends vraiment parler : aujourd'hui, tu ne "
+                "l'achètes pas et tu ne l'essaies pas encore. Tu peux t'en faire une idée, en "
+                "parler, l'ignorer ou la critiquer."
+            )
     else:
         usage = "tu l'utilises" if precedente.porteur else "tu ne l'utilises pas"
         lignes.append(
