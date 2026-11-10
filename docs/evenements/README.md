@@ -38,7 +38,7 @@ construction, `event_id` et `wall_time_emitted` sont remplis automatiquement.
 | [`monde.meteo`](#mondemeteo) | `sim.world.events` | 1.0 | Météo du jour, produite par l'agent à règles météo. |
 | [`monde.stock`](#mondestock) | `sim.world.events` | 1.0 | Niveau de stock d'un produit dans une zone de vente, après changement. |
 | [`monde.perturbation`](#mondeperturbation) | `sim.world.events` | 1.1 | Perturbation effective dans le monde, conséquence d'une injection (D3). |
-| [`monde.plan`](#mondeplan) | `sim.world.events` | 1.0 | Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est choisi au lancement. La scène Godot construit son décor à partir de lui. |
+| [`monde.plan`](#mondeplan) | `sim.world.events` | 1.1 | Plan du monde, publié une fois au début du run : ses zones, et la géographie de la ville (taille, plan urbain, positions) quand elle est choisie au lancement. La scène Godot construit son décor à partir de lui. |
 | [`agent.message`](#agentmessage) | `sim.agent.messages` | 1.0 | Message en langage naturel émis par un agent (A2). |
 | [`agent.decision`](#agentdecision) | `sim.agent.decisions` | 1.4 | Décision d'un agent : action, sens attribué au produit, justification (D2). |
 | [`agent.deplacement`](#agentdeplacement) | `sim.agent.decisions` | 1.1 | Déplacement d'un agent d'une zone à une autre (affiché dans Godot). |
@@ -109,13 +109,14 @@ Payload :
 
 ### monde.plan
 
-Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est choisi au lancement. La scène Godot construit son décor à partir de lui. Version 1.0.
+Plan du monde, publié une fois au début du run : ses zones, et la géographie de la ville (taille, plan urbain, positions) quand elle est choisie au lancement. La scène Godot construit son décor à partir de lui. Version 1.1.
 
 Payload :
 
 | Champ | Type | Obligatoire | Contraintes | Description |
 | --- | --- | --- | --- | --- |
 | `lieux` | liste de string | oui |  | Zones du monde, une fois chacune. |
+| `ville` | VillePayload ou null | non |  | Ville à taille et plan choisis (1.1) ; absente sinon. |
 
 ## Topic `sim.agent.messages`
 

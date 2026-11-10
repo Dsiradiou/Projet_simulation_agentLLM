@@ -31,6 +31,7 @@ from sim.domaine import Zone, type_de_lieu
 from sim.meteo import MeteoSaison
 from sim.routines import tirer_zone
 from sim.run import agent_rng
+from sim.ville import quartiers_des_agents
 
 if TYPE_CHECKING:
     from rag.recuperation import Recuperateur
@@ -61,13 +62,25 @@ def _tirage_pondere(
 
 
 def lieux_habituels(config: Config, agent_id: str) -> dict[Zone, str]:
-    """Exemplaire habituel de chaque type de zone présent plusieurs fois, tiré uniformément."""
+    """Monde réglé par `zones` : exemplaire habituel de chaque type présent plusieurs fois, tiré
+    uniformément. (Avec une ville, voir `lieux_dans_la_ville`.)"""
     rng = agent_rng(config.run.seed, f"{agent_id}:lieux")
     return {
         zone: f"{zone.value}_{rng.randint(1, n)}"
         for zone in Zone
         if (n := config.zones.get(zone, 1)) > 1
     }
+
+
+def lieux_dans_la_ville(config: Config, roles: dict[str, Role]) -> dict[str, dict[Zone, str]]:
+    """Ville (10 nov.) : chaque agent habite un quartier, réparti de façon équilibrée rôle par
+    rôle, et fréquente les lieux attribués à son quartier (`sim.ville`)."""
+    plan = config.plan_ville
+    assert plan is not None
+    quartiers = quartiers_des_agents(
+        {a: r.value for a, r in roles.items()}, plan.quartiers, config.run.seed
+    )
+    return {a: dict(plan.frequentes[quartiers[a]]) for a in roles}
 
 
 def identites(config: Config) -> Iterator[Identite]:
@@ -83,13 +96,17 @@ def identites(config: Config) -> Iterator[Identite]:
         for i in range(1, n + 1)
     }
     ids = list(roles)
+    if config.ville is not None:
+        habituels = lieux_dans_la_ville(config, roles)
+    else:
+        habituels = {a: lieux_habituels(config, a) for a in ids}
     audience = config.reseau.audience
     tirages: dict[str, tuple[random.Random, str, list[str], list[str]]] = {}
     for agent_id, role in roles.items():
         rng = agent_rng(config.run.seed, agent_id)
         autres = [x for x in ids if x != agent_id]
         depart = tirer_zone(config.routines, role, Temps.BEAU, rng) or rng.choice(list(Zone))
-        zone = lieux_habituels(config, agent_id).get(depart, depart.value)
+        zone = habituels[agent_id].get(depart, depart.value)
         contacts = rng.sample(autres, min(config.reseau.contacts_directs, len(autres)))
         poids = [audience.get(roles[x], 1.0) for x in autres]
         suivis = _tirage_pondere(rng, autres, poids, config.reseau.abonnements_par_agent)
@@ -105,7 +122,7 @@ def identites(config: Config) -> Iterator[Identite]:
         rng, zone, contacts, suivis = tirages[agent_id]
         yield Identite(
             agent_id, role, rng, zone, contacts + reciproques[agent_id], tuple(sorted(suivis)),
-            lieux_habituels(config, agent_id),
+            habituels[agent_id],
         )  # fmt: skip
 
 

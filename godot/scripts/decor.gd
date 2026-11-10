@@ -8,6 +8,11 @@
 # un ou plusieurs exemplaires de chaque type de zone. Le premier exemplaire garde la place de la
 # maquette ; les plages suivantes se suivent le long de la côte, les autres zones s'alignent en
 # rangées vers l'intérieur des terres. Sans plan (runs plus anciens), les sept zones d'origine.
+#
+# Ville (10 nov.) : quand le plan porte une ville (taille, plan urbain), chaque lieu est construit à
+# la position calculée par la simulation (`sim/ville.py`), et les routes du plan sont tracées. Le
+# terrain, la mer et la lisière d'arbres s'étendent à la ville. Aucune logique ici : la scène dessine
+# ce qu'elle reçoit.
 class_name Decor
 extends Node3D
 
@@ -40,8 +45,18 @@ const ESPACEMENT := 1.35
 const LIEUX_ORIGINE := ["pharmacie", "plage", "piscine", "reseaux_sociaux", "centre_commercial", "terrain_sport", "domicile"]
 const DECALAGES_PLAGE := [0.0, 44.0, -44.0, 88.0]  # exemplaires successifs, le long de la côte
 const ECART_RANGEE := 28.0  # entre deux exemplaires d'une autre zone, vers l'intérieur des terres
+const NOMS_PLANS := {
+	"radioconcentrique": "radioconcentrique",
+	"hippodamien": "hippodamien (damier)",
+	"etoile": "en étoile",
+	"lineaire": "linéaire",
+}
+const COULEUR_ROUTE := Color("6b7280")
+const LARGEUR_ROUTE := 3.2
 
 var lieux: Array = []  # lieux du décor, dans l'ordre du plan
+var ville := {}  # géographie de la ville du plan (taille, plan, positions, routes) ; vide sinon
+var _decalages := {}  # lieu -> décalage depuis la place de la maquette
 var aires := {}  # lieu -> [centre, taille] de l'aire où se tiennent les habitants
 var effets: EffetsMeteo  # nuages, pluie, orage, chaleur
 var _conditions := "ensoleille"
@@ -57,25 +72,34 @@ var _stocks := {}  # point de vente -> étiquette du stock de la marque (étape 
 var _jauges := {}  # lieu -> [racine, {sens: segment}, étiquette, largeur] (étape 14)
 
 
-func construire(liste: Array = []) -> void:
-	## (Re)construit tout le décor pour ces lieux ; sans liste, les sept zones d'origine.
+func construire(liste: Array = [], geographie: Dictionary = {}) -> void:
+	## (Re)construit tout le décor pour ces lieux ; sans liste, les sept zones d'origine. Avec une
+	## géographie de ville, chaque lieu à sa position et les routes du plan.
 	for enfant in get_children():
 		remove_child(enfant)
 		enfant.queue_free()
-	for d in [aires, _halos, _stocks, _jauges]:
+	for d in [aires, _halos, _stocks, _jauges, _decalages]:
 		d.clear()
 	_ecrans.clear()
 	_ecran = null
 	lieux = []
+	var positions: Dictionary = geographie.get("positions", {}) if liste.size() > 0 else {}
+	ville = geographie if positions.size() > 0 else {}
 	for lieu in (liste if liste.size() > 0 else LIEUX_ORIGINE):
 		if AIRES_TYPE.has(type_de(lieu)) and numero(lieu) <= DECALAGES_PLAGE.size():
 			lieux.append(str(lieu))
 			var aire: Array = AIRES_TYPE[type_de(lieu)]
-			aires[lieu] = [aire[0] + decalage(lieu), aire[1]]
+			if positions.has(lieu):
+				var p: Array = positions[lieu]
+				_decalages[lieu] = Vector3(float(p[0]) - aire[0].x, 0, float(p[1]) - aire[0].z)
+			else:
+				_decalages[lieu] = decalage(lieu)
+			aires[lieu] = [aire[0] + _decalages[lieu], aire[1]]
 	_environnement()
 	_terrain_et_mer()
+	_routes()
 	for lieu in lieux:
-		var o := decalage(lieu)
+		var o: Vector3 = _decalages[lieu]
 		match type_de(lieu):
 			"plage":
 				_plage(lieu, o)
@@ -98,7 +122,15 @@ func construire(liste: Array = []) -> void:
 
 
 func est_d_origine() -> bool:
-	return lieux == LIEUX_ORIGINE
+	return lieux == LIEUX_ORIGINE and ville.is_empty()
+
+
+func description_ville() -> String:
+	## « Ville moyenne, plan en étoile » ; vide sans ville.
+	if ville.is_empty():
+		return ""
+	var plan: String = ville.get("plan", "")
+	return "Ville %s, plan %s" % [ville.get("taille", ""), NOMS_PLANS.get(plan, plan)]
 
 
 # --- lieux --------------------------------------------------------------------------------------
@@ -385,12 +417,38 @@ func _profondeur() -> int:
 	return k
 
 
+func _emprise() -> Rect2:
+	## Étendue du terrain (x, z) : celle de la maquette, ou la ville avec une marge.
+	if ville.is_empty():
+		var fond := minf(-110.0, -34.0 - ECART_RANGEE * _profondeur())
+		return Rect2(-120, fond, 240, 7.0 - fond)
+	var b := bornes()  # large marge : vue de loin, la campagne continue au-delà de la ville
+	var gauche := minf(-120.0, b.position.x - 260.0)
+	var droite := maxf(120.0, b.end.x + 260.0)
+	var fond := minf(-110.0, b.position.y - 320.0)
+	return Rect2(gauche, fond, droite - gauche, 7.0 - fond)
+
+
 func _terrain_et_mer() -> void:
-	var fond := minf(-110.0, -34.0 - ECART_RANGEE * _profondeur())
-	boite(Vector3(240, 0.1, 7.0 - fond), Vector3(0, -0.1, (7.0 + fond) / 2.0), Color("8cc56b"))
-	boite(Vector3(240, 0.08, 9), Vector3(0, -0.06, 11), Color("f2dca4"))
-	boite(Vector3(240, 0.05, 120), Vector3(0, -0.06, 75.5), Color("2f86c6"))
-	boite(Vector3(240, 0.04, 2.0), Vector3(0, -0.04, 16.1), Color("8fd3ef"), 0.2)
+	var e := _emprise()
+	var cx := e.get_center().x
+	boite(Vector3(e.size.x, 0.1, e.size.y), Vector3(cx, -0.1, e.get_center().y), Color("8cc56b"))
+	boite(Vector3(e.size.x, 0.08, 9), Vector3(cx, -0.06, 11), Color("f2dca4"))
+	boite(Vector3(e.size.x, 0.05, 120), Vector3(cx, -0.06, 75.5), Color("2f86c6"))
+	boite(Vector3(e.size.x, 0.04, 2.0), Vector3(cx, -0.04, 16.1), Color("8fd3ef"), 0.2)
+
+
+func _routes() -> void:
+	## Routes du plan de la ville : un ruban posé au sol par segment.
+	for r in ville.get("routes", []):
+		var a := Vector3(float(r[0]), 0.0, float(r[1]))
+		var b := Vector3(float(r[2]), 0.0, float(r[3]))
+		var longueur := a.distance_to(b)
+		if longueur < 0.01:
+			continue
+		var milieu := (a + b) / 2.0 + Vector3(0, -0.005, 0)
+		var route := boite(Vector3(LARGEUR_ROUTE, 0.03, longueur + LARGEUR_ROUTE * 0.5), milieu, COULEUR_ROUTE)
+		route.rotation.y = atan2(b.x - a.x, b.z - a.z)
 
 
 func _plage(lieu: String, o: Vector3) -> void:
@@ -485,11 +543,41 @@ func _terrain(lieu: String, centre: Vector3) -> void:
 
 
 func _arbres() -> void:
-	## Lisière d'arbres derrière la dernière rangée de zones.
+	## Lisière d'arbres derrière la dernière rangée de zones ; dans une ville, des arbres épars
+	## entre les lieux et autour, jamais sur eux.
 	var hasard := RandomNumberGenerator.new()
 	hasard.seed = 42
 	var nature := "res://assets/kenney_nature/"
+	var modeles := ["tree_default.glb", "tree_oak.glb", "tree_detailed.glb"]
+	if not ville.is_empty():
+		var b := bornes()
+		var n := 0
+		var essais := 0
+		while n < 48 and essais < 800:
+			essais += 1
+			var pos := Vector3(hasard.randf_range(b.position.x - 40, b.end.x + 40), 0, hasard.randf_range(b.position.y - 40, -18))
+			if _loin_des_lieux(pos, 20.0):
+				modele(nature + modeles[n % 3], pos, hasard.randf_range(0, 360), 3.0)
+				n += 1
+		return
 	var recul := ECART_RANGEE * _profondeur()
 	for i in 26:
 		var pos := Vector3(hasard.randf_range(-38, 36), 0, hasard.randf_range(-30, -21) - recul)
-		modele(nature + ["tree_default.glb", "tree_oak.glb", "tree_detailed.glb"][i % 3], pos, hasard.randf_range(0, 360), 3.0)
+		modele(nature + modeles[i % 3], pos, hasard.randf_range(0, 360), 3.0)
+
+
+func _loin_des_lieux(pos: Vector3, marge: float) -> bool:
+	## Loin de tous les lieux des terres, et des routes : on ne plante pas d'arbre sur une rue.
+	for lieu in lieux:
+		if type_de(lieu) == "plage":
+			continue
+		var c: Vector3 = aires[lieu][0]
+		if Vector2(pos.x, pos.z).distance_to(Vector2(c.x, c.z)) < marge:
+			return false
+	for r in ville.get("routes", []):
+		var a := Vector2(float(r[0]), float(r[1]))
+		var b := Vector2(float(r[2]), float(r[3]))
+		var p := Vector2(pos.x, pos.z)
+		if p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)) < 4.0:
+			return false
+	return true

@@ -86,6 +86,7 @@ from bus.events import (
     NatureIncident,
     NatureSouvenir,
     Notoriete,
+    VillePayload,
     Weather,
     WeatherPayload,
     WorldPlan,
@@ -100,6 +101,7 @@ from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.livraison import Boite
 from sim.routines import HEURE_DEPLACEMENT, Routines
 from sim.run import RunInfo
+from sim.ville import PlanVille
 
 if TYPE_CHECKING:  # chargé seulement avec le RAG (ChromaDB)
     from rag.collectif import MemoireCollective
@@ -221,6 +223,19 @@ class ResumeJour:
     sens: dict[str, int]
 
 
+def ville_publiee(plan: PlanVille | None) -> VillePayload | None:
+    """Géographie de la ville telle que publiée dans `monde.plan` (et écrite dans Redis)."""
+    if plan is None:
+        return None
+    return VillePayload(
+        taille=plan.taille.value,
+        plan=plan.plan.value,
+        positions=dict(plan.positions),
+        routes=plan.routes,
+        quartiers={q: dict(f) for q, f in plan.frequentes.items()},
+    )
+
+
 class Orchestrateur:
     def __init__(
         self,
@@ -287,13 +302,14 @@ class Orchestrateur:
         debut = time.perf_counter()
         await self._statut("en_cours")
         lieux = self.config.lieux
+        ville = ville_publiee(self.config.plan_ville)
         if self.etat:
-            await self.etat.ecrire_plan(lieux)
+            await self.etat.ecrire_plan(lieux, ville)
         await self._publier(
             WorldPlan(
                 **self._dates(0),
                 source_agent_id="orchestrateur",
-                payload=WorldPlanPayload(lieux=lieux),
+                payload=WorldPlanPayload(lieux=lieux, ville=ville),
             )
         )
         for jour in range(1, (jours or self.config.simulation.duree_jours) + 1):

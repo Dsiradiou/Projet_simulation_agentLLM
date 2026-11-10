@@ -75,6 +75,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 15 ter | Souvenirs dans le prompt | ✅ terminée |
 | 16 | Mémoire sélective, oubli et mémoire collective (1re partie) | ✅ terminée |
 | 16 | Calibrage de l'oubli, flacons selon l'usage, écart au jour 1, sens des rôles LLM | en cours |
+| 16 | Ville à taille et plan urbain choisis | en cours |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
@@ -296,6 +297,13 @@ Une variante hérite de la configuration principale et ne précise que ce qui ch
 (`herite_de: default.yaml`) : `configs/dev.yaml` (60 agents, 60 jours, pour le développement),
 `configs/tranche.yaml` (4 agents, 5 jours), et les baselines `configs/baseline.yaml` et
 `configs/baseline-dev.yaml`.
+
+**La ville** (section `ville`, essai : `configs/dev-ville.yaml`) se choisit par sa **taille**
+(petite, moyenne, grande, ou `auto` d'après le nombre d'agents) et son **plan urbain**
+(radioconcentrique, hippodamien, en étoile, linéaire, ou `hasard` tiré avec la graine). Elle se
+peuple d'elle-même : chaque habitant vit dans un quartier et fréquente les lieux les plus proches,
+et les lieux éloignés attirent moins. Une taille impose un minimum d'agents, pour qu'aucun lieu ne
+reste vide. Les mêmes choix se font dans l'interface de paramétrage de la scène.
 
 ## Baseline à règles (C0)
 

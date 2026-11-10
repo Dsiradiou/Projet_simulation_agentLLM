@@ -202,6 +202,7 @@ async def instantane_direct(services: Services) -> dict:
         "jour": int(courant.get("jour") or monde.get("jour") or 0),  # jour en cours
         "meteo": json.loads(monde["meteo"]) if monde.get("meteo") else None,
         "lieux": _lieux(monde),
+        "ville": json.loads(monde["ville"]) if monde.get("ville") else None,  # 10 nov.
         "zones": await services.etat.zones(run_id) if run_id else {},
         "agents": [
             {"agent_id": a, **_fiche_lisible(f)}

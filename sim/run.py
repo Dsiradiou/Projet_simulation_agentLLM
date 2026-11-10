@@ -293,7 +293,7 @@ async def executer_run(
                 )
                 orchestrateur = Orchestrateur(
                     config, run, agents, acteurs, producer, etat, afficher, preparer, controle,
-                    Routines(config.routines, config.run.seed), commerce, collectif,
+                    Routines.du_monde(config), commerce, collectif,
                 )  # fmt: skip
                 bilan = await orchestrateur.executer(jours)
             finally:

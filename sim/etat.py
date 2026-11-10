@@ -6,8 +6,8 @@ Clés, préfixées par le run pour que deux runs ne se mélangent pas :
 - `ephemere:<run_id>:agent:<agent_id>` : hash de l'agent (rôle, palier, zone, sens, porteur,
   seuil, dernière décision et sa justification, coût du dernier appel, messages reçus)
 - `ephemere:<run_id>:zones`            : hash zone -> JSON {presents, porteurs}
-- `ephemere:<run_id>:monde`            : hash (jour, minute, meteo, lieux) ; `lieux` : zones du
-  monde (JSON), écrites au début du run
+- `ephemere:<run_id>:monde`            : hash (jour, minute, meteo, lieux, ville) ; `lieux` : zones
+  du monde (JSON), `ville` : sa géographie (JSON, s'il y a une ville), écrites au début du run
 
 Statuts d'un run : `en_cours`, `pause`, `termine`, `arrete`.
 """
@@ -18,7 +18,7 @@ from collections.abc import Mapping
 from redis.asyncio import Redis
 
 from agents.base import Agent, Perception
-from bus.events import WeatherPayload
+from bus.events import VillePayload, WeatherPayload
 from sim.domaine import lieux_du_monde
 
 PREFIXE = "ephemere"
@@ -84,11 +84,15 @@ class EtatMonde:
             mapping={"run_id": self.run_id, "statut": statut, "jour": jour, "minute": minute},
         )
 
-    async def ecrire_plan(self, lieux: tuple[str, ...]) -> None:
-        """Zones du monde, au début du run : le pont les donne à l'interface (décor)."""
+    async def ecrire_plan(self, lieux: tuple[str, ...], ville: VillePayload | None = None) -> None:
+        """Zones du monde, au début du run, et géographie de la ville s'il y en a une : le pont les
+        donne à l'interface (décor)."""
         self.lieux = lieux
         cle = f"{self._base}:monde"
-        await self.redis.hset(cle, mapping={"lieux": json.dumps(list(lieux))})
+        champs = {"lieux": json.dumps(list(lieux))}
+        if ville is not None:
+            champs["ville"] = ville.model_dump_json()
+        await self.redis.hset(cle, mapping=champs)
         await self.redis.expire(cle, DUREE_DE_VIE_S)
 
     async def ecrire_jour(

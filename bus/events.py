@@ -31,7 +31,7 @@ from pydantic import (
 
 from agents.roles import Palier
 from bus.topics import Topic
-from sim.domaine import Action, Canal, Lieu, Produit, Sens, SimMinute
+from sim.domaine import Action, Canal, Lieu, Produit, Sens, SimMinute, Zone
 
 
 class _Strict(BaseModel):
@@ -198,24 +198,44 @@ class Disturbance(Envelope):
     payload: DisturbancePayload
 
 
+class VillePayload(_Strict):
+    """Géographie de la ville (version 1.1, 10 nov.) : taille et plan résolus, position de
+    chaque lieu (x, z ; la mer du côté des z positifs), routes à dessiner, et lieu que fréquentent
+    les habitants de chaque quartier."""
+
+    taille: Literal["petite", "moyenne", "grande"]
+    plan: Literal["radioconcentrique", "hippodamien", "etoile", "lineaire"]
+    positions: dict[Lieu, tuple[float, float]]
+    routes: tuple[tuple[float, float, float, float], ...] = ()
+    quartiers: dict[Lieu, dict[Zone, Lieu]] = Field(
+        description="Quartier (lieu de type domicile) -> lieu fréquenté pour chaque type."
+    )
+
+
 class WorldPlanPayload(_Strict):
     lieux: tuple[Lieu, ...] = Field(min_length=1, description="Zones du monde, une fois chacune.")
+    ville: VillePayload | None = Field(
+        default=None, description="Ville à taille et plan choisis (1.1) ; absente sinon."
+    )
 
     @model_validator(mode="after")
     def _distincts(self) -> Self:
         if len(set(self.lieux)) != len(self.lieux):
             raise ValueError("un lieu figure deux fois dans le plan")
+        if self.ville is not None and set(self.ville.positions) != set(self.lieux):
+            raise ValueError("chaque lieu du plan a une position, et seulement eux")
         return self
 
 
 class WorldPlan(Envelope):
     TOPIC = Topic.WORLD_EVENTS
     DESCRIPTION = (
-        "Plan du monde, publié une fois au début du run : ses zones, dont le nombre par type est "
-        "choisi au lancement. La scène Godot construit son décor à partir de lui."
+        "Plan du monde, publié une fois au début du run : ses zones, et la géographie de la "
+        "ville (taille, plan urbain, positions) quand elle est choisie au lancement. La scène "
+        "Godot construit son décor à partir de lui."
     )
     type: Literal["monde.plan"] = "monde.plan"
-    schema_version: Literal["1.0"] = "1.0"
+    schema_version: VERSIONS_1_1 = "1.1"  # 1.1 : géographie de la ville (taille, plan, positions)
     payload: WorldPlanPayload
 
 

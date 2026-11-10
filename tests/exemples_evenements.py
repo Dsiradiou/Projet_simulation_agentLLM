@@ -100,6 +100,32 @@ def exemples() -> dict[type[ev.Envelope], ev.Envelope]:
                     "terrain_sport",
                     "domicile",
                 ),
+                ville=ev.VillePayload(
+                    taille="petite",
+                    plan="lineaire",
+                    positions={
+                        "pharmacie": (72.0, -16.0),
+                        "plage_1": (-30.0, 11.2),
+                        "plage_2": (30.0, 11.2),
+                        "piscine": (-36.0, -16.0),
+                        "reseaux_sociaux": (36.0, -16.0),
+                        "centre_commercial": (0.0, -16.0),
+                        "terrain_sport": (-72.0, -16.0),
+                        "domicile": (108.0, -16.0),
+                    },
+                    routes=((-126.0, -2.0, 126.0, -2.0),),
+                    quartiers={
+                        "domicile": {
+                            "pharmacie": "pharmacie",
+                            "plage": "plage_2",
+                            "piscine": "piscine",
+                            "reseaux_sociaux": "reseaux_sociaux",
+                            "centre_commercial": "centre_commercial",
+                            "terrain_sport": "terrain_sport",
+                            "domicile": "domicile",
+                        }
+                    },
+                ),
             ),
         ),
         ev.Indicator: ev.Indicator(

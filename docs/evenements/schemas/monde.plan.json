@@ -1,5 +1,105 @@
 {
   "$defs": {
+    "VillePayload": {
+      "additionalProperties": false,
+      "description": "Géographie de la ville (version 1.1, 10 nov.) : taille et plan résolus, position de\nchaque lieu (x, z ; la mer du côté des z positifs), routes à dessiner, et lieu que fréquentent\nles habitants de chaque quartier.",
+      "properties": {
+        "taille": {
+          "enum": [
+            "petite",
+            "moyenne",
+            "grande"
+          ],
+          "title": "Taille",
+          "type": "string"
+        },
+        "plan": {
+          "enum": [
+            "radioconcentrique",
+            "hippodamien",
+            "etoile",
+            "lineaire"
+          ],
+          "title": "Plan",
+          "type": "string"
+        },
+        "positions": {
+          "patternProperties": {
+            "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          },
+          "propertyNames": {
+            "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires."
+          },
+          "title": "Positions",
+          "type": "object"
+        },
+        "routes": {
+          "default": [],
+          "items": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Routes",
+          "type": "array"
+        },
+        "quartiers": {
+          "description": "Quartier (lieu de type domicile) -> lieu fréquenté pour chaque type.",
+          "patternProperties": {
+            "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$": {
+              "additionalProperties": {
+                "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires.",
+                "pattern": "^(pharmacie|plage|piscine|reseaux_sociaux|centre_commercial|terrain_sport|domicile)(_[1-4])?$",
+                "type": "string"
+              },
+              "propertyNames": {
+                "$ref": "#/$defs/Zone"
+              },
+              "type": "object"
+            }
+          },
+          "propertyNames": {
+            "description": "Zone du monde : « plage », ou « plage_2 » s'il y en a plusieurs ; le nom du type seul désigne tous ses exemplaires."
+          },
+          "title": "Quartiers",
+          "type": "object"
+        }
+      },
+      "required": [
+        "taille",
+        "plan",
+        "positions",
+        "quartiers"
+      ],
+      "title": "VillePayload",
+      "type": "object"
+    },
     "WorldPlanPayload": {
       "additionalProperties": false,
       "properties": {
@@ -13,6 +113,18 @@
           "minItems": 1,
           "title": "Lieux",
           "type": "array"
+        },
+        "ville": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VillePayload"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Ville à taille et plan choisis (1.1) ; absente sinon."
         }
       },
       "required": [
@@ -20,6 +132,20 @@
       ],
       "title": "WorldPlanPayload",
       "type": "object"
+    },
+    "Zone": {
+      "description": "Type de zone. Le monde en compte un ou plusieurs exemplaires de chaque type (`zones`).",
+      "enum": [
+        "pharmacie",
+        "plage",
+        "piscine",
+        "reseaux_sociaux",
+        "centre_commercial",
+        "terrain_sport",
+        "domicile"
+      ],
+      "title": "Zone",
+      "type": "string"
     }
   },
   "additionalProperties": false,
@@ -31,8 +157,11 @@
       "type": "string"
     },
     "schema_version": {
-      "const": "1.0",
-      "default": "1.0",
+      "default": "1.1",
+      "enum": [
+        "1.0",
+        "1.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },

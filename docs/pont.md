@@ -24,7 +24,7 @@ soit des **messages du pont**, dont le type commence par `pont.` :
 
 | Type | Quand | Champs |
 | --- | --- | --- |
-| `pont.instantane` | À la connexion en direct | `run` (run_id, statut, jour, minute), `jour`, `meteo`, `lieux` (zones du run, les sept d'origine pour un run sans plan), `zones` (présents et porteurs par zone), `agents` (fiche de chaque agent, avec son `agent_id`), `perturbations` récentes |
+| `pont.instantane` | À la connexion en direct | `run` (run_id, statut, jour, minute), `jour`, `meteo`, `lieux` (zones du run, les sept d'origine pour un run sans plan), `ville` (géographie de la ville, ou `null` : voir plus bas), `zones` (présents et porteurs par zone), `agents` (fiche de chaque agent, avec son `agent_id`), `perturbations` récentes |
 | `pont.nouveau_run` | Un nouveau run démarre (son `monde.plan`, ou le pas du jour 1 d'un run plus ancien) | `run_id` (repartir d'un monde vide) |
 | `pont.rejeu` | Début d'un rejeu | `run_id`, `evenements` (nombre à venir) |
 | `pont.fin_rejeu` | Fin d'un rejeu : c'est au client de fermer la connexion (le pont attend 30 s, puis ferme) | `run_id` |
@@ -35,6 +35,13 @@ de zone présent une fois garde son nom (`plage`) ; présent plusieurs fois, il 
 `plage_2`…), et son nom seul désigne alors tous ses exemplaires (perturbation sur `plage`). Le champ
 `zone` des événements porte ces noms. Un run enregistré avant l'étape 15 bis n'a pas de plan : ses zones
 sont les sept d'origine.
+
+Depuis le 10 nov., un run lancé avec une **ville** (`ville` dans la configuration, taille et plan urbain)
+publie un `monde.plan` 1.1 dont `payload.ville` donne sa géographie : `taille`, `plan`
+(`radioconcentrique`, `hippodamien`, `etoile`, `lineaire`), `positions` (lieu → `[x, z]`, en mètres ; la
+mer est du côté des z positifs, les plages à z = 11,2), `routes` (segments `[x1, z1, x2, z2]` à tracer) et
+`quartiers` (quartier → lieu fréquenté pour chaque type). La scène construit chaque lieu à sa position et
+trace les routes ; sans `ville`, elle garde la disposition de la maquette.
 
 Les événements arrivent dans l'ordre de publication, le même en direct et en rejeu. Un client trop
 lent (plus de 10 000 messages en attente) est déconnecté plutôt que de ralentir le pont.
@@ -66,8 +73,8 @@ vide).
 
 | Requête | Corps | Effet |
 | --- | --- | --- |
-| `GET /parametres?base=default.yaml` | — | Description du formulaire, tirée de la configuration de base : `bases` (fichiers de `configs/`), `roles` (rôle, palier, modèle, nombre, maximum), `zones` (type, nombre, maximum 4), `modes`, `mode`, `moteurs`, `moteur`, `duree_jours`, `duree_max`, `graine`. `404` si la base n'existe pas |
-| `POST /lancements` | `{"base": "dev.yaml", "population": {"pharmacien": 3, …}, "zones": {"plage": 3, …}, "mode": "synchrone" \| "asynchrone", "moteur": "llm" \| "regles", "duree_jours": 60, "graine": 42}` | Écrit `runs/lancements/<horodatage>/interface.yaml` (`herite_de` la base, seuls ces réglages changent ; la population est remplacée en entier), la valide avec `load_config`, puis lance `python -m sim.run --config <fichier>` dans son propre processus, sortie dans `sortie.log`. `202` avec l'état du lancement ; `409` si un run tourne déjà (lancé par le pont ou depuis un terminal) ; `422` si la demande ou la configuration est invalide |
+| `GET /parametres?base=default.yaml` | — | Description du formulaire, tirée de la configuration de base : `bases` (fichiers de `configs/`), `roles` (rôle, palier, modèle, nombre, maximum), `zones` (type, nombre, maximum 4 ; ancien réglage), `ville` (`taille` et `plan` de la base, ou `auto` et `hasard` ; `tailles` : pour chacune, `lieux`, `minimum` d'agents imposé, nombre `conseille`, `auto_jusqu_a` ; `plans`), `modes`, `mode`, `moteurs`, `moteur`, `duree_jours`, `duree_max`, `graine`. `404` si la base n'existe pas |
+| `POST /lancements` | `{"base": "dev.yaml", "population": {"pharmacien": 3, …}, "ville": {"taille": "auto" \| "petite" \| "moyenne" \| "grande", "plan": "hasard" \| "radioconcentrique" \| …}, "mode": "synchrone" \| "asynchrone", "moteur": "llm" \| "regles", "duree_jours": 60, "graine": 42}` | Écrit `runs/lancements/<horodatage>/interface.yaml` (`herite_de` la base, seuls ces réglages changent ; la population est remplacée en entier), la valide avec `load_config` (une ville trop grande pour le nombre d'agents est refusée ; sans `ville`, l'ancien `zones` reste accepté), puis lance `python -m sim.run --config <fichier>` dans son propre processus, sortie dans `sortie.log`. `202` avec l'état du lancement ; `409` si un run tourne déjà (lancé par le pont ou depuis un terminal) ; `422` si la demande ou la configuration est invalide |
 | `GET /lancements` | — | État du dernier run lancé par le pont : `statut` (`aucun`, `en_cours`, `termine`, `echec`), `code` de sortie, `run_id` (dès que le run l'a affiché), `configuration`, `journal`, `dernieres_lignes` de sa sortie |
 
 Le run lancé est un run ordinaire : son manifeste recopie la configuration complète, il se pilote par

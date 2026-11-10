@@ -1,8 +1,8 @@
 # Interface de paramétrage (étape 15 bis) : choisir et lancer une simulation depuis la scène.
 #
 # Le formulaire est construit à partir de la description donnée par le pont (`GET /parametres`) :
-# les rôles avec leur palier et leur modèle, les types de zones, les modes et les bornes de chaque
-# réglage. La scène ne connaît ni les rôles ni les règles du monde : elle rassemble des nombres ;
+# les rôles avec leur palier et leur modèle, la ville (tailles avec leur fourchette d'agents, plans
+# urbains, 10 nov.), les modes et les bornes de chaque réglage. La scène ne connaît ni les rôles ni les règles du monde : elle rassemble des nombres ;
 # le pont écrit la configuration, la valide et lance le run (`POST /lancements`).
 #
 # Elle ne parle pas au pont elle-même : elle émet des signaux, que `monde.gd` traduit en requêtes.
@@ -28,6 +28,14 @@ const ROLES_LISIBLES := {
 const PALIERS := {"grand": "Palier grand", "moyen": "Palier moyen", "petit": "Palier petit", "regles": "Agents à règles, sans LLM"}
 const MODES := {"synchrone": "Synchrone : tous décident ensemble", "asynchrone": "Asynchrone : chacun à son rythme"}
 const MOTEURS := {"llm": "Agents LLM (Ollama)", "regles": "Règles seules (baseline C0)"}
+const TAILLES := {"auto": "Selon le nombre d'agents", "petite": "Petite", "moyenne": "Moyenne", "grande": "Grande"}
+const PLANS := {
+	"hasard": "Tiré au hasard (graine)",
+	"radioconcentrique": "Radioconcentrique",
+	"hippodamien": "Hippodamien (damier)",
+	"etoile": "En étoile",
+	"lineaire": "Linéaire",
+}
 
 var noms_zones := {}
 var _parametres := {}
@@ -40,7 +48,9 @@ var _duree: SpinBox
 var _graine: SpinBox
 var _total: SpinBox
 var _roles := {}  # rôle -> SpinBox
-var _zones := {}  # type de zone -> SpinBox
+var _taille: OptionButton
+var _plan: OptionButton
+var _ville_info: Label
 var _resume: Label
 var _retour: Label
 var _lancer: Button
@@ -132,7 +142,6 @@ func remplir(p: Dictionary) -> void:
 	_en_cours = true
 	_parametres = p
 	_roles.clear()
-	_zones.clear()
 	for enfant in _contenu.get_children():
 		_contenu.remove_child(enfant)
 		enfant.queue_free()
@@ -153,11 +162,19 @@ func remplir(p: Dictionary) -> void:
 	gauche.add_child(_ligne("Durée", _duree))
 	_graine = _nombre(0, 999999, int(p.get("graine", 42)))
 	gauche.add_child(_ligne("Graine", _graine))
-	gauche.add_child(_section("Zones (nombre de chaque type)"))
-	for z in p.get("zones", []):
-		var champ := _nombre(1, int(z["max"]), int(z["nombre"]))
-		_zones[z["zone"]] = champ
-		gauche.add_child(_ligne(noms_zones.get(z["zone"], z["zone"]), champ))
+	var v: Dictionary = p.get("ville", {})
+	gauche.add_child(_section("Ville"))
+	var tailles := ["auto"]
+	for t in v.get("tailles", []):
+		tailles.append(t["taille"])
+	_taille = _choix(TAILLES, tailles, v.get("taille", "auto"))
+	gauche.add_child(_ligne("Taille", _taille))
+	_plan = _choix(PLANS, ["hasard"] + v.get("plans", []), v.get("plan", "hasard"))
+	gauche.add_child(_ligne("Plan urbain", _plan))
+	_ville_info = _label("", 13)
+	_ville_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ville_info.custom_minimum_size.x = 340
+	gauche.add_child(_ville_info)
 
 	var droite := _colonne(760)
 	droite.add_child(_section("Agents"))
@@ -188,8 +205,8 @@ func remplir(p: Dictionary) -> void:
 		champ.value_changed.connect(func(_v): if not _en_cours: _actualiser())
 		_roles[r["role"]] = champ
 		groupe.add_child(_ligne(ROLES_LISIBLES.get(r["role"], r["role"]), champ, 230))
-	for champ in _zones.values():
-		champ.value_changed.connect(func(_v): if not _en_cours: _actualiser())
+	_taille.item_selected.connect(func(_i): _actualiser())
+	_plan.item_selected.connect(func(_i): _actualiser())
 	_mode.item_selected.connect(func(_i): _actualiser())
 	_moteur.item_selected.connect(func(_i): _actualiser())
 	_en_cours = false
@@ -245,13 +262,10 @@ func demande() -> Dictionary:
 	var population := {}
 	for role in _roles:
 		population[role] = int(_roles[role].value)
-	var zones := {}
-	for z in _zones:
-		zones[z] = int(_zones[z].value)
 	return {
 		"base": base_choisie(),
 		"population": population,
-		"zones": zones,
+		"ville": {"taille": _taille.get_item_metadata(_taille.selected), "plan": _plan.get_item_metadata(_plan.selected)},
 		"mode": _mode.get_item_metadata(_mode.selected),
 		"moteur": _moteur.get_item_metadata(_moteur.selected),
 		"duree_jours": int(_duree.value),
@@ -277,10 +291,42 @@ func _actualiser() -> void:
 	for m in par_modele:
 		morceaux.append("%d en %s" % [par_modele[m], m])
 	morceaux.append("%d à règles" % a_regles)
-	var nb_zones := 0
-	for champ in _zones.values():
-		nb_zones += int(champ.value)
-	_resume.text = "%d agents : %s   ·   %d zones   ·   mode %s" % [total(), ", ".join(morceaux), nb_zones, _mode.get_item_metadata(_mode.selected)]
+	var ville := taille_de_ville()
+	_resume.text = "%d agents : %s   ·   ville %s (%d lieux)   ·   mode %s" % [total(), ", ".join(morceaux), ville.get("taille", "?"), int(ville.get("lieux", 0)), _mode.get_item_metadata(_mode.selected)]
+	_ville_info.text = conseil_ville()
+	_ville_info.modulate = Color("ff8a80") if total() > 0 and habitants() < int(ville.get("minimum", 0)) else Color("c8d3e0")
+
+
+func habitants() -> int:
+	## Agents présents dans la ville : tous, sauf la météo.
+	return total() - (int(_roles["meteo"].value) if _roles.has("meteo") else 0)
+
+
+func taille_de_ville() -> Dictionary:
+	## Taille choisie, ou celle que retiendra `auto` (les bornes viennent du pont).
+	var tailles: Array = _parametres.get("ville", {}).get("tailles", [])
+	if tailles.is_empty():
+		return {}
+	var voulue: String = _taille.get_item_metadata(_taille.selected)
+	for t in tailles:
+		if voulue == t["taille"]:
+			return t
+		if voulue == "auto" and (t["auto_jusqu_a"] == null or habitants() <= int(t["auto_jusqu_a"])):
+			return t
+	return tailles[-1]
+
+
+func conseil_ville() -> String:
+	## Fourchette d'agents de la taille retenue : en dessous, des lieux resteraient vides.
+	var t := taille_de_ville()
+	if t.is_empty():
+		return ""
+	var texte := "Ville %s : %d lieux, de %d à %d agents conseillés." % [t["taille"], int(t["lieux"]), int(t["minimum"]), int(t["conseille"])]
+	if habitants() < int(t["minimum"]):
+		return texte + " Trop peu d'agents : des lieux resteraient vides, le pont refusera le lancement."
+	if habitants() > int(t["conseille"]):
+		return texte + " Ville très dense : une taille plus grande conviendrait mieux."
+	return texte
 
 
 func _demander_lancement() -> void:

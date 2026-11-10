@@ -1,7 +1,8 @@
 """Lancement d'un run depuis l'interface de paramétrage (Godot).
 
 L'interface choisit une configuration de base (`configs/*.yaml`), puis le nombre d'agents de
-chaque rôle, le nombre de zones de chaque type, le mode d'exécution (synchrone ou asynchrone),
+chaque rôle, la ville (taille et plan urbain, 10 nov. ; l'ancien nombre de zones de chaque type
+reste accepté), le mode d'exécution (synchrone ou asynchrone),
 le moteur des agents (LLM ou règles, baseline C0), la durée et la graine. Le pont en fait une
 variante `herite_de: <base>` écrite dans `runs/lancements/<horodatage>/interface.yaml` (validée
 par `sim.config.load_config` avant tout lancement), puis démarre `python -m sim.run` dans un
@@ -30,6 +31,14 @@ from agents.roles import Palier, Role, palier_du_role
 from sim.config import Config, ConfigError, Mode, MoteurAgents, load_config
 from sim.domaine import ZONES_PAR_TYPE_MAX, Zone
 from sim.run import RUNS_DIR
+from sim.ville import (
+    AGENTS_PAR_TAILLE,
+    LIEUX_PAR_TAILLE,
+    PLANS_REELS,
+    TAILLES_REELLES,
+    Plan,
+    Taille,
+)
 
 CONFIGS_DIR = Path("configs")
 DOSSIER_LANCEMENTS = RUNS_DIR / "lancements"
@@ -43,6 +52,13 @@ NombreAgents = Annotated[int, Field(ge=0, le=AGENTS_PAR_ROLE_MAX)]
 NombreZones = Annotated[int, Field(ge=1, le=ZONES_PAR_TYPE_MAX)]
 
 
+class DemandeVille(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    taille: Taille = Taille.AUTO
+    plan: Plan = Plan.HASARD
+
+
 class DemandeLancement(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -52,7 +68,10 @@ class DemandeLancement(BaseModel):
         description="Configuration de `configs/` dont la variante hérite.",
     )
     population: dict[Role, NombreAgents] = Field(description="Agents par rôle, tous les rôles.")
-    zones: dict[Zone, NombreZones] = Field(default_factory=dict)
+    zones: dict[Zone, NombreZones] = Field(
+        default_factory=dict, description="Ancien réglage, sans ville : zones de chaque type."
+    )
+    ville: DemandeVille | None = Field(default=None, description="Taille et plan de la ville.")
     mode: Mode
     moteur: MoteurAgents = MoteurAgents.LLM
     duree_jours: int = Field(ge=1, le=DUREE_MAX_JOURS)
@@ -98,6 +117,23 @@ def parametres(nom: str, configs_dir: Path = CONFIGS_DIR) -> dict:
             {"zone": zone.value, "nombre": config.zones.get(zone, 1), "max": ZONES_PAR_TYPE_MAX}
             for zone in Zone
         ],
+        # Ville (10 nov.) : l'interface affiche les tailles avec leur fourchette d'agents et le
+        # nombre de lieux, et les plans ; `auto` et `hasard` sont résolus par la simulation.
+        "ville": {
+            "taille": config.ville.taille.value if config.ville else Taille.AUTO.value,
+            "plan": config.ville.plan.value if config.ville else Plan.HASARD.value,
+            "tailles": [
+                {
+                    "taille": t.value,
+                    "lieux": sum(LIEUX_PAR_TAILLE[t].values()),
+                    "minimum": AGENTS_PAR_TAILLE[t].minimum,
+                    "conseille": AGENTS_PAR_TAILLE[t].conseille,
+                    "auto_jusqu_a": AGENTS_PAR_TAILLE[t].auto,
+                }
+                for t in TAILLES_REELLES
+            ],
+            "plans": [p.value for p in PLANS_REELS],
+        },
         "modes": [m.value for m in Mode],
         "mode": config.simulation.mode.value,
         "moteurs": [m.value for m in MoteurAgents],
@@ -124,8 +160,11 @@ def ecrire_configuration(
         "simulation": {"mode": demande.mode.value, "duree_jours": demande.duree_jours},
         "agents": {"moteur": demande.moteur.value},
         "population": {r.value: n for r, n in demande.population.items()},
-        "zones": {z.value: n for z, n in demande.zones.items()},
     }
+    if demande.ville is not None:
+        variante["ville"] = {"taille": demande.ville.taille.value, "plan": demande.ville.plan.value}
+    else:
+        variante["zones"] = {z.value: n for z, n in demande.zones.items()}
     if demande.graine is not None:
         variante["run"] = {"seed": demande.graine}
     quand = (maintenant or datetime.now()).strftime("%d/%m/%Y à %H:%M")

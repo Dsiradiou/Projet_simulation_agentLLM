@@ -37,6 +37,7 @@ var _suivi_lancement: Timer
 var _etat_lancement := ""
 
 var _camera: Camera3D
+const DISTANCE_MAX := 300.0  # recul de la caméra : toute une grande ville (10 nov.)
 var _cible := Vector3(-2, 0, -2)
 var _distance := 58.0
 var _lacet := 0.12
@@ -51,7 +52,7 @@ func _ready() -> void:
 	_preparer_places()
 	_camera = Camera3D.new()
 	_camera.fov = 40.0
-	_camera.far = 400.0
+	_camera.far = 700.0  # une grande ville s'étend sur près de 300 m
 	add_child(_camera)
 	_placer_camera()
 
@@ -148,8 +149,10 @@ func _sur_message(d: Dictionary) -> void:
 		"pont.erreur":
 			ui.ajouter_au_fil("[color=#ff8a80]%s[/color]" % d.get("detail", ""))
 		"monde.plan":
-			_reconstruire(p.get("lieux", []))
-			if p.get("lieux", []).size() != Decor.LIEUX_ORIGINE.size():
+			_reconstruire(p.get("lieux", []), _geographie(p.get("ville")))
+			if not decor.ville.is_empty():
+				ui.ajouter_au_fil("[b]%s[/b] : %d lieux" % [decor.description_ville(), decor.lieux.size()])
+			elif p.get("lieux", []).size() != Decor.LIEUX_ORIGINE.size():
 				ui.ajouter_au_fil("[b]Plan du monde[/b] : %d zones" % decor.lieux.size())
 		"horloge.pas":
 			_jour = int(p["jour"])
@@ -201,7 +204,7 @@ func _sur_message(d: Dictionary) -> void:
 
 func _instantane(d: Dictionary) -> void:
 	_vider()
-	_reconstruire(d.get("lieux", []))
+	_reconstruire(d.get("lieux", []), _geographie(d.get("ville")))
 	_mode = "en direct"
 	ui.mode_rejeu(false)
 	var run = d.get("run")
@@ -332,13 +335,18 @@ func _preparer_places() -> void:
 		_places[zone] = decor.emplacements(zone).map(func(p): return [p, ""])
 
 
-func _reconstruire(liste: Array) -> void:
-	## Décor du plan reçu ; sans liste, les sept zones d'origine. Les habitants déjà là sont
-	## replacés, les jauges et la liste des zones d'injection suivent.
+func _geographie(ville) -> Dictionary:
+	## Géographie de la ville d'un plan ou d'un instantané (null : pas de ville).
+	return ville if ville is Dictionary else {}
+
+
+func _reconstruire(liste: Array, geographie: Dictionary = {}) -> void:
+	## Décor du plan reçu ; sans liste, les sept zones d'origine ; avec une ville, ses positions et
+	## ses routes. Les habitants déjà là sont replacés, les jauges et les zones d'injection suivent.
 	var voulus: Array = liste if liste.size() > 0 else Decor.LIEUX_ORIGINE
-	if voulus == decor.lieux:
+	if voulus == decor.lieux and geographie == decor.ville:
 		return
-	decor.construire(voulus)
+	decor.construire(voulus, geographie)
 	_preparer_places()
 	for agent_id in habitants:
 		_installer(agent_id, habitants[agent_id].zone, true)
@@ -371,7 +379,7 @@ func _cadrer() -> void:
 	else:
 		var b := decor.bornes()
 		_cible = Vector3(b.get_center().x, 0, b.get_center().y)
-		_distance = clampf(maxf(b.size.x, b.size.y * 1.6) * 1.05, 58.0, 190.0)
+		_distance = clampf(maxf(b.size.x, b.size.y * 1.6) * 1.05, 58.0, DISTANCE_MAX)
 	_placer_camera()
 
 
@@ -593,7 +601,7 @@ func _unhandled_input(evenement: InputEvent) -> void:
 			MOUSE_BUTTON_WHEEL_UP:
 				_distance = max(12.0, _distance * 0.9)
 			MOUSE_BUTTON_WHEEL_DOWN:
-				_distance = min(200.0, _distance * 1.1)
+				_distance = min(DISTANCE_MAX, _distance * 1.1)
 			MOUSE_BUTTON_RIGHT:
 				_rotation_active = evenement.pressed
 		_placer_camera()

@@ -24,6 +24,16 @@ from pydantic import (
 
 from agents.roles import Palier, Role
 from sim.domaine import ZONES_PAR_TYPE_MAX, Canal, Zone, lieux_du_monde
+from sim.ville import (
+    AGENTS_PAR_TAILLE,
+    Plan,
+    PlanVille,
+    Taille,
+    construire_plan,
+    lieux_de_la_ville,
+    plan_effectif,
+    taille_effective,
+)
 
 
 class Mode(StrEnum):
@@ -398,6 +408,27 @@ class LassitudeConfig(_Section):
         return value
 
 
+class VilleConfig(_Section):
+    """Ville choisie au lancement (décidé le 10 nov., `sim/ville.py`) : sa taille et son plan
+    urbain. Elle remplace le nombre de zones de chaque type (`zones`) ; la ville se peuple
+    d'elle-même et sa géographie agit sur qui fréquente quels lieux."""
+
+    taille: Taille = Field(
+        default=Taille.AUTO,
+        description="petite, moyenne, grande, ou auto : d'après le nombre d'agents.",
+    )
+    plan: Plan = Field(
+        default=Plan.HASARD,
+        description="radioconcentrique, hippodamien, etoile, lineaire, ou hasard : tiré avec la "
+        "graine du run.",
+    )
+    demi_distance: PositiveFloat | None = Field(
+        default=120.0,
+        description="Distance (m) à laquelle un lieu attire deux fois moins les habitants d'un "
+        "quartier, dans les routines du matin. None : la distance ne compte pas.",
+    )
+
+
 class Config(_Section):
     run: RunConfig
     simulation: SimulationConfig
@@ -421,13 +452,52 @@ class Config(_Section):
         description="Nombre de zones de chaque type (interface de paramétrage). Un type absent en "
         "compte une ; plusieurs exemplaires sont des lieux distincts (« plage_1 », « plage_2 »).",
     )
+    ville: VilleConfig | None = Field(
+        default=None,
+        description="Taille et plan de la ville (10 nov.), à la place de `zones`. Absente : le "
+        "monde d'avant, réglé par `zones`.",
+    )
+
+    @model_validator(mode="after")
+    def _ville_ou_zones(self) -> "Config":
+        if self.ville is None:
+            return self
+        if self.zones:
+            raise ValueError("`ville` et `zones` s'excluent : la ville fixe elle-même ses lieux")
+        if self.ville.taille is not Taille.AUTO:
+            minimum = AGENTS_PAR_TAILLE[self.ville.taille].minimum
+            if self.nb_habitants < minimum:
+                raise ValueError(
+                    f"une ville {self.ville.taille.value} demande au moins {minimum} agents "
+                    f"({self.nb_habitants} demandés) : sinon des lieux restent vides et des "
+                    "habitants ne se croisent jamais"
+                )
+        return self
 
     @property
     def nb_agents(self) -> int:
         return sum(self.population.values())
 
     @property
+    def nb_habitants(self) -> int:
+        """Agents présents dans la ville : tous, sauf la météo."""
+        return self.nb_agents - self.population.get(Role.METEO, 0)
+
+    @property
+    def plan_ville(self) -> PlanVille | None:
+        """Géographie de la ville (taille et plan résolus), ou None pour un monde réglé par
+        `zones`."""
+        if self.ville is None:
+            return None
+        return construire_plan(
+            taille_effective(self.ville.taille, self.nb_habitants),
+            plan_effectif(self.ville.plan, self.run.seed),
+        )
+
+    @property
     def lieux(self) -> tuple[str, ...]:
+        if self.ville is not None:
+            return lieux_de_la_ville(taille_effective(self.ville.taille, self.nb_habitants))
         return lieux_du_monde(self.zones)
 
 

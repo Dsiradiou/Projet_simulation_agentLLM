@@ -132,7 +132,7 @@ Depuis la racine, avec l'environnement `.venv` (Python 3.12) :
 | Rejeu sans LLM | `.venv\Scripts\python -m replay.rejeu <run_id>` (`--verifier` : bilan identique ?) |
 | Pont FastAPI | `.venv\Scripts\python -m bridge` (puis `python -m bridge.client`) ; référence `docs/pont.md` |
 | Scène Godot | `<GODOT_BIN> --path godot` (direct) ou `-- --rejeu <run_id> --vitesse 2` ; test : `pytest -m godot` |
-| Lancer depuis la scène | pont + scène : interface de paramétrage (« Nouvelle simulation », `-- --parametrage`) |
+| Lancer depuis la scène | pont + scène : interface de paramétrage (« Nouvelle simulation », `-- --parametrage`) ; agents, taille et plan de la ville |
 | Évaluation du RAG | `.venv\Scripts\python -m rag.evaluation --modeles bge-m3` ; `--annoter <run_id>` ; `--noter <csv>` |
 | Ce que le modèle a vu | `.venv\Scripts\python -m rag.analyse <run_id> ...` (souvenirs et passages restés dans le prompt) |
 | Historique (DuckDB) | `.venv\Scripts\python -m replay.historique --requete <nom>` ou `--sql "..."` |
@@ -317,14 +317,28 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   `roles_llm` (sens des seuls rôles tenus par un LLM en C1, X10), aussi dans `indicators.rapport` et
   `replay.comparaison` ; recalculés après coup pour les runs antérieurs.
 
+## Ville à taille et plan urbain (décidé le 10 nov.)
+
+- Section `ville` (`taille`, `plan`, `demi_distance`), à la place de `zones` (les deux s'excluent) ;
+  absente, le monde d'avant (`zones`). Code : `sim/ville.py` ; essai : `configs/dev-ville.yaml`.
+- Taille `petite` / `moyenne` / `grande` (8, 12, 18 lieux, `LIEUX_PAR_TAILLE`) ou `auto` d'après le
+  nombre d'agents (hors météo) ; chaque taille impose un minimum d'agents (`AGENTS_PAR_TAILLE`), pour
+  qu'aucun lieu ne reste vide. Plans réels : `radioconcentrique`, `hippodamien`, `etoile` (éventail
+  depuis le front de mer), `lineaire` ; `hasard` le tire avec la graine (campagnes).
+- La ville agit sur la simulation : chaque agent habite un quartier (`domicile_k`, réparti rôle par
+  rôle), fréquente les lieux attribués à son quartier (chaque lieu en sert au moins un), et les
+  routines atténuent l'attrait d'un lieu avec sa distance (`2^(−d / demi_distance)`, mêmes tirages).
+  Mêmes ville et quartiers en C0 et en C1 (E1).
+- Géométrie et attribution calculées en Python, publiées dans `monde.plan` 1.1 (`payload.ville`) et
+  dans Redis ; Godot dessine lieux et routes à leurs positions, sans logique.
+- Mesuré le 10 nov. (C0, 3 graines, 30 jours) : aucun lieu vide ; à 120 agents, une paire d'agents sur
+  deux se croise contre 95 % avec sept zones, et l'adoption est nettement plus lente.
+
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- Ville à taille et plan urbain à la place du nombre de zones par type, carte peuplée
-  automatiquement. Tranché le 10 nov. : elle **agit sur la simulation** ; sa taille suit le nombre
-  d'agents (pas de lieux vides, pas d'agents qui ne se croisent jamais) ; plans tirés de morphologies
-  réelles (radioconcentrique, hippodamien, en étoile, linéaire) ; ville tirée au hasard (avec la
-  graine) pour les campagnes. Encore ouvert : la migration des anciens configurations et runs, et le
-  moment de la coder (avant les campagnes, puisqu'elle agit sur la diffusion).
+- Ville (codée le 10 nov., voir plus haut) : encore ouvert, la migration des anciennes
+  configurations et des runs (`zones`), et le passage de `default.yaml` à une ville (aujourd'hui sans
+  ville : seul `dev-ville.yaml` et l'interface en utilisent une).
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

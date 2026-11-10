@@ -1,0 +1,10 @@
+# Ville à taille et plan choisis (10 nov., sim/ville.py) sur la population de développement : la ville
+# remplace le nombre de zones de chaque type. Taille auto (60 agents : ville moyenne, 12 lieux) et plan
+# tiré avec la graine, comme prévu pour les campagnes. Pour un plan précis : plan: radioconcentrique,
+# hippodamien, etoile ou lineaire.
+herite_de: dev.yaml
+
+ville:
+  taille: auto
+  plan: hasard
+  demi_distance: 120   # un lieu à 120 m du quartier attire deux fois moins (routines du matin)
