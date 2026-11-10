@@ -58,6 +58,10 @@ class EtatProduit:
     lassitude: float = 0.0
     transition: Notoriete | None = None  # passage du seuil lors de la dernière mise à jour
     causes: tuple[UUID, ...] = ()  # expositions qui ont provoqué une (re)découverte
+    # Habitude des expositions ambiantes (rayon, porteurs vus), entre 0 et 1 : moyenne glissante
+    # des jours où elles étaient là. Une exposition familière ne rappelle plus grand-chose.
+    familiarite_rayon: float = 0.0
+    familiarite_porteurs: float = 0.0
     _vues: set[UUID] = field(default_factory=set)  # expositions déjà comptées
 
     @property
@@ -107,14 +111,27 @@ def vivre_jour(
             for m in messages
         )
         renforts += r.article * len(articles)
-        renforts += min(r.porteur_vu * perception.porteurs_vus, r.porteurs_vus_max)
-        renforts += r.rayon if perception.rayon else 0.0
+        # Expositions ambiantes : leur effet baisse quand elles se répètent (habituation).
+        vus = perception.porteurs_vus > 0
+        renforts += min(r.porteur_vu * perception.porteurs_vus, r.porteurs_vus_max) * (
+            1 - etat.familiarite_porteurs
+        )
+        renforts += r.rayon * (1 - etat.familiarite_rayon) if perception.rayon else 0.0
+        h = oubli.habituation
+        etat.familiarite_porteurs = round(
+            etat.familiarite_porteurs + h * (vus - etat.familiarite_porteurs), DECIMALES
+        )
+        etat.familiarite_rayon = round(
+            etat.familiarite_rayon + h * (perception.rayon - etat.familiarite_rayon), DECIMALES
+        )
         if porteur:
             a = 1.0
         else:
             a = min(1.0, etat.notoriete * 2 ** (-1 / etat.demi_vie) + renforts)
         a = round(a, DECIMALES)
-        connu = a >= oubli.seuil
+        # Hystérésis : on oublie sous `seuil_oubli`, on (re)découvre au-dessus de `seuil`.
+        bas = oubli.seuil if oubli.seuil_oubli is None else oubli.seuil_oubli
+        connu = a >= (bas if etat.connu else oubli.seuil)
         if connu and not etat.connu:
             etat.transition = Notoriete.REDECOUVERTE if etat.deja_connu else Notoriete.DECOUVERTE
             etat.causes = tuple(x.event_id for x in (*messages, *articles))

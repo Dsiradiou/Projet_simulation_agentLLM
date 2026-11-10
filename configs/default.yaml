@@ -89,7 +89,11 @@ commerce:
   reassort_pour_100: 10        # commande minimale par point de vente et par semaine
   marge_commande: 1.2          # commande = ventes de la semaine × marge
   jour_reassort: 5           # jour de la semaine (jour % 7)
-  duree_flacon_jours: 12     # jours d'usage d'un flacon, puis il faut racheter
+  # Durée d'un flacon selon l'usage (X4, décidé le 4 nov., calibré le 10 nov.) : il contient 16 journées
+  # d'usage ordinaire ; une journée à la plage ou à la piscine en consomme 2. Durée moyenne 11,3 jours
+  # (8 à 16) au lieu de 12 jours pour tous : les rachats d'une même vague ne tombent plus ensemble.
+  duree_flacon_jours: 16     # journées d'usage ordinaire (domicile, ville), puis il faut racheter
+  usage_par_zone: {plage: 2, piscine: 2, terrain_sport: 1.5}  # 1 pour les autres types de lieu
 
 # Règles des agents qui ne sont pas LLM (étape 13).
 regles:
@@ -207,19 +211,24 @@ rag:
 # Notoriété A (étape 16) : l'agent pense-t-il encore au produit ? A(j) = A(j−1)·2^(−1/h) +
 # renforts, plafonnée à 1 ; un porteur reste à 1. Sous le seuil : plus de relance ni d'appel LLM ;
 # s'il y est de nouveau exposé et repasse le seuil, il décide (redécouverte). Mêmes règles en C0.
+# Calibré le 10 nov. (M1, docs/mesures/oubli-calibrage_2026-11-10.md) : avant, un seul passage en
+# rayon suffisait à découvrir le produit (jours 1-2) et un « oubli » était un saut autour du seuil,
+# suivi d'une redécouverte 1 à 3 jours plus tard.
 oubli:
   actif: true
   connus_jour_1: 0.2         # part qui connaît le produit au jour 1 (Bass p), tirée avec la graine
   demi_vie_jours: 10         # demi-vie h tirée par agent, 10 ± 3 jours (paramètre individuel, A5)
   demi_vie_ecart: 3
-  seuil: 0.2
+  seuil: 0.3                 # découverte : il faut plusieurs expositions, ou le message d'un proche
+  seuil_oubli: 0.15          # hystérésis : on garde en tête plus facilement qu'on ne découvre
+  habituation: 0.3           # rayon et porteurs vus jour après jour deviennent le décor
   renforts:
-    proche: 0.5              # message d'un proche (direct, ou d'un de ses contacts)
-    publication: 0.3         # publication « réseaux » ou propos entendu dans sa zone
-    article: 0.4             # article, publication virale, polémique ou rupture de stock
-    porteur_vu: 0.1          # par porteur vu autour de lui
-    porteurs_vus_max: 0.3    # plafond par jour (4 nov.) : sinon une mode visible ne s'oublie jamais
-    rayon: 0.2               # le produit est en rayon là où il se trouve
+    proche: 0.3              # message d'un proche (direct, ou d'un de ses contacts)
+    publication: 0.15        # publication « réseaux » ou propos entendu dans sa zone
+    article: 0.25            # article, publication virale, polémique ou rupture de stock
+    porteur_vu: 0.05         # par porteur vu autour de lui
+    porteurs_vus_max: 0.15   # plafond par jour (4 nov.) : sinon une mode visible ne s'oublie jamais
+    rayon: 0.1               # le produit est en rayon là où il se trouve
 
 # Lassitude L (étape 16) : il connaît le produit mais en a assez. L(j) = L(j−1)·(1 − récupération)
 # + taux·exposition (messages reçus, porteurs vus, jours à le porter). Elle pénalise la redondance

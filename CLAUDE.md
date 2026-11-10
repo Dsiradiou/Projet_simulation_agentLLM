@@ -225,7 +225,8 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
 - Météo saisonnière (`sim/meteo.py`, section `meteo`) : montée puis plateau, pas de rentrée
   (décision du 19 oct.) ; conditions et indice UV toujours cohérents.
 - Commerce (`sim/commerce.py`) : stock par point de vente ; un nouveau porteur, ou un porteur dont
-  le flacon est fini (12 jours), doit acheter ; en rupture, l'achat échoue (décision publiée avec
+  le flacon est fini (16 journées d'usage ordinaire, 2 par jour à la plage et à la piscine : X4),
+  doit acheter ; en rupture, l'achat échoue (décision publiée avec
   `porteur: false`). Achats dans un ordre tiré avec la graine. Les vendeurs commandent selon les
   ventes de la semaine. Le motif `flacon_vide` déclenche une décision sans délai de réflexion.
 - Les perturbations ont des effets mécaniques (`reagir`) : vague de chaleur, orage, rupture de
@@ -307,13 +308,23 @@ Les défauts constatés et pas encore réglés sont listés, avec l'étape prév
   a oublié sort du sens partagé et est compté à part (`oubli`). Passages du seuil publiés en
   `agent.notoriete` et recomptés par le rejeu.
 - Comparaison : `configs/dev-sans-oubli.yaml`. Mesuré le 4 nov. : la lassitude fait reculer la mode,
-  l'oubli ne joue presque pas et la découverte est immédiate (calibrage prévu au début des campagnes).
+  l'oubli ne joue presque pas et la découverte est immédiate.
+- Calibré le 10 nov. (M1, `docs/mesures/oubli-calibrage_2026-11-10.md`) : seuil de découverte 0,3 et
+  seuil d'oubli 0,15 (hystérésis, plus de sauts autour du seuil), habituation aux expositions
+  ambiantes répétées (rayon, porteurs vus), renforts réduits. Découverte médiane au jour 14 en C0 ;
+  l'oubli reste rare tant que l'adoption sature (un porteur n'oublie pas).
+- Indicateurs ajoutés le 10 nov. : écart au jour 1 (`ecart_jour_1`, Jensen-Shannon, X1) et groupe
+  `roles_llm` (sens des seuls rôles tenus par un LLM en C1, X10), aussi dans `indicators.rapport` et
+  `replay.comparaison` ; recalculés après coup pour les runs antérieurs.
 
 ## Décisions encore ouvertes
 
 Ne pas les trancher seul : demander avant de coder autour.
 
-- Ville à taille et plan urbain choisis (petite, moyenne, grande ; étoile, anneaux…) à la place du
-  nombre de zones par type, carte peuplée automatiquement : en discussion depuis le 4 nov., rien de
-  tranché (effet sur la simulation ou visuel seul, lien avec le nombre d'agents, moment de le faire).
+- Ville à taille et plan urbain à la place du nombre de zones par type, carte peuplée
+  automatiquement. Tranché le 10 nov. : elle **agit sur la simulation** ; sa taille suit le nombre
+  d'agents (pas de lieux vides, pas d'agents qui ne se croisent jamais) ; plans tirés de morphologies
+  réelles (radioconcentrique, hippodamien, en étoile, linéaire) ; ville tirée au hasard (avec la
+  graine) pour les campagnes. Encore ouvert : la migration des anciens configurations et runs, et le
+  moment de la coder (avant les campagnes, puisqu'elle agit sur la diffusion).
 - Le système d'exploitation et la configuration de la machine de la collaboratrice.

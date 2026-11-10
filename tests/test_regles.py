@@ -148,14 +148,28 @@ def test_bottle_runs_out_and_must_be_bought_again() -> None:
     agent = AgentScripte("sceptique_01", Role.SCEPTIQUE, achete)
     agent.declencheurs = CONFIG.declencheurs.model_copy(update={"delai_reflexion_ecart": 0})
     orch, recorder = _orchestrateur([agent], _commerce())
-    duree = CONFIG.commerce.duree_flacon_jours
+    commerce = CONFIG.commerce
+    duree = int(commerce.duree_flacon_jours / commerce.usage_par_zone[Zone.PLAGE])  # 8 jours
     asyncio.run(orch.executer(duree + 2))
     motifs = [d.payload.motif for d in recorder.of(ev.AgentDecision)]
     assert motifs[0] is ev.Motif.PREMIERE_DECISION
-    assert ev.Motif.FLACON_VIDE in motifs  # au bout de 12 jours, il faut racheter
+    assert ev.Motif.FLACON_VIDE in motifs  # à la plage tous les jours, il faut racheter au jour 9
     jour_vide = [d.sim_time_occurred // 1440 + 1 for d in recorder.of(ev.AgentDecision)
                  if d.payload.motif is ev.Motif.FLACON_VIDE][0]  # fmt: skip
     assert jour_vide == 1 + duree
+
+
+def test_bottle_lasts_longer_at_home_than_at_the_beach() -> None:
+    """X4 (4 nov.) : la plage et la piscine vident le flacon plus vite que le domicile."""
+    jours_vides = {}
+    for zone in (Zone.PLAGE, Zone.DOMICILE):
+        agent = AgentScripte("sceptique_01", Role.SCEPTIQUE, _achat(Sens.EFFICACE), zone=zone)
+        agent.declencheurs = CONFIG.declencheurs.model_copy(update={"delai_reflexion_ecart": 0})
+        orch, recorder = _orchestrateur([agent], _commerce())
+        asyncio.run(orch.executer(CONFIG.commerce.duree_flacon_jours + 2))
+        jours_vides[zone] = [d.sim_time_occurred // 1440 + 1 for d in recorder.of(ev.AgentDecision)
+                             if d.payload.motif is ev.Motif.FLACON_VIDE][0]  # fmt: skip
+    assert jours_vides == {Zone.PLAGE: 9, Zone.DOMICILE: 1 + CONFIG.commerce.duree_flacon_jours}
     assert orch.bilan.achats == 2
 
 

@@ -57,12 +57,14 @@ def test_notoriety_fades_with_the_half_life_and_a_carrier_never_forgets() -> Non
         vivre_jour(etat, _p(jour), porteur=False, contacts=[], oubli=OUBLI_ACTIF,
                    lassitude=LASSITUDE_ACTIVE)  # fmt: skip
     assert abs(etat.notoriete - 0.5) < 1e-5  # une demi-vie
-    for jour in range(11, 25):
+    for jour in range(11, 40):
         vivre_jour(etat, _p(jour), porteur=False, contacts=[], oubli=OUBLI_ACTIF,
                    lassitude=LASSITUDE_ACTIVE)  # fmt: skip
         if etat.transition is ev.Notoriete.OUBLI:
             break
-    assert not etat.connu and etat.notoriete < OUBLI_ACTIF.seuil
+    # Hystérésis (10 nov.) : il l'oublie sous le seuil d'oubli, pas dès le seuil de découverte.
+    assert not etat.connu and etat.notoriete < OUBLI_ACTIF.seuil_oubli < OUBLI_ACTIF.seuil
+    assert jour == 28  # 2^(−27/10) ≈ 0,154 encore connu, 2^(−28/10) ≈ 0,144 oublié
     porteur = EtatProduit(1.0, connu=True, deja_connu=True, demi_vie=2)
     for jour in range(1, 30):
         vivre_jour(porteur, _p(jour), porteur=True, contacts=[], oubli=OUBLI_ACTIF,
@@ -75,7 +77,40 @@ def test_seeing_carriers_brings_the_product_back_up_to_a_daily_cap() -> None:
     etat = EtatProduit(0.0, connu=False, deja_connu=True, demi_vie=10)
     vivre_jour(etat, _p(5, porteurs_vus=10), porteur=False, contacts=[], oubli=OUBLI_ACTIF,
                lassitude=LASSITUDE_ACTIVE)  # fmt: skip
-    assert etat.notoriete == OUBLI_ACTIF.renforts.porteurs_vus_max == 0.3
+    assert etat.notoriete == OUBLI_ACTIF.renforts.porteurs_vus_max == 0.15
+
+
+def test_repeated_ambient_exposure_becomes_background() -> None:
+    """Calibrage du 10 nov. (M1) : un rayon vu jour après jour ne rappelle plus grand-chose, et
+    un passage en rayon ne suffit pas à découvrir le produit."""
+    etat = EtatProduit(0.0, connu=False, deja_connu=False, demi_vie=10)
+    renforts = []
+    for jour in range(1, 15):
+        avant = etat.notoriete * 2 ** (-1 / etat.demi_vie)
+        vivre_jour(etat, _p(jour, rayon=True), porteur=False, contacts=[], oubli=OUBLI_ACTIF,
+                   lassitude=LASSITUDE_ACTIVE)  # fmt: skip
+        renforts.append(round(etat.notoriete - avant, 4))
+    assert renforts[0] == OUBLI_ACTIF.renforts.rayon
+    assert renforts == sorted(renforts, reverse=True) and renforts[-1] < 0.01
+    assert not etat.connu  # le rayon seul ne fait pas découvrir le produit
+    sans = EtatProduit(0.0, connu=False, deja_connu=False, demi_vie=10)
+    vivre_jour(sans, _p(1, rayon=True), porteur=False, contacts=[],
+               oubli=OUBLI_ACTIF.model_copy(update={"habituation": 0.0}),
+               lassitude=LASSITUDE_ACTIVE)  # fmt: skip
+    assert sans.familiarite_rayon == 0.0  # sans habituation : comme avant le calibrage
+
+
+def test_forgetting_has_hysteresis() -> None:
+    """Entre le seuil d'oubli et le seuil de découverte, l'état ne change pas : pas de saut
+    autour d'un seuil unique (oubli puis redécouverte le lendemain)."""
+    milieu = (OUBLI_ACTIF.seuil + OUBLI_ACTIF.seuil_oubli) / 2
+    connu = EtatProduit(milieu, connu=True, deja_connu=True, demi_vie=1000)
+    ignore = EtatProduit(milieu, connu=False, deja_connu=True, demi_vie=1000)
+    for etat in (connu, ignore):
+        vivre_jour(etat, _p(3), porteur=False, contacts=[], oubli=OUBLI_ACTIF,
+                   lassitude=LASSITUDE_ACTIVE)  # fmt: skip
+        assert etat.transition is None
+    assert connu.connu and not ignore.connu
 
 
 def test_an_exposure_brings_the_product_back_and_counts_once() -> None:

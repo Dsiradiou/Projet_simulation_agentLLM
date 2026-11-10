@@ -12,12 +12,15 @@ from bus import events as ev
 from indicators.calcul import (
     ADOPTION,
     DERIVES,
+    ECART_JOUR_1,
     INFORMATION_MUTUELLE,
     INFORMATION_MUTUELLE_P,
+    ROLES_LLM,
     SENS_PARTAGE,
     EtatPopulation,
     convergence,
     information_mutuelle,
+    jensen_shannon,
     p_permutation,
 )
 from indicators.derives import Derive, detecter
@@ -47,6 +50,52 @@ def _decision(agent_id: str, sens: Sens, jour: int = 1, porteur: bool = False, z
 
 
 # --- formules ------------------------------------------------------------------------------
+
+
+def test_jensen_shannon_bounds() -> None:
+    assert jensen_shannon({"banal": 4, "tendance": 1}, {"banal": 8, "tendance": 2}) == 0.0
+    assert math.isclose(jensen_shannon({"banal": 5}, {"tendance": 3}), 1.0)  # rien en commun
+    moyen = jensen_shannon({"banal": 5, "tendance": 5}, {"banal": 10})
+    assert 0 < moyen < 1 and math.isclose(
+        moyen, jensen_shannon({"banal": 10}, {"banal": 5, "tendance": 5})
+    )
+
+
+def test_gap_to_day_one_separates_consensus_from_unchanged_default() -> None:
+    """X1 (4 nov.) : la baseline (tous passent de « banal » à « tendance ») et son témoin (tous
+    restent « banal ») ont la même convergence, pas le même écart au jour 1."""
+
+    def jour_90(sens_final: Sens) -> dict:
+        etat = EtatPopulation()
+        for i in range(6):
+            etat.appliquer(_decision(f"sceptique_{i:02d}", Sens.BANAL, jour=1))
+        etat.mesurer(1, 42)
+        for i in range(6):
+            etat.appliquer(_decision(f"sceptique_{i:02d}", sens_final, jour=2))
+        return {(m.nom, m.groupe): m for m in etat.mesurer(2, 42)}
+
+    baseline, temoin = jour_90(Sens.TENDANCE), jour_90(Sens.BANAL)
+    assert baseline[(SENS_PARTAGE, None)].valeur == temoin[(SENS_PARTAGE, None)].valeur == 1.0
+    assert baseline[(ECART_JOUR_1, None)].valeur == 1.0 and temoin[(ECART_JOUR_1, None)].valeur == 0
+    # F6 : il cite les décisions du jour et celles du jour de référence.
+    assert len(baseline[(ECART_JOUR_1, None)].caused_by) == 12
+
+
+def test_llm_roles_are_measured_apart_from_rule_roles() -> None:
+    """X10 (4 nov.) : le « tendance » des fidèles et des vendeurs vient de leur règle ; le groupe
+    roles_llm ne compte que les rôles tenus par un modèle en C1."""
+    etat = EtatPopulation()
+    for i in range(4):
+        etat.appliquer(_decision(f"fidele_autre_marque_{i:02d}", Sens.TENDANCE))
+        etat.appliquer(_decision(f"vendeur_{i:02d}", Sens.TENDANCE))
+        etat.appliquer(_decision(f"pharmacien_{i:02d}", Sens.EFFICACE))
+    mesures = {(m.nom, m.groupe): m for m in etat.mesurer(1, 42)}
+    llm = mesures[(SENS_PARTAGE, ROLES_LLM)]
+    assert llm.repartition == {"efficace": 4} and llm.effectif == 4 and llm.valeur == 1.0
+    assert mesures[(SENS_PARTAGE, None)].repartition == {"efficace": 4, "tendance": 8}
+    assert {INFORMATION_MUTUELLE, INFORMATION_MUTUELLE_P, ECART_JOUR_1} <= {
+        n for n, g in mesures if g == ROLES_LLM
+    }
 
 
 def test_convergence_and_mutual_information_bounds() -> None:

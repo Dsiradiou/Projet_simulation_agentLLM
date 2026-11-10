@@ -94,7 +94,7 @@ from bus.events import (
 from sim.commerce import Commerce
 from sim.config import Config, Mode
 from sim.controle import SourceControle
-from sim.domaine import MINUTES_PAR_JOUR, Canal, concerne
+from sim.domaine import MINUTES_PAR_JOUR, Canal, concerne, type_de_lieu
 from sim.etat import EtatMonde
 from sim.horloge import HorlogePhase, SimClock, ordre_paliers
 from sim.livraison import Boite
@@ -334,9 +334,10 @@ class Orchestrateur:
         if self.commerce is not None:  # réassort du vendredi, puis un jour d'usage des flacons
             for event in self.commerce.debut_du_jour(jour, minute0, self.run.run_id):
                 await self._publier(event)
-            for agent in self.agents:
-                if agent.flacon_jours:
-                    agent.flacon_jours -= 1
+            for agent in self.agents:  # usage de la veille, selon le lieu où il l'a passée (X4)
+                if agent.flacon:
+                    usage = self.commerce.config.usage_par_zone.get(type_de_lieu(agent.zone), 1.0)
+                    agent.flacon = max(0.0, agent.flacon - usage)
         await self._deplacements_du_matin(minute0)
         await self._statut("en_cours")  # heure simulée courante, lue par le pont (C3)
 
@@ -659,7 +660,7 @@ class Orchestrateur:
             if self.config.simulation.diffusion
             else 0,
             rayon=bool(self.commerce and self.commerce.en_rayon(agent.zone)),
-            flacon_vide=agent.flacon_jours == 0
+            flacon_vide=agent.flacon == 0
             and bool(agent.derniere_decision and agent.derniere_decision.porteur),
             achat_rate=bool(self.commerce and agent.agent_id in self.commerce.rates_veille),
             promotion_concurrente=bool(self.commerce and self.commerce.promotion_concurrente(jour)),
@@ -718,9 +719,9 @@ class Orchestrateur:
         """Un achat remplit le flacon ; une décision qui n'utilise plus le produit le retire."""
         if self.commerce and decision is not None and agent.derniere_decision is decision:
             if achete:
-                agent.flacon_jours = self.commerce.config.duree_flacon_jours
+                agent.flacon = float(self.commerce.config.duree_flacon_jours)
             elif not decision.porteur:
-                agent.flacon_jours = None
+                agent.flacon = None
 
     def _acheter(self, resultats: dict[str, Decision | None], jour: int) -> set[str]:
         """Achats du jour, dans un ordre tiré avec la graine (l'ordre alphabétique servirait

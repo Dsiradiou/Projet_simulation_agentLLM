@@ -74,6 +74,7 @@ Le développement avance étape par étape. Le détail de chaque étape est expl
 | 15 bis | Interface de paramétrage et zones multiples | ✅ terminée |
 | 15 ter | Souvenirs dans le prompt | ✅ terminée |
 | 16 | Mémoire sélective, oubli et mémoire collective (1re partie) | ✅ terminée |
+| 16 | Calibrage de l'oubli, flacons selon l'usage, écart au jour 1, sens des rôles LLM | en cours |
 | 16 | Campagnes d'expériences | à venir |
 | 17 | Charge et pannes | à venir |
 | 18 | Préparation de la soutenance | à venir |
@@ -313,8 +314,11 @@ appel de modèle : un run de 60 jours prend quelques secondes.
 
 Un service lancé avec chaque run publie à la fin de chaque jour simulé, sur `sim.indicators` :
 la **convergence** du sens (`1 − H / log 4`, globale, par rôle et par zone), l'**information
-mutuelle** rôle × sens avec sa p-valeur (test de permutation), l'adoption et le taux de dérive
-des décisions LLM (autre alphabet, personne inventée, santé, incohérence, ton d'assistant).
+mutuelle** rôle × sens avec sa p-valeur (test de permutation), l'**écart au jour 1**
+(Jensen-Shannon entre la répartition des sens du jour et celle du jour 1), l'adoption et le taux
+de dérive des décisions LLM (autre alphabet, personne inventée, santé, incohérence, ton
+d'assistant). Convergence, information mutuelle et écart sont aussi publiés pour les seuls rôles
+tenus par un LLM (groupe `roles_llm`), pour comparer C0 et C1 sans les agents à règles.
 Chaque valeur cite les décisions qu'elle compte (`caused_by`). La scène Godot les affiche :
 une jauge des sens devant chaque zone et une courbe dans le panneau.
 

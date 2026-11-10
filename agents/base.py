@@ -130,8 +130,9 @@ class Agent(ABC):
         self._jour_decision = 0
         self._delai = 0  # délai de réflexion tiré après la dernière décision
         self._meteo_forte_veille = False
-        # Jours d'usage restants dans son flacon (étape 13) ; None : pas de commerce simulé.
-        self.flacon_jours: int | None = None
+        # Journées d'usage ordinaire restant dans son flacon (étape 13) ; la plage et la piscine
+        # en consomment plus (X4, 10 nov.). None : pas de commerce simulé.
+        self.flacon: float | None = None
 
     def lieu_de(self, zone: Zone) -> str:
         """Le lieu où il va quand il se rend dans une zone de ce type."""
@@ -142,7 +143,7 @@ class Agent(ABC):
         """Il utilise le produit : sa dernière décision le dit, et son flacon n'est pas fini."""
         if self.derniere_decision is None or not self.derniere_decision.porteur:
             return False
-        return self.flacon_jours is None or self.flacon_jours > 0
+        return self.flacon is None or self.flacon > 0
 
     @property
     def sens(self) -> Sens | None:

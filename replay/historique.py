@@ -16,7 +16,15 @@ from pathlib import Path
 
 import duckdb
 
+from agents.roles import Role, palier_du_role
 from sim.run import RUNS_DIR
+
+# Rôles tenus par un LLM en C1 (X10), hors émetteurs de la marque : ceux dont on compare le sens.
+_ROLES_LLM = ", ".join(
+    f"'{r.value}'"
+    for r in Role
+    if palier_du_role(r) is not None and r is not Role.RESPONSABLE_MARQUE
+)
 
 # Vues construites sur la table brute `evenements`. Les champs du payload sont extraits du JSON
 # brut : ils restent donc exactement ceux qui ont circulé sur le bus.
@@ -83,8 +91,15 @@ REQUETES = {
                count(*) FILTER (sens = 'efficace') AS efficace,
                count(*) FILTER (sens = 'tendance') AS tendance,
                count(*) FILTER (sens = 'banal') AS banal,
-               count(*) FILTER (sens = 'depasse') AS depasse
-        FROM etat GROUP BY run_id, jour ORDER BY run_id, jour""",
+               count(*) FILTER (sens = 'depasse') AS depasse,
+               -- X10 : sens des seuls rôles LLM (tenus par la baseline en C0)
+               count(*) FILTER (sens = 'efficace' AND llm) AS efficace_llm,
+               count(*) FILTER (sens = 'tendance' AND llm) AS tendance_llm,
+               count(*) FILTER (sens = 'banal' AND llm) AS banal_llm,
+               count(*) FILTER (sens = 'depasse' AND llm) AS depasse_llm
+        FROM (SELECT *, regexp_extract(agent_id, '^(.*)_[0-9]+$', 1) IN (ROLES_LLM) AS llm
+              FROM etat)
+        GROUP BY run_id, jour ORDER BY run_id, jour""".replace("ROLES_LLM", _ROLES_LLM),
     "messages_par_role": """
         SELECT run_id, regexp_extract(agent_id, '^(.*)_[0-9]+$', 1) AS role, canal,
                count(*) AS messages

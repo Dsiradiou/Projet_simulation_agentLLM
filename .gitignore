@@ -26,3 +26,6 @@ Thumbs.db
 
 # Index ChromaDB du corpus (reconstruit à la demande)
 data/
+
+# Présentation du projet pour les CV (document personnel, non versionné)
+presentation-projet-cv.pdf

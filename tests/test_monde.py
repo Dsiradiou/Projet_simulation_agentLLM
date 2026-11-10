@@ -231,7 +231,10 @@ def test_motive_is_published_and_counted_in_replay() -> None:
     bilan = asyncio.run(orch.executer(4))
     motifs = Counter(d.payload.motif.value for d in recorder.of(ev.AgentDecision))
     assert motifs == Counter(bilan.declenchements)
-    assert motifs["premiere_decision"] == len(agents)
+    # Seuls ceux qui ont le produit en tête décident (oubli calibré le 10 nov. : la découverte
+    # s'étale sur plusieurs semaines, elle n'est plus faite en un ou deux jours).
+    connaissent = [a for a in agents if a.produit is None or a.produit.deja_connu]
+    assert motifs["premiere_decision"] == len(connaissent) < len(agents)
     assert bilan_depuis(recorder.events, len(agents))["declenchements"] == bilan.declenchements
 
 

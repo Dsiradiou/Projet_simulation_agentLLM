@@ -139,7 +139,14 @@ class CommerceConfig(_Section):
     reassort_pour_100: NonNegativeInt
     marge_commande: float = Field(ge=0, le=5)
     jour_reassort: int = Field(ge=0, le=6)
-    duree_flacon_jours: PositiveInt
+    duree_flacon_jours: PositiveInt = Field(
+        description="Journées d'usage ordinaire que contient un flacon (une application par jour)."
+    )
+    usage_par_zone: dict[Zone, PositiveFloat] = Field(
+        default_factory=dict,
+        description="Journées d'usage consommées par un jour passé dans ce type de lieu (X4, "
+        "10 nov.) : la plage et la piscine vident le flacon plus vite. 1 pour un type absent.",
+    )
 
 
 class ReglesConfig(_Section):
@@ -341,8 +348,29 @@ class OubliConfig(_Section):
         default=10, description="Demi-vie moyenne de la notoriété, tirée par agent."
     )
     demi_vie_ecart: float = Field(default=3, ge=0, description="Écart type de cette demi-vie.")
-    seuil: float = Field(default=0.2, gt=0, le=1)
+    seuil: float = Field(default=0.2, gt=0, le=1, description="Seuil de découverte.")
+    seuil_oubli: float | None = Field(
+        default=None,
+        gt=0,
+        le=1,
+        description="Seuil sous lequel un agent qui connaît le produit l'oublie, plus bas que le "
+        "seuil de découverte (hystérésis) : sans lui, A clignote autour du seuil et chaque "
+        "redécouverte coûte une décision. None : le seuil de découverte.",
+    )
     renforts: RenfortsConfig = Field(default_factory=RenfortsConfig)
+    habituation: float = Field(
+        default=0.0,
+        ge=0,
+        le=1,
+        description="Vitesse d'habituation aux expositions répétées (rayon, porteurs vus) : un "
+        "rayon vu tous les jours devient le décor et ne rappelle plus le produit. 0 : aucune.",
+    )
+
+    @model_validator(mode="after")
+    def _seuil_oubli_sous_le_seuil(self) -> "OubliConfig":
+        if self.seuil_oubli is not None and self.seuil_oubli > self.seuil:
+            raise ValueError("seuil_oubli doit être inférieur ou égal au seuil de découverte")
+        return self
 
 
 class LassitudeConfig(_Section):

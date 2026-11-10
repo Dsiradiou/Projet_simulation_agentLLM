@@ -1,7 +1,8 @@
 """Rapport des indicateurs d'un ou plusieurs runs, depuis leur seul historique (étape 14).
 
-Pour chaque run : sens partagé, information mutuelle rôle × sens (et sa p-valeur), adoption et
-taux de dérive, jour par jour ; sens par rôle en fin de run ; adoption au premier contact ;
+Pour chaque run : sens partagé, information mutuelle rôle × sens (et sa p-valeur), écart au
+jour 1 (X1), adoption et taux de dérive, jour par jour ; les mêmes mesures pour les seuls rôles
+LLM (X10) ; sens par rôle en fin de run ; adoption au premier contact ;
 dérives détectées, avec des exemples à vérifier à la main. Plusieurs runs (un run avec diffusion
 et son témoin sans diffusion, B3) sont comparés jour par jour.
 
@@ -22,7 +23,14 @@ from datetime import datetime
 from pathlib import Path
 
 from bus import events as ev
-from indicators.calcul import ADOPTION, INFORMATION_MUTUELLE, INFORMATION_MUTUELLE_P, SENS_PARTAGE
+from indicators.calcul import (
+    ADOPTION,
+    ECART_JOUR_1,
+    INFORMATION_MUTUELLE,
+    INFORMATION_MUTUELLE_P,
+    ROLES_LLM,
+    SENS_PARTAGE,
+)
 from indicators.derives import Detecteur
 from indicators.service import CalculateurDuRun
 from replay.rejeu import charger
@@ -37,6 +45,7 @@ EXEMPLES_MAX = 12
 class Serie:
     run_id: str
     recalcule: bool
+    complete: bool = False  # mesures ajoutées après le run (X1, X10), recalculées
     par_jour: dict[int, dict[tuple[str, str | None], ev.Indicator]] = field(default_factory=dict)
     premieres: Counter[str] = field(default_factory=Counter)  # premières décisions LLM
     exemples: list[tuple[int, str, list[str], str]] = field(default_factory=list)
@@ -62,6 +71,14 @@ def serie(run_id: str, runs_dir: Path = RUNS_DIR) -> Serie:
     s = Serie(run_id, recalcule)
     for i in indicateurs:
         s.par_jour.setdefault(jour(i.sim_time_occurred), {})[(i.payload.nom, i.payload.groupe)] = i
+    if not recalcule and not any(i.payload.nom == ECART_JOUR_1 for i in indicateurs):
+        # Run antérieur au 10 nov. : l'écart au jour 1 (X1) et les rôles LLM (X10) sont calculés
+        # après coup, avec le même code ; les valeurs enregistrées restent celles du run.
+        s.complete = True
+        for i in _recalcul(run_id, manifeste["seed"], events):
+            s.par_jour.setdefault(jour(i.sim_time_occurred), {}).setdefault(
+                (i.payload.nom, i.payload.groupe), i
+            )
     # Premières décisions LLM, et dérives détaillées (exemples).
     vus: set[str] = set()
     detecteur = Detecteur()
@@ -125,23 +142,49 @@ def rapport(series: list[Serie], titre: str) -> str:
     lignes = [f"# {titre}", "", "## Synthèse", ""]
     lignes += [
         "| Run | Jours | Sens partagé J1 → fin | Information mutuelle J1 → fin (p fin) "
-        "| Adoption fin | Porteurs à la 1re décision LLM | Dérives (décisions LLM) |",
-        "| --- | --- | --- | --- | --- | --- | --- |",
+        "| Écart au jour 1, fin | Adoption fin | Porteurs à la 1re décision LLM "
+        "| Dérives (décisions LLM) |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for s in series:
         d, f = s.jours[0], s.jours[-1]
         premiers = s.premieres["porteur"], sum(s.premieres.values())
         signalees = sum(s.derives.values())
         lignes.append(
-            f"| `{s.run_id}`{' (recalculé)' if s.recalcule else ''} | {f} "
+            f"| `{s.run_id}`{' (recalculé)' if s.recalcule else ''}"
+            f"{' (X1, X10 recalculés)' if s.complete else ''} | {f} "
             f"| {_f(s.valeur(d, SENS_PARTAGE))} → {_f(s.valeur(f, SENS_PARTAGE))} "
             f"| {_f(s.valeur(d, INFORMATION_MUTUELLE))} → {_f(s.valeur(f, INFORMATION_MUTUELLE))} "
             f"({_f(s.valeur(f, INFORMATION_MUTUELLE_P), 3)}) "
+            f"| {_f(s.valeur(f, ECART_JOUR_1))} "
             f"| {_f(s.valeur(f, ADOPTION))} | {premiers[0]} / {premiers[1]} "
             f"| {signalees} signes sur {s.examinees} |"
         )
+    lignes += ["", "## Rôles LLM seulement (X10)", ""]
+    lignes += [
+        "Rôles tenus par un modèle en C1 (par la baseline en C0) : sans les fidèles ni les "
+        "vendeurs, dont le « tendance » vient de leur règle.",
+        "",
+        "| Run | Sens partagé J1 → fin | Information mutuelle J1 → fin (p fin) "
+        "| Écart au jour 1, fin | Répartition fin |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for s in series:
+        d, f = s.jours[0], s.jours[-1]
+        fin = s.par_jour[f].get((SENS_PARTAGE, ROLES_LLM))
+        lignes.append(
+            f"| `{s.run_id}` "
+            f"| {_f(s.valeur(d, SENS_PARTAGE, ROLES_LLM))} → "
+            f"{_f(s.valeur(f, SENS_PARTAGE, ROLES_LLM))} "
+            f"| {_f(s.valeur(d, INFORMATION_MUTUELLE, ROLES_LLM))} → "
+            f"{_f(s.valeur(f, INFORMATION_MUTUELLE, ROLES_LLM))} "
+            f"({_f(s.valeur(f, INFORMATION_MUTUELLE_P, ROLES_LLM), 3)}) "
+            f"| {_f(s.valeur(f, ECART_JOUR_1, ROLES_LLM))} "
+            f"| {fin.payload.repartition if fin else '—'} |"
+        )
     lignes += ["", "## Jour par jour", ""]
-    entetes = [f"{n} ({s.run_id[-12:]})" for s in series for n in ("C", "IM", "p", "adoption")]
+    noms = ("C", "IM", "p", "écart J1", "adoption")
+    entetes = [f"{n} ({s.run_id[-12:]})" for s in series for n in noms]
     lignes.append("| Jour | " + " | ".join(entetes) + " |")
     lignes.append("| --- | " + " | ".join("---" for _ in entetes) + " |")
     for j in sorted(set().union(*(s.jours for s in series))):
@@ -151,6 +194,7 @@ def rapport(series: list[Serie], titre: str) -> str:
                 _f(s.valeur(j, SENS_PARTAGE)),
                 _f(s.valeur(j, INFORMATION_MUTUELLE)),
                 _f(s.valeur(j, INFORMATION_MUTUELLE_P), 3),
+                _f(s.valeur(j, ECART_JOUR_1)),
                 _f(s.valeur(j, ADOPTION)),
             ]
         lignes.append(f"| {j} | " + " | ".join(cellules) + " |")

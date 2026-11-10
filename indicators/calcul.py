@@ -22,6 +22,18 @@ notoriété est passée sous le seuil) ne compte plus dans le sens partagé ni d
 mutuelle ; il garde sa place dans l'adoption (un porteur n'oublie pas). L'indicateur `oubli`
 publie à part la part des habitants qui l'ont oublié, en citant leurs événements d'oubli.
 
+Écart au jour 1 (X1, décidé par le binôme le 4 nov.) : la divergence de Jensen-Shannon (en bits,
+entre 0 et 1) entre la répartition des sens du jour et celle du premier jour où des avis existent.
+La convergence seule ne distingue pas un consensus construit d'un défaut resté en place (la
+baseline, où tous passent à « tendance », contre son témoin, où tous restent « banal ») ; l'écart
+au jour 1 dit si le sens a bougé depuis le départ. Il cite les décisions du jour et celles du jour
+de référence.
+
+Rôles LLM (X10, décidé le 4 nov.) : le sens partagé, l'information mutuelle et l'écart au jour 1
+sont aussi publiés pour le groupe `roles_llm`, les seuls rôles tenus par un modèle en C1 (et par la
+baseline C0 en C0). Le « tendance » des fidèles et des vendeurs vient de leur règle : sans ce
+groupe, toute comparaison de sens entre C0 et C1 en dépend.
+
 Chaque valeur cite les décisions qu'elle compte (`caused_by`, F6). Le même code sert au service
 en direct (`indicators.service`) et au calcul après coup depuis l'historique (`indicators.rapport`).
 """
@@ -33,7 +45,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from uuid import UUID
 
-from agents.roles import Role
+from agents.roles import Role, palier_du_role
 from bus import events as ev
 from sim.domaine import Sens, debut_du_jour
 
@@ -48,6 +60,9 @@ INFORMATION_MUTUELLE = "information_mutuelle"
 INFORMATION_MUTUELLE_P = "information_mutuelle_p"
 DERIVES = "derives"
 OUBLI = "oubli"
+ECART_JOUR_1 = "ecart_jour_1"
+# Groupe des rôles tenus par un LLM en C1 (X10) : mêmes agents en C0, où une règle les tient.
+ROLES_LLM = "roles_llm"
 
 
 def role_de(agent_id: str) -> str:
@@ -64,6 +79,27 @@ def entropie(comptes: Iterable[int]) -> float:
 def convergence(comptes: Iterable[int]) -> float:
     """1 − H / log K : 1 si un seul sens, 0 si les K sens sont à égalité."""
     return 1.0 - entropie(comptes) / math.log(K)
+
+
+def jensen_shannon(p: dict[str, int], q: dict[str, int]) -> float:
+    """Divergence de Jensen-Shannon entre deux répartitions (comptes), en bits : 0 pour deux
+    répartitions identiques, 1 pour deux répartitions sans aucun sens en commun."""
+    n_p, n_q = sum(p.values()), sum(q.values())
+    if not n_p or not n_q:
+        return 0.0
+    total = 0.0
+    for s in set(p) | set(q):
+        a, b = p.get(s, 0) / n_p, q.get(s, 0) / n_q
+        m = (a + b) / 2
+        total += sum(x * math.log2(x / m) for x in (a, b) if x > 0) / 2
+    return min(1.0, max(0.0, total))
+
+
+def du_role_llm(role: str) -> bool:
+    try:
+        return palier_du_role(Role(role)) is not None
+    except ValueError:
+        return False
 
 
 def information_mutuelle(paires: list[tuple[str, str]]) -> tuple[float, float]:
@@ -96,9 +132,10 @@ def p_permutation(
     return (1 + au_moins) / (1 + tirages)
 
 
-def rng_du_jour(graine: int, jour: int) -> random.Random:
-    """Tirages du test de permutation : reproductibles pour un run et un jour donnés."""
-    return random.Random(f"indicateurs:{graine}:{jour}")
+def rng_du_jour(graine: int, jour: int, groupe: str | None = None) -> random.Random:
+    """Tirages du test de permutation : reproductibles pour un run, un jour et un groupe. Le
+    global garde les tirages d'avant l'étape 16 (mêmes p-valeurs pour les anciens runs)."""
+    return random.Random(f"indicateurs:{graine}:{jour}" + (f":{groupe}" if groupe else ""))
 
 
 @dataclass
@@ -149,6 +186,11 @@ class EtatPopulation:
     # Étape 16 : habitants qui ont oublié le produit, avec leur événement d'oubli et son heure.
     oublis: dict[str, tuple[UUID, int]] = field(default_factory=dict)
     notoriete_suivie: bool = False  # le run publie la notoriété (sinon : pas d'indicateur oubli)
+    # X1 : répartition des sens au premier jour où des avis existent, par groupe (None : global),
+    # avec les décisions qui la composent.
+    references: dict[str | None, tuple[dict[str, int], tuple[UUID, ...]]] = field(
+        default_factory=dict
+    )
 
     def appliquer(self, event: ev.Envelope) -> None:
         match event:
@@ -195,19 +237,28 @@ class EtatPopulation:
                 min(a.minute for a in avis), fin, len(avis), **kw,
             )  # fmt: skip
 
-        repartition = _repartition(actifs)
-        mesures = [
-            mesure(SENS_PARTAGE, convergence(repartition.values()), None, actifs,
-                   repartition=repartition),
-            mesure(ADOPTION, sum(a.porteur for a in tous) / len(tous), None, tous),
-        ]  # fmt: skip
-        paires = [(a.role, a.sens.value) for a in actifs]
-        _, normalisee = information_mutuelle(paires)
-        mesures.append(mesure(INFORMATION_MUTUELLE, normalisee, None, actifs))
-        mesures.append(
-            mesure(INFORMATION_MUTUELLE_P, p_permutation(paires, rng_du_jour(graine, jour)), None,
-                   actifs)
-        )  # fmt: skip
+        mesures = [mesure(ADOPTION, sum(a.porteur for a in tous) / len(tous), None, tous)]
+        llm = [a for a in actifs if du_role_llm(a.role)]
+        for groupe, avis in ((None, actifs), (ROLES_LLM, llm)):
+            if not avis:
+                continue
+            repartition = _repartition(avis)
+            mesures.append(
+                mesure(SENS_PARTAGE, convergence(repartition.values()), groupe, avis,
+                       repartition=repartition)
+            )  # fmt: skip
+            paires = [(a.role, a.sens.value) for a in avis]
+            _, normalisee = information_mutuelle(paires)
+            mesures.append(mesure(INFORMATION_MUTUELLE, normalisee, groupe, avis))
+            p = p_permutation(paires, rng_du_jour(graine, jour, groupe))
+            mesures.append(mesure(INFORMATION_MUTUELLE_P, p, groupe, avis))
+            reference, ids = self.references.setdefault(
+                groupe, (repartition, tuple(a.decision_id for a in avis))
+            )
+            ecart = mesure(ECART_JOUR_1, jensen_shannon(repartition, reference), groupe, avis,
+                           repartition=repartition)  # fmt: skip
+            ecart.caused_by = tuple(dict.fromkeys(ecart.caused_by + ids))
+            mesures.append(ecart)
         groupes: dict[str, list[Avis]] = {}
         for agent_id in agents:
             groupes.setdefault(f"role:{self.avis[agent_id].role}", []).append(self.avis[agent_id])

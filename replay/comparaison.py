@@ -1,7 +1,8 @@
 """Comparaison de runs à partir de leur seul historique (étape 13, base de E1 et E2).
 
 Pour chaque run : la courbe des porteurs jour par jour (dernière décision de chaque agent), le
-pic (jour et hauteur), le déclin depuis le pic, la répartition des sens en fin de run, et le coût.
+pic (jour et hauteur), le déclin depuis le pic, la répartition des sens en fin de run (toute la
+population, et les seuls rôles LLM : X10), et le coût.
 Plusieurs runs d'une même configuration (graines différentes) sont résumés par leur moyenne et
 leur écart-type jour par jour (E2 : dispersion entre runs).
 
@@ -33,6 +34,7 @@ class Courbe:
     agents: int
     porteurs: list[int] = field(default_factory=list)  # indice : jour - 1
     sens_fin: dict[str, int] = field(default_factory=dict)
+    sens_fin_llm: dict[str, int] = field(default_factory=dict)  # X10 : rôles LLM seulement
     appels_llm: int = 0
     duree_s: float = 0.0
     messages: int = 0
@@ -78,6 +80,7 @@ def courbes(
                 agents=dernier[3],
                 porteurs=[r[2] for r in jours_run],
                 sens_fin=dict(zip(SENS, dernier[4:8], strict=True)),
+                sens_fin_llm=dict(zip(SENS, dernier[8:12], strict=True)),
                 appels_llm=bilan.get("appels_llm", 0),
                 duree_s=bilan.get("duree_reelle_s", 0.0),
                 messages=bilan.get("messages", 0),
@@ -100,16 +103,23 @@ def rapport(liste: list[Courbe], titre: str) -> str:
     lignes = [f"# {titre}", "", "## Runs", ""]
     lignes += [
         "| Run | Configuration | Agents | Pic (jour, porteurs) | Déclin depuis le pic | Fin : "
-        "efficace / tendance / banal / dépassé | Messages | Appels LLM | Durée (s) |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+        "efficace / tendance / banal / dépassé | Dont rôles LLM | Messages | Appels LLM "
+        "| Durée (s) |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for c in liste:
         jour, hauteur = c.pic
         sens = " / ".join(str(c.sens_fin[s]) for s in SENS)
+        sens_llm = " / ".join(str(c.sens_fin_llm[s]) for s in SENS)
         lignes.append(
             f"| `{c.run_id}` | {c.configuration} | {c.agents} | J{jour}, {hauteur} | "
-            f"{c.declin} | {sens} | {c.messages} | {c.appels_llm} | {c.duree_s:.0f} |"
+            f"{c.declin} | {sens} | {sens_llm} | {c.messages} | {c.appels_llm} | {c.duree_s:.0f} |"
         )
+    lignes += [
+        "",
+        "« Dont rôles LLM » : le sens des seuls rôles tenus par un modèle en C1 (par la baseline "
+        "en C0), sans les fidèles ni les vendeurs, dont le « tendance » vient de leur règle (X10).",
+    ]
     groupes: dict[str, list[Courbe]] = defaultdict(list)
     for c in liste:
         groupes[c.configuration].append(c)
